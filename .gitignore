@@ -1,0 +1,42 @@
+# Backend
+target/
+*.class
+*.jar
+*.war
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+node_modules/
+dist/
+.angular/
+
+# Chatbot
+chatbot/venv/
+chatbot/__pycache__/
+chatbot/agents/__pycache__/
+chatbot/*.db
+chatbot/.chainlit/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# Environment
+.env
+*.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Claude/Cursor
+.claude/
+.cursor/

@@ -1,0 +1,88 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILE:h2}
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:default-demo-secret-key-change-this-in-production-must-be-at-least-64-chars-long-for-hmac-sha512}
+    expiration-ms: 3600000  # 1 hour
+    refresh-expiration-ms: 604800000  # 7 days
+
+  ai:
+    api-key: ${AI_API_KEY:}
+    model: qwen3-coder-plus
+
+  chatbot:
+    url: ${CHATBOT_URL:http://127.0.0.1:8000}
+    enabled: ${CHATBOT_ENABLED:true}
+
+# Swagger / OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+---
+# H2 Profile (default - easiest for demo)
+spring:
+  config:
+    activate:
+      on-profile: h2
+  datasource:
+    url: jdbc:h2:mem:ecommerce_demo
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: false
+      path: /h2-console
+
+---
+# PostgreSQL Profile
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ecommerce_demo}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+---
+# MySQL Profile
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ecommerce_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect

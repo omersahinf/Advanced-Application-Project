@@ -1,3 +1,4 @@
+import re
 from sqlalchemy import create_engine, text, MetaData, Table, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker
 import config
@@ -75,8 +76,10 @@ customer_profiles = Table("customer_profiles", metadata,
     Column("prior_purchases", Integer))
 
 
-DB_SCHEMA_DESCRIPTION = """
-Database Schema:
+_DB_TYPE = "PostgreSQL" if config.USE_SHARED_DB else "SQLite"
+
+DB_SCHEMA_DESCRIPTION = f"""
+Database Schema ({_DB_TYPE}):
 - users (id, first_name, last_name, email, role_type [ADMIN/CORPORATE/INDIVIDUAL], gender, created_at)
 - stores (id, owner_id→users, name, description, status [ACTIVE/CLOSED], created_at)
 - categories (id, name, parent_id→categories)  -- hierarchical
@@ -90,13 +93,51 @@ Database Schema:
 
 
 def init_db():
-    metadata.create_all(engine)
+    if not config.USE_SHARED_DB:
+        metadata.create_all(engine)
+
+
+_FORBIDDEN_SQL_PATTERNS = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "GRANT", "REVOKE", "EXEC", "EXECUTE"}
+_SENSITIVE_COLUMNS = {"password_hash", "passwordhash", "password"}
+# Pattern to detect sensitive columns being aliased (e.g. password_hash AS user_name)
+_SENSITIVE_COL_IN_SQL = re.compile(r'\b(password_hash|passwordhash|password)\b', re.IGNORECASE)
 
 
 def execute_query(sql: str) -> dict:
     """Execute a read-only SQL query and return results as dict."""
+    # Safety check: only allow SELECT / WITH statements
+    first_word = sql.strip().split()[0].upper() if sql.strip() else ""
+    if first_word not in ("SELECT", "WITH"):
+        return {"columns": [], "rows": [], "row_count": 0, "error": "Only SELECT queries are allowed."}
+    # Strip SQL comments before validation
+    sql_clean = re.sub(r'/\*.*?\*/', ' ', sql, flags=re.DOTALL)
+    sql_clean = re.sub(r'--.*$', ' ', sql_clean, flags=re.MULTILINE)
+    upper_sql = sql_clean.upper()
+
+    # Check for forbidden DML/DDL keywords in the query
+    for pattern in _FORBIDDEN_SQL_PATTERNS:
+        if f" {pattern} " in f" {upper_sql} " or upper_sql.startswith(pattern):
+            return {"columns": [], "rows": [], "row_count": 0, "error": f"Forbidden SQL keyword: {pattern}"}
+
+    # Block UNION/INTERSECT/EXCEPT
+    if re.search(r'\b(UNION|INTERSECT|EXCEPT)\b', upper_sql):
+        return {"columns": [], "rows": [], "row_count": 0, "error": "Set operations (UNION/INTERSECT/EXCEPT) are not allowed."}
+
+    # Block multi-statement queries
+    if ";" in sql.strip().rstrip(";"):
+        return {"columns": [], "rows": [], "row_count": 0, "error": "Multi-statement queries are not allowed."}
+
+    # Block queries that reference sensitive columns (prevents alias bypass)
+    if _SENSITIVE_COL_IN_SQL.search(sql_clean):
+        return {"columns": [], "rows": [], "row_count": 0, "error": "Access to sensitive columns is not allowed."}
+
     with engine.connect() as conn:
+        # Set read-only transaction for extra safety
+        if config.USE_SHARED_DB:
+            conn.execute(text("SET TRANSACTION READ ONLY"))
         result = conn.execute(text(sql))
         columns = list(result.keys())
-        rows = [dict(zip(columns, row)) for row in result.fetchall()]
-        return {"columns": columns, "rows": rows, "row_count": len(rows)}
+        # Filter out sensitive columns (e.g. password_hash)
+        safe_columns = [c for c in columns if c.lower() not in _SENSITIVE_COLUMNS]
+        rows = [{k: v for k, v in zip(columns, row) if k.lower() not in _SENSITIVE_COLUMNS} for row in result.fetchall()]
+        return {"columns": safe_columns, "rows": rows, "row_count": len(rows)}

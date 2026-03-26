@@ -10,7 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/ai")
 public class AiChatController {
 
     private final AiChatService aiChatService;
@@ -26,13 +25,13 @@ public class AiChatController {
      * - Only the authenticated user's product data is used
      * - Gemini API key stays on backend
      */
-    @PostMapping("/chat")
+    @PostMapping({"/api/chat/ask", "/api/ai/chat"})
     public ResponseEntity<ChatResponse> chat(
             @Valid @RequestBody ChatRequest request,
             Authentication authentication) {
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        ChatResponse response = aiChatService.chat(request.getMessage(), principal.getUserId());
+        ChatResponse response = aiChatService.chat(request.getMessage(), principal.getUserId(), request.getSessionId());
         return ResponseEntity.ok(response);
     }
 }

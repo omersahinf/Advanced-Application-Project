@@ -49,7 +49,9 @@ def _fallback_response(prompt: str) -> str:
                               "shipment", "store", "stock", "price", "category", "total",
                               "average", "count", "how many", "rating", "spend", "delivery",
                               "ship", "buy", "sell", "income", "profit", "inventory",
-                              "discount", "payment", "refund"]
+                              "discount", "payment", "refund",
+                              "second", "third", "highest", "lowest", "more", "detail",
+                              "about that", "about the", "show me", "tell me"]
         if any(k in question_text for k in ecommerce_keywords):
             return "IN_SCOPE"
         return "OUT_OF_SCOPE"
@@ -162,11 +164,34 @@ def _generate_fallback_sql(prompt: str) -> str:
     """Generate basic SQL from common question patterns."""
     p = prompt.lower()
 
-    # Extract the user question from the prompt
+    # Extract only the user's current question (not conversation history)
     question = p
-    if "user question:" in p:
+    if "new question:" in p:
+        idx = p.index("new question:") + len("new question:")
+        question = p[idx:].strip()
+    elif "user question:" in p:
         idx = p.index("user question:") + len("user question:")
         question = p[idx:].strip()
+
+    # Handle follow-up references using conversation history
+    has_history = "conversation history" in p or "previous conversation" in p
+    if has_history and ("second" in question or "next" in question or "another" in question or "more" in question):
+        # Extract previous SQL from context (may be multi-line)
+        prev_sql = ""
+        if "sql used:" in p:
+            sql_start = p.index("sql used:") + len("sql used:")
+            # Find the end: look for "result:" which follows the SQL
+            if "result:" in p[sql_start:]:
+                sql_end = p.index("result:", sql_start)
+            else:
+                sql_end = p.index("\n", sql_start) if "\n" in p[sql_start:] else len(p)
+            prev_sql = prompt[sql_start:sql_end].strip()
+        if prev_sql:
+            if "second" in question:
+                return prev_sql + " LIMIT 1 OFFSET 1"
+            if "third" in question:
+                return prev_sql + " LIMIT 1 OFFSET 2"
+            return prev_sql
 
     if "total revenue" in question and "store" not in question:
         return "SELECT ROUND(SUM(grand_total), 2) as total_revenue FROM orders WHERE status != 'CANCELLED'"

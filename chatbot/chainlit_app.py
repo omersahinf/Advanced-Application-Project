@@ -1,4 +1,9 @@
 """Chainlit UI - standalone web chat interface for the chatbot."""
+import os
+# Chainlit crashes if DEBUG env var is set to a non-boolean value (e.g. "release")
+if os.environ.get("DEBUG") and os.environ["DEBUG"].lower() not in ("true", "false", "1", "0", ""):
+    os.environ.pop("DEBUG", None)
+
 try:
     import chainlit as cl
     from graph import run_query
@@ -8,14 +13,16 @@ try:
 
     @cl.on_chat_start
     async def start():
-        cl.user_session.set("role", "ADMIN")
-        cl.user_session.set("user_id", 1)
+        cl.user_session.set("role", "INDIVIDUAL")
+        cl.user_session.set("user_id", 6)
         cl.user_session.set("store_id", None)
         await cl.Message(
             content="Welcome to the **E-Commerce Analytics Chatbot**!\n\n"
                     "I can help you query and analyze your e-commerce data. "
-                    "Ask me about products, orders, sales, customers, or reviews.\n\n"
-                    "Current role: **ADMIN** (full access)"
+                    "Ask me about your orders, purchases, reviews, and more.\n\n"
+                    "Current role: **INDIVIDUAL** (your data only)\n\n"
+                    "*Note: Authentication is handled by the backend. "
+                    "This standalone UI uses a default individual user session.*"
         ).send()
 
 
@@ -25,22 +32,7 @@ try:
         user_id = cl.user_session.get("user_id", 1)
         store_id = cl.user_session.get("store_id")
 
-        # Role switching via command
         text = message.content.strip()
-        if text.startswith("/role"):
-            parts = text.split()
-            if len(parts) >= 2:
-                new_role = parts[1].upper()
-                if new_role in ("ADMIN", "CORPORATE", "INDIVIDUAL"):
-                    cl.user_session.set("role", new_role)
-                    if new_role == "CORPORATE":
-                        cl.user_session.set("store_id", int(parts[2]) if len(parts) > 2 else 1)
-                    if new_role == "INDIVIDUAL":
-                        cl.user_session.set("user_id", int(parts[2]) if len(parts) > 2 else 4)
-                    await cl.Message(content=f"Role switched to **{new_role}**").send()
-                    return
-            await cl.Message(content="Usage: `/role ADMIN|CORPORATE|INDIVIDUAL [id]`").send()
-            return
 
         result = run_query(text, role, user_id, store_id)
 

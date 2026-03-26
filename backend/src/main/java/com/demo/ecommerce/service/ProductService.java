@@ -6,8 +6,11 @@ import com.demo.ecommerce.entity.Category;
 import com.demo.ecommerce.entity.Product;
 import com.demo.ecommerce.entity.Store;
 import com.demo.ecommerce.repository.CategoryRepository;
+import com.demo.ecommerce.exception.ResourceNotFoundException;
 import com.demo.ecommerce.repository.ProductRepository;
 import com.demo.ecommerce.repository.StoreRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,10 +39,18 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    public Page<ProductDto> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable).map(ProductDto::from);
+    }
+
+    public Page<ProductDto> searchProducts(String query, Pageable pageable) {
+        return productRepository.findByNameContainingIgnoreCase(query, pageable).map(ProductDto::from);
+    }
+
     public ProductDto getProductById(Long id) {
         return productRepository.findById(id)
                 .map(ProductDto::from)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
     public List<ProductDto> getProductsByCategory(Long categoryId) {
@@ -72,14 +83,14 @@ public class ProductService {
     public ProductDto getProductForOwner(Long productId, Long ownerId) {
         return productRepository.findByIdAndStoreOwnerId(productId, ownerId)
                 .map(ProductDto::from)
-                .orElseThrow(() -> new RuntimeException("Product not found or not authorized"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found or not authorized"));
     }
 
     @Transactional
     public ProductDto createProduct(Long ownerId, CreateProductRequest req) {
         List<Store> stores = storeRepository.findByOwnerId(ownerId);
         if (stores.isEmpty()) {
-            throw new RuntimeException("No store found for this user");
+            throw new ResourceNotFoundException("No store found for this user");
         }
         Store store = stores.get(0);
 
@@ -93,7 +104,7 @@ public class ProductService {
 
         if (req.getCategoryId() != null) {
             Category cat = categoryRepository.findById(req.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             product.setCategory(cat);
         }
 
@@ -103,7 +114,7 @@ public class ProductService {
     @Transactional
     public ProductDto updateProduct(Long productId, Long ownerId, CreateProductRequest req) {
         Product product = productRepository.findByIdAndStoreOwnerId(productId, ownerId)
-                .orElseThrow(() -> new RuntimeException("Product not found or not authorized"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found or not authorized"));
 
         product.setName(req.getName());
         product.setDescription(req.getDescription());
@@ -113,7 +124,7 @@ public class ProductService {
 
         if (req.getCategoryId() != null) {
             Category cat = categoryRepository.findById(req.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             product.setCategory(cat);
         }
 
@@ -123,7 +134,7 @@ public class ProductService {
     @Transactional
     public void deleteProduct(Long productId, Long ownerId) {
         Product product = productRepository.findByIdAndStoreOwnerId(productId, ownerId)
-                .orElseThrow(() -> new RuntimeException("Product not found or not authorized"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found or not authorized"));
         productRepository.delete(product);
     }
 

@@ -3,6 +3,7 @@ from state import AgentState
 from prompts import ERROR_HANDLER_PROMPT
 from database import DB_SCHEMA_DESCRIPTION
 from llm import call_llm
+from agents.sql_generator import _inject_role_filter
 
 
 def error_handler_agent(state: AgentState) -> dict:
@@ -18,5 +19,11 @@ def error_handler_agent(state: AgentState) -> dict:
         lines = fixed_sql.split("\n")
         fixed_sql = "\n".join(l for l in lines if not l.startswith("```"))
         fixed_sql = fixed_sql.strip()
+
+    # Re-enforce role-based filtering on the fixed SQL
+    fixed_sql = _inject_role_filter(
+        fixed_sql, state.get("user_role", "ADMIN"),
+        state.get("user_id", 0), state.get("store_id")
+    )
 
     return {"sql_query": fixed_sql, "error": None}

@@ -20,7 +20,7 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:default-demo-secret-key-change-this-in-production-must-be-at-least-64-chars-long-for-hmac-sha512}
+    secret: ${JWT_SECRET}
     expiration-ms: 3600000  # 1 hour
     refresh-expiration-ms: 604800000  # 7 days
 
@@ -31,6 +31,7 @@ app:
   chatbot:
     url: ${CHATBOT_URL:http://127.0.0.1:8000}
     enabled: ${CHATBOT_ENABLED:true}
+    api-key: ${CHATBOT_API_KEY:}
 
 # Swagger / OpenAPI
 springdoc:
@@ -67,6 +68,8 @@ spring:
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
+    hibernate:
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -83,6 +86,8 @@ spring:
     password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
+    hibernate:
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect

@@ -7,6 +7,7 @@ class AgentState(TypedDict):
     user_role: str           # ADMIN, CORPORATE, INDIVIDUAL
     user_id: int
     store_id: Optional[int]  # For CORPORATE users
+    conversation_context: Optional[str]  # Previous turns for multi-turn
 
     # Guardrails
     is_in_scope: Optional[bool]

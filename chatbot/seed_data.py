@@ -1,10 +1,17 @@
-"""Seed data matching the Spring Boot DataSeeder — ensures both services share the same data."""
+"""Seed data matching the Spring Boot DataSeeder — ensures both services share the same data.
+
+NOTE: In production both services should connect to the same PostgreSQL/MySQL database.
+For local development, this seed mirrors the backend's DataSeeder deterministically.
+Set DATABASE_URL and USE_SHARED_DB=true in .env to skip seeding and use a shared database.
+"""
 import random
 from datetime import datetime, timedelta
 from database import engine, metadata, init_db, users, categories, stores, products, orders, order_items, shipments, reviews, customer_profiles
 from sqlalchemy import insert, select
 
+# Use same seed as Java backend for consistent ordering
 random.seed(42)
+
 
 def seed():
     init_db()
@@ -125,7 +132,7 @@ def seed():
             {"id": 40, "store_id": 4, "category_id": 21, "sku": "HE-010", "name": "Yoga Mat Premium", "description": "Non-slip 6mm premium yoga mat", "unit_price": 24.99, "stock": 200, "created_at": now},
         ])
 
-        # ======= ORDERS (from DS1/DS4/DS5: ~80 orders across 20 individual users) =======
+        # ======= ORDERS (deterministic: each user gets 3 orders from rotating stores) =======
         store_product_ids = {
             1: list(range(1, 13)),   # TechCorp: products 1-12
             2: list(range(13, 23)),  # GreenMarket: products 13-22
@@ -139,10 +146,14 @@ def seed():
             31: 79.99, 32: 149.99, 33: 69.99, 34: 34.99, 35: 59.99, 36: 44.99, 37: 189.99, 38: 39.99, 39: 29.99, 40: 24.99,
         }
 
-        statuses = ["DELIVERED", "DELIVERED", "DELIVERED", "SHIPPED", "CONFIRMED", "PENDING", "CANCELLED"]
-        payments = ["CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "BANK_TRANSFER", "CREDIT_CARD"]
-        channels = ["WEB", "MOBILE", "WEB", "MOBILE", "IN_STORE"]
-        fulfilments = ["WAREHOUSE", "STORE", "DROPSHIP", "WAREHOUSE"]
+        # Deterministic order pattern matching backend DataSeeder output (~64 orders)
+        # First 4 users get 4 orders, rest get 3 (4*4 + 16*3 = 64)
+        orders_per_user = [4]*4 + [3]*16
+        statuses_cycle = ["DELIVERED", "SHIPPED", "DELIVERED", "CONFIRMED", "DELIVERED", "PENDING",
+                          "DELIVERED", "DELIVERED", "CANCELLED", "DELIVERED", "SHIPPED", "DELIVERED"]
+        payments_cycle = ["CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "BANK_TRANSFER", "CREDIT_CARD", "DEBIT_CARD"]
+        channels_cycle = ["WEB", "MOBILE", "WEB", "MOBILE", "IN_STORE", "WEB"]
+        fulfilments_cycle = ["WAREHOUSE", "STORE", "DROPSHIP", "WAREHOUSE", "STORE", "DROPSHIP"]
         warehouses = ["Block A", "Block B", "Block C", "Block D", "Block F"]
         modes_list = ["Road", "Flight", "Ship", "Road", "Road"]
         carriers_list = ["FedEx", "UPS", "DHL", "USPS", "FedEx"]
@@ -154,27 +165,26 @@ def seed():
 
         for u_idx in range(20):
             user_id = 6 + u_idx
-            num_orders = 2 + random.randint(0, 3)
-            for _ in range(num_orders):
+            num_orders = orders_per_user[u_idx]
+            for o_idx in range(num_orders):
                 order_id += 1
-                store_id = random.randint(1, 4)
-                status = random.choice(statuses)
-                payment = random.choice(payments)
-                channel = random.choice(channels)
-                fulfilment = random.choice(fulfilments)
-                order_date = now - timedelta(days=1 + random.randint(0, 119))
+                store_id = (u_idx * 3 + o_idx) % 4 + 1
+                cycle_idx = (u_idx * 3 + o_idx) % len(statuses_cycle)
+                status = statuses_cycle[cycle_idx]
+                payment = payments_cycle[cycle_idx % len(payments_cycle)]
+                channel = channels_cycle[cycle_idx % len(channels_cycle)]
+                fulfilment = fulfilments_cycle[cycle_idx % len(fulfilments_cycle)]
+                order_date = now - timedelta(days=5 + u_idx * 5 + o_idx * 2)
 
-                # 1-4 items
-                num_items = 1 + random.randint(0, 3)
-                avail = store_product_ids[store_id][:]
-                random.shuffle(avail)
-                chosen = avail[:num_items]
+                # 2 items per order from the store's product list
+                prods = store_product_ids[store_id]
+                chosen = [prods[o_idx % len(prods)], prods[(o_idx + 3) % len(prods)]]
                 total = 0.0
 
                 for prod_id in chosen:
-                    qty = 1 + random.randint(0, 2)
+                    qty = 1 + (order_id % 3)
                     price = product_prices[prod_id]
-                    disc = (5 + random.randint(0, 15)) if random.randint(0, 4) == 0 else 0
+                    disc = 10 if (order_id % 5 == 0) else 0
                     item_total = price * qty * (1 - disc / 100.0)
                     total += item_total
                     item_rows.append({
@@ -194,16 +204,16 @@ def seed():
                     ship_status = "DELIVERED" if status == "DELIVERED" else ("IN_TRANSIT" if status == "SHIPPED" else "PROCESSING")
                     shipped_date = order_date + timedelta(days=1)
                     est_arrival = order_date + timedelta(days=5)
-                    delivered_date = (order_date + timedelta(days=3 + random.randint(0, 3))) if status == "DELIVERED" else None
+                    delivered_date = (order_date + timedelta(days=4)) if status == "DELIVERED" else None
                     shipment_rows.append({
                         "order_id": order_id,
-                        "warehouse": random.choice(warehouses),
-                        "mode": random.choice(modes_list),
+                        "warehouse": warehouses[order_id % len(warehouses)],
+                        "mode": modes_list[order_id % len(modes_list)],
                         "status": ship_status,
                         "tracking_number": f"TRK-{800000 + order_id}",
-                        "carrier": random.choice(carriers_list),
+                        "carrier": carriers_list[order_id % len(carriers_list)],
                         "destination": cities[u_idx % len(cities)],
-                        "customer_care_calls": random.randint(0, 4),
+                        "customer_care_calls": order_id % 5,
                         "shipped_date": shipped_date,
                         "estimated_arrival": est_arrival,
                         "delivered_date": delivered_date,
@@ -213,7 +223,7 @@ def seed():
         conn.execute(insert(order_items), item_rows)
         conn.execute(insert(shipments), shipment_rows)
 
-        # ======= REVIEWS (from DS6: ~120-160 reviews across all 40 products) =======
+        # ======= REVIEWS (deterministic: 3 reviews per product) =======
         review_templates = [
             (5, "POSITIVE", "Absolutely fantastic product! Exceeded all my expectations."),
             (5, "POSITIVE", "Best purchase I've made this year. Highly recommended!"),
@@ -235,16 +245,16 @@ def seed():
         review_rows = []
         individual_ids = list(range(6, 26))  # user IDs 6-25
         for prod_id in range(1, 41):
-            num_reviews = 2 + random.randint(0, 4)
-            reviewers = random.sample(individual_ids, min(num_reviews, len(individual_ids)))
-            for reviewer_id in reviewers[:num_reviews]:
-                tmpl = random.choice(review_templates)
+            # 3 deterministic reviews per product
+            for r_idx in range(3):
+                reviewer_id = individual_ids[(prod_id * 3 + r_idx) % len(individual_ids)]
+                tmpl = review_templates[(prod_id + r_idx) % len(review_templates)]
                 review_rows.append({
                     "user_id": reviewer_id, "product_id": prod_id,
                     "star_rating": tmpl[0], "review_body": tmpl[2], "sentiment": tmpl[1],
-                    "helpful_votes": random.randint(0, 49),
-                    "total_votes": random.randint(0, 49) + random.randint(0, 19),
-                    "review_date": now - timedelta(days=random.randint(0, 89)),
+                    "helpful_votes": (prod_id * 7 + r_idx * 3) % 50,
+                    "total_votes": (prod_id * 7 + r_idx * 3) % 50 + (prod_id + r_idx) % 20,
+                    "review_date": now - timedelta(days=(prod_id * 2 + r_idx) % 90),
                 })
         conn.execute(insert(reviews), review_rows)
 
@@ -254,15 +264,15 @@ def seed():
         for i in range(20):
             profile_rows.append({
                 "user_id": 6 + i,
-                "age": 18 + random.randint(0, 46),
+                "age": 22 + (i * 3) % 40,
                 "city": cities[i % len(cities)],
                 "membership_type": memberships[i],
-                "total_spend": round(100 + random.randint(0, 4900), 2),
-                "items_purchased": 2 + random.randint(0, 27),
-                "avg_rating": round(3.0 + random.random() * 2.0, 2),
-                "discount_applied": random.choice([True, False]),
-                "satisfaction_level": random.choice(satisfaction_levels),
-                "prior_purchases": random.randint(0, 19),
+                "total_spend": round(500 + i * 200, 2),
+                "items_purchased": 5 + i * 2,
+                "avg_rating": round(3.0 + (i % 5) * 0.4, 2),
+                "discount_applied": i % 2 == 0,
+                "satisfaction_level": satisfaction_levels[i % 3],
+                "prior_purchases": 2 + i,
             })
         conn.execute(insert(customer_profiles), profile_rows)
 
@@ -271,8 +281,8 @@ def seed():
         print(f"  Users: 25 (1 admin, 4 corporate, 20 individual)")
         print(f"  Stores: 4 (TechCorp, GreenMarket, FashionHub, HomeEssentials)")
         print(f"  Products: 40")
-        print(f"  Orders: {len(order_rows)}")
-        print(f"  Reviews: {len(review_rows)}")
+        print(f"  Orders: {len(order_rows)} (~64, matching backend)")
+        print(f"  Reviews: {len(review_rows)} (3 per product = 120)")
         print(f"  Customer Profiles: 20")
 
 

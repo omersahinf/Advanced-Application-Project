@@ -29,9 +29,10 @@ def should_retry_or_analyze(state: AgentState) -> str:
 
 def give_up_node(state: AgentState) -> dict:
     return {
-        "final_answer": f"I wasn't able to execute the query after {config.MAX_RETRIES} attempts. "
-                        f"Error: {state.get('error', 'Unknown error')}. "
-                        "Please try rephrasing your question."
+        "final_answer": f"I wasn't able to process your request after {config.MAX_RETRIES} attempts. "
+                        "Please try rephrasing your question or ask something different.",
+        "error": None,
+        "sql_query": None,
     }
 
 
@@ -84,13 +85,14 @@ def build_graph() -> StateGraph:
 app = build_graph()
 
 
-def run_query(question: str, user_role: str = "ADMIN", user_id: int = 1, store_id: Optional[int] = None) -> dict:
+def run_query(question: str, user_role: str = "ADMIN", user_id: int = 1, store_id: Optional[int] = None, conversation_context: str = "") -> dict:
     """Run the full agent pipeline and return results."""
     initial_state: AgentState = {
         "question": question,
         "user_role": user_role,
         "user_id": user_id,
         "store_id": store_id,
+        "conversation_context": conversation_context,
         "is_in_scope": None,
         "is_greeting": None,
         "sql_query": None,
@@ -106,8 +108,14 @@ def run_query(question: str, user_role: str = "ADMIN", user_id: int = 1, store_i
 
     return {
         "answer": result.get("final_answer", "No answer generated."),
+        "question": question,
         "sql_query": result.get("sql_query"),
+        "query_result": result.get("query_result"),
         "data": result.get("query_result"),
+        "error": result.get("error"),
+        "final_answer": result.get("final_answer", "No answer generated."),
         "visualization_html": result.get("visualization_html"),
+        "visualization_code": result.get("visualization_code"),
         "is_in_scope": result.get("is_in_scope"),
+        "iteration_count": result.get("iteration_count", 0),
     }

@@ -128,6 +128,8 @@ export interface Review {
   helpfulVotes: number;
   totalVotes: number;
   reviewDate: string;
+  corporateReply?: string;
+  replyDate?: string;
 }
 export interface CreateReviewRequest {
   productId: number;
@@ -145,6 +147,7 @@ export interface UserDto {
   gender: string;
   createdAt: string;
   storeName: string | null;
+  suspended?: boolean;
 }
 
 // --- Dashboard ---
@@ -169,6 +172,7 @@ export interface CorporateDashboard {
   totalReviews: number;
   ordersByStatus: Record<string, number>;
   topProducts: { productName: string; orderCount: number; revenue: number }[];
+  revenueByMonth: Record<string, number>;
 }
 export interface IndividualDashboard {
   totalSpend: number;

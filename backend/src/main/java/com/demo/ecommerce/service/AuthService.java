@@ -8,9 +8,11 @@ import com.demo.ecommerce.exception.AuthenticationException;
 import com.demo.ecommerce.repository.UserRepository;
 import com.demo.ecommerce.security.JwtUtil;
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class AuthService {
 
@@ -29,11 +31,18 @@ public class AuthService {
                 .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            log.warn("Failed login attempt for email: {}", request.getEmail());
             throw new AuthenticationException("Invalid email or password");
+        }
+
+        if (user.isSuspended()) {
+            log.warn("Suspended user login attempt: {}", request.getEmail());
+            throw new AuthenticationException("Account is suspended. Contact administrator.");
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getRole());
+        log.info("User logged in: {} (role={})", user.getEmail(), user.getRole());
         return new LoginResponse(token, refreshToken, user.getEmail(), user.getRole(), user.getCompanyName());
     }
 
@@ -55,6 +64,7 @@ public class AuthService {
         } catch (AuthenticationException e) {
             throw e;
         } catch (Exception e) {
+            log.warn("Refresh token validation failed: {}", e.getMessage());
             throw new AuthenticationException("Invalid or expired refresh token");
         }
     }

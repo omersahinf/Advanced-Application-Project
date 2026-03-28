@@ -23,6 +23,14 @@ import { Product, Category } from '../../models/product.model';
             <option [ngValue]="c.id">{{ c.name }}</option>
           }
         </select>
+        <select [(ngModel)]="sortOption" (change)="onSort()">
+          <option value="">Sort By</option>
+          <option value="price-asc">Price Low-High</option>
+          <option value="price-desc">Price High-Low</option>
+          <option value="name-az">Name A-Z</option>
+          <option value="name-za">Name Z-A</option>
+          <option value="stock-low">Stock Low-High</option>
+        </select>
       </div>
 
       <div class="product-grid">
@@ -76,6 +84,7 @@ export class ProductListComponent implements OnInit {
   categories = signal<Category[]>([]);
   searchQuery = '';
   selectedCategory: number | null = null;
+  sortOption = '';
 
   constructor(private productService: ProductService, private categoryService: CategoryService) {}
 
@@ -96,5 +105,27 @@ export class ProductListComponent implements OnInit {
     } else {
       this.productService.getProducts().subscribe(p => this.products.set(p));
     }
+  }
+
+  onSort() {
+    const sorted = [...this.products()];
+    switch (this.sortOption) {
+      case 'price-asc':
+        sorted.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        sorted.sort((a, b) => b.price - a.price);
+        break;
+      case 'name-az':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-za':
+        sorted.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'stock-low':
+        sorted.sort((a, b) => a.stock - b.stock);
+        break;
+    }
+    this.products.set(sorted);
   }
 }

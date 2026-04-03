@@ -18,7 +18,7 @@ public class StoreDto {
         dto.id = s.getId();
         dto.name = s.getName();
         dto.description = s.getDescription();
-        dto.status = s.getStatus();
+        dto.status = s.getStatus().name();
         dto.ownerName = s.getOwner().getFirstName() + " " + s.getOwner().getLastName();
         dto.ownerId = s.getOwner().getId();
         dto.productCount = s.getProducts() != null ? s.getProducts().size() : 0;

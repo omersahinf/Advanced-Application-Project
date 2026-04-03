@@ -23,7 +23,7 @@ public class ShipmentDto {
         dto.orderId = s.getOrder().getId();
         dto.warehouse = s.getWarehouse();
         dto.mode = s.getMode();
-        dto.status = s.getStatus();
+        dto.status = s.getStatus().name();
         dto.trackingNumber = s.getTrackingNumber();
         dto.carrier = s.getCarrier();
         dto.destination = s.getDestination();

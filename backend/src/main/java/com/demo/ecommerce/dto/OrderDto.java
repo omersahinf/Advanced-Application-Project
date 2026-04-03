@@ -28,7 +28,7 @@ public class OrderDto {
         dto.userName = o.getUser().getFirstName() + " " + o.getUser().getLastName();
         dto.storeId = o.getStore().getId();
         dto.storeName = o.getStore().getName();
-        dto.status = o.getStatus();
+        dto.status = o.getStatus().name();
         dto.grandTotal = o.getGrandTotal();
         dto.paymentMethod = o.getPaymentMethod();
         dto.salesChannel = o.getSalesChannel();

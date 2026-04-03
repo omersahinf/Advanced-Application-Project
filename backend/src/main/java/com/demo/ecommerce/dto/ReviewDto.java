@@ -15,6 +15,8 @@ public class ReviewDto {
     private Integer helpfulVotes;
     private Integer totalVotes;
     private LocalDateTime reviewDate;
+    private String corporateReply;
+    private LocalDateTime replyDate;
 
     public static ReviewDto from(Review r) {
         ReviewDto dto = new ReviewDto();
@@ -25,10 +27,12 @@ public class ReviewDto {
         dto.productName = r.getProduct().getName();
         dto.starRating = r.getStarRating();
         dto.reviewBody = r.getReviewBody();
-        dto.sentiment = r.getSentiment();
+        dto.sentiment = r.getSentiment().name();
         dto.helpfulVotes = r.getHelpfulVotes();
         dto.totalVotes = r.getTotalVotes();
         dto.reviewDate = r.getReviewDate();
+        dto.corporateReply = r.getCorporateReply();
+        dto.replyDate = r.getReplyDate();
         return dto;
     }
 
@@ -43,4 +47,6 @@ public class ReviewDto {
     public Integer getHelpfulVotes() { return helpfulVotes; }
     public Integer getTotalVotes() { return totalVotes; }
     public LocalDateTime getReviewDate() { return reviewDate; }
+    public String getCorporateReply() { return corporateReply; }
+    public LocalDateTime getReplyDate() { return replyDate; }
 }

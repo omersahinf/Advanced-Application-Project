@@ -26,12 +26,16 @@ app:
 
   ai:
     api-key: ${AI_API_KEY:}
-    model: qwen3-coder-plus
+    model: ${AI_MODEL:gemini-3-flash-preview}
 
   chatbot:
     url: ${CHATBOT_URL:http://127.0.0.1:8000}
     enabled: ${CHATBOT_ENABLED:true}
     api-key: ${CHATBOT_API_KEY:}
+
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
 
 # Swagger / OpenAPI
 springdoc:

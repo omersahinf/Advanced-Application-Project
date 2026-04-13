@@ -239,6 +239,18 @@ export interface CustomerSegmentation {
   avgSpend: number;
 }
 
+// --- Payment ---
+export interface PaymentIntentRequest {
+  orderId: number;
+}
+export interface PaymentResponse {
+  clientSecret: string;
+  paymentIntentId: string;
+  publishableKey: string;
+  status: string;
+  orderId: number;
+}
+
 // --- Profile Update ---
 export interface UpdateProfileRequest {
   firstName?: string;

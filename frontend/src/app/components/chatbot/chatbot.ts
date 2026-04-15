@@ -1,6 +1,6 @@
-import { Component, signal, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, signal, ViewChild, ElementRef, AfterViewChecked, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ChatResponse } from '../../models/product.model';
@@ -11,7 +11,7 @@ interface ChatMessage {
   refused?: boolean;
   sqlQuery?: string;
   data?: { columns: string[]; rows: Record<string, any>[]; row_count: number };
-  vizHtml?: SafeHtml;
+  vizUrl?: SafeResourceUrl;
   showSql?: boolean;
   showData?: boolean;
 }
@@ -95,8 +95,10 @@ interface ChatMessage {
                 }
               }
 
-              @if (msg.vizHtml) {
-                <div class="viz-container" [innerHTML]="msg.vizHtml"></div>
+              @if (msg.vizUrl) {
+                <div class="viz-container">
+                  <iframe [src]="msg.vizUrl" sandbox="allow-scripts" width="100%" height="420" frameborder="0"></iframe>
+                </div>
               }
             </div>
           }
@@ -114,7 +116,8 @@ interface ChatMessage {
         <form class="input-area" (ngSubmit)="send()">
           <input type="text" [(ngModel)]="userInput" name="message"
                  placeholder="Ask about sales, products, orders, customers..."
-                 [disabled]="loading()" maxlength="500" autocomplete="off" />
+                 [disabled]="loading()" maxlength="500" autocomplete="off"
+                 aria-label="Chat message input" />
           <button type="submit" class="btn btn-primary" [disabled]="loading() || !userInput.trim()">
             {{ loading() ? '...' : 'Send' }}
           </button>
@@ -211,12 +214,13 @@ interface ChatMessage {
     .input-area input:focus { outline: none; border-color: #4361ee; }
   `]
 })
-export class ChatbotComponent implements AfterViewChecked {
+export class ChatbotComponent implements AfterViewChecked, OnDestroy {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
 
   messages = signal<ChatMessage[]>([]);
   userInput = '';
   loading = signal(false);
+  private blobUrls: string[] = [];
 
   constructor(
     private chatService: ChatService,
@@ -226,6 +230,11 @@ export class ChatbotComponent implements AfterViewChecked {
 
   ngAfterViewChecked() {
     this.scrollToBottom();
+  }
+
+  ngOnDestroy() {
+    this.blobUrls.forEach(url => URL.revokeObjectURL(url));
+    this.blobUrls = [];
   }
 
   askSuggestion(text: string) {
@@ -253,7 +262,10 @@ export class ChatbotComponent implements AfterViewChecked {
           showData: false,
         };
         if (res.visualizationHtml) {
-          msg.vizHtml = this.sanitizer.bypassSecurityTrustHtml(res.visualizationHtml);
+          const blob = new Blob([res.visualizationHtml], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          this.blobUrls.push(url);
+          msg.vizUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
         }
         this.messages.update(msgs => [...msgs, msg]);
         this.loading.set(false);

@@ -2,7 +2,7 @@
 import re
 import random
 from state import AgentState
-from prompts import GUARDRAILS_PROMPT, GREETING_RESPONSES, OUT_OF_SCOPE_RESPONSE
+from prompts import AGENT_CONFIGS, GUARDRAILS_PROMPT, GREETING_RESPONSES, OUT_OF_SCOPE_RESPONSE
 from llm import call_llm
 
 # Keywords that indicate a follow-up referencing previous analytics data
@@ -13,12 +13,13 @@ FOLLOW_UP_PATTERNS = re.compile(
     re.IGNORECASE
 )
 
-# E-commerce keywords that confirm analytics intent (with plural forms)
+# E-commerce keywords that confirm analytics intent (English only)
 ECOMMERCE_KEYWORDS = re.compile(
     r'\b(products?|orders?|sales?|revenue|customers?|reviews?|shipments?|stores?|categories?|category|'
     r'inventory|stock|prices?|profits?|discounts?|carts?|payments?|refunds?|ratings?|'
     r'spend|purchases?|deliver|shipped|shipping|warehouse|sellers?|buyers?|monthly|daily|weekly|'
-    r'total|average|count|sum|trends?|growth|comparison|segments?|analytics)\b',
+    r'total|average|count|sum|trends?|growth|comparison|segments?|analytics|'
+    r'expensive|cheapest|best.?selling|top\s+\d)\b',
     re.IGNORECASE
 )
 
@@ -37,23 +38,59 @@ def _is_follow_up_reference(question: str) -> bool:
     return bool(FOLLOW_UP_PATTERNS.search(question))
 
 
+def _classify_with_keywords(question: str) -> str:
+    """Keyword-based classification fallback when LLM gives ambiguous response."""
+    # Check blacklist first
+    if NOT_ECOMMERCE_BLACKLIST.search(question) and not ECOMMERCE_KEYWORDS.search(question):
+        return "OUT_OF_SCOPE"
+    # Check e-commerce keywords
+    if ECOMMERCE_KEYWORDS.search(question):
+        return "IN_SCOPE"
+    return "UNKNOWN"
+
+
 def guardrails_agent(state: AgentState) -> dict:
     question = state["question"].strip()
     has_context = bool(state.get("conversation_context", "").strip())
 
-    result = call_llm(GUARDRAILS_PROMPT.format(question=question), max_tokens=10)
+    result = call_llm(
+        GUARDRAILS_PROMPT.format(question=question),
+        max_tokens=50,
+        system_prompt=AGENT_CONFIGS["guardrails_agent"]["system_prompt"]
+    )
     classification = result.strip().upper()
+    print(f"[Guardrails] LLM raw='{result.strip()}' | parsed='{classification}'")
 
+    # Normalize — LLM may return verbose responses like "The answer is IN_SCOPE"
     if "GREETING" in classification:
+        resolved = "GREETING"
+    elif "OUT_OF_SCOPE" in classification or "OUT OF SCOPE" in classification:
+        resolved = "OUT_OF_SCOPE"
+    elif "IN_SCOPE" in classification or "IN SCOPE" in classification or "INSCOPE" in classification:
+        resolved = "IN_SCOPE"
+    else:
+        # LLM gave something unexpected — fall back to keyword classification
+        resolved = _classify_with_keywords(question)
+        print(f"[Guardrails] LLM ambiguous, keyword fallback='{resolved}'")
+        if resolved == "UNKNOWN":
+            # When unsure, if question has e-commerce keywords let it through
+            resolved = "IN_SCOPE" if ECOMMERCE_KEYWORDS.search(question) else "OUT_OF_SCOPE"
+
+    if resolved == "GREETING":
         return {
             "is_greeting": True,
             "is_in_scope": False,
             "final_answer": random.choice(GREETING_RESPONSES),
         }
-    elif "OUT_OF_SCOPE" in classification:
-        # Only treat as follow-up if there's context AND the question actually
-        # references previous data (e.g., "which one", "what about", "show more")
+    elif resolved == "OUT_OF_SCOPE":
         if has_context and _is_follow_up_reference(question):
+            return {
+                "is_greeting": False,
+                "is_in_scope": True,
+            }
+        # Double-check with keywords — LLM may have wrongly classified e-commerce queries
+        if ECOMMERCE_KEYWORDS.search(question):
+            print(f"[Guardrails] LLM said OUT_OF_SCOPE but e-commerce keywords found, overriding to IN_SCOPE")
             return {
                 "is_greeting": False,
                 "is_in_scope": True,
@@ -64,7 +101,7 @@ def guardrails_agent(state: AgentState) -> dict:
             "final_answer": OUT_OF_SCOPE_RESPONSE,
         }
     else:
-        # LLM classified as IN_SCOPE — verify with blacklist safety net
+        # IN_SCOPE — verify with blacklist safety net
         if NOT_ECOMMERCE_BLACKLIST.search(question) and not ECOMMERCE_KEYWORDS.search(question):
             return {
                 "is_greeting": False,

@@ -6,7 +6,8 @@ import com.demo.ecommerce.entity.Store;
 import com.demo.ecommerce.entity.User;
 import com.demo.ecommerce.repository.StoreRepository;
 import com.demo.ecommerce.repository.UserRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -16,9 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @Service
 public class AiChatService {
+
+    private static final Logger log = LoggerFactory.getLogger(AiChatService.class);
 
     private final InputValidator inputValidator;
     private final ProductService productService;
@@ -93,7 +95,7 @@ public class AiChatService {
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Map.class)
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(60))
                 .block();
 
         ChatResponse chatResponse = new ChatResponse();
@@ -113,7 +115,8 @@ public class AiChatService {
     }
 
     private ChatResponse legacyChat(String message, Long userId, User user) {
-        List<Product> userProducts = productService.getRawProductsForUser(userId);
+        String role = user.getRoleType().name();
+        List<Product> userProducts = productService.getRawProductsForUser(userId, role);
         String companyName = user.getCompanyName();
         String answer = geminiService.askAboutProducts(message, userProducts, companyName);
         return new ChatResponse(answer, false);

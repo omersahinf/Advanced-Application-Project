@@ -27,6 +27,36 @@ def should_retry_or_analyze(state: AgentState) -> str:
     return "analyze"
 
 
+def decide_graph_need(state: AgentState) -> str:
+    """Decide whether a visualization is needed based on the query results.
+
+    This node sits between Analysis and Visualization in the flow,
+    matching the architecture diagram's 'Decide Graph Need' decision point.
+    """
+    result = state.get("query_result", {})
+    row_count = result.get("row_count", 0)
+
+    # Scalar results or single rows don't need charts
+    if row_count <= 1:
+        return "no_graph"
+
+    # Too many rows makes charts unreadable
+    if row_count > 50:
+        return "no_graph"
+
+    # Check if there are at least 2 columns (label + value) for meaningful viz
+    columns = result.get("columns", [])
+    if len(columns) < 2:
+        return "no_graph"
+
+    return "graph_needed"
+
+
+def decide_graph_need_node(state: AgentState) -> dict:
+    """Passthrough node for the graph need decision point."""
+    return {"current_step": "decide_graph_need"}
+
+
 def give_up_node(state: AgentState) -> dict:
     return {
         "final_answer": f"I wasn't able to process your request after {config.MAX_RETRIES} attempts. "
@@ -45,6 +75,7 @@ def build_graph() -> StateGraph:
     graph.add_node("execute", executor_agent)
     graph.add_node("error_handler", error_handler_agent)
     graph.add_node("analyze", analysis_agent)
+    graph.add_node("decide_graph", decide_graph_need_node)
     graph.add_node("visualize", visualization_agent)
     graph.add_node("give_up", give_up_node)
 
@@ -71,8 +102,15 @@ def build_graph() -> StateGraph:
     # After error handler, re-execute
     graph.add_edge("error_handler", "execute")
 
-    # After analysis, visualize
-    graph.add_edge("analyze", "visualize")
+    # After analysis, decide if graph is needed
+    graph.add_edge("analyze", "decide_graph")
+
+    # Conditional: after decide_graph, either visualize or end
+    graph.add_conditional_edges(
+        "decide_graph",
+        decide_graph_need,
+        {"graph_needed": "visualize", "no_graph": END}
+    )
 
     # Terminal nodes
     graph.add_edge("visualize", END)
@@ -102,6 +140,7 @@ def run_query(question: str, user_role: str = "ADMIN", user_id: int = 1, store_i
         "final_answer": None,
         "visualization_code": None,
         "visualization_html": None,
+        "current_step": None,
     }
 
     result = app.invoke(initial_state)

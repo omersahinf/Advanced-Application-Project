@@ -4,15 +4,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3-flash-preview")
 # Use BACKEND_DB_URL to point chatbot at the same database as Spring Boot.
-# Default: local SQLite for standalone development.
+# Default: PostgreSQL (same as Spring Boot backend).
 # Example for H2 compatibility: jdbc URLs are not supported; use a shared MySQL/PostgreSQL.
 # Example: DATABASE_URL=mysql+pymysql://root:root@localhost:3306/ecommerce_demo
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ecommerce.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/ecommerce_demo")
 USE_SHARED_DB = os.getenv("USE_SHARED_DB", "false").lower() == "true"
-MAX_RETRIES = 2
+MAX_RETRIES = 3
 
 # Internal API key for backend→chatbot communication
 # This prevents direct unauthorized access to the chatbot microservice

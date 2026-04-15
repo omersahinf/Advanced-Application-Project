@@ -25,8 +25,9 @@ public class Store {
 
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // ACTIVE, CLOSED, PENDING_APPROVAL
+    private StoreStatus status;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -56,8 +57,8 @@ public class Store {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public StoreStatus getStatus() { return status; }
+    public void setStatus(StoreStatus status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

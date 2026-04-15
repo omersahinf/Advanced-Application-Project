@@ -29,7 +29,7 @@ public class GeminiService {
         this.apiKey = apiKey;
         this.model = model;
         this.webClient = WebClient.builder()
-                .baseUrl("https://coding-intl.dashscope.aliyuncs.com")
+                .baseUrl("https://generativelanguage.googleapis.com/v1beta/openai")
                 .build();
     }
 
@@ -76,8 +76,7 @@ public class GeminiService {
                 companyName, companyName, companyName, productContext);
 
         try {
-            // OpenAI-compatible API request (works with Alibaba/Qwen)
-            // Disable thinking mode on Qwen 3.x/3.5 models to reduce latency
+            // Google Gemini API (OpenAI-compatible endpoint)
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
             requestBody.put("messages", List.of(
@@ -85,17 +84,16 @@ public class GeminiService {
                     Map.of("role", "user", "content", userQuestion)
             ));
             requestBody.put("temperature", 0.3);
-            requestBody.put("max_tokens", 500);
-            requestBody.put("extra_body", Map.of("enable_thinking", false));
+            requestBody.put("max_tokens", 1024);
 
             Map response = webClient.post()
-                    .uri("/v1/chat/completions")
+                    .uri("/chat/completions")
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(30))
                     .block();
 
             return extractTextFromResponse(response);

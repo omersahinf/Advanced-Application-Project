@@ -55,6 +55,14 @@ public class AuthController {
         return ResponseEntity.ok(userManagementService.updateProfile(principal.getUserId(), request));
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "Logout and invalidate token")
+    public ResponseEntity<?> logout() {
+        // In a stateless JWT setup, the client discards the token.
+        // Server-side blacklisting can be added with Redis for production.
+        return ResponseEntity.ok(java.util.Map.of("message", "Logged out successfully"));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Get current authenticated user info")
     public ResponseEntity<UserInfoDto> me(Authentication authentication) {

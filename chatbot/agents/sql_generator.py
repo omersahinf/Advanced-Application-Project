@@ -2,13 +2,13 @@
 import re
 from typing import Optional
 from state import AgentState
-from prompts import SQL_GENERATOR_PROMPT, ROLE_CONTEXTS
+from prompts import AGENT_CONFIGS, SQL_GENERATOR_PROMPT, ROLE_CONTEXTS
 from database import DB_SCHEMA_DESCRIPTION
 from llm import call_llm
 
 # Tables that contain user_id or store_id columns for role filtering
 USER_SCOPED_TABLES = {"orders", "reviews", "customer_profiles"}
-STORE_SCOPED_TABLES = {"orders", "products", "order_items"}
+STORE_SCOPED_TABLES = {"orders", "products", "order_items", "reviews"}
 
 # Tables that non-ADMIN roles should never query directly
 _ADMIN_ONLY_TABLES = {"users", "stores"}
@@ -106,6 +106,13 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int) -> str
         if not tables_used:
             return sql
         for table in tables_used:
+            # Reviews don't have store_id directly; filter via product_id JOIN
+            if table == "reviews" and "store_id" not in sql.lower():
+                sql = _add_where_clause(
+                    sql,
+                    f"product_id IN (SELECT id FROM products WHERE store_id = {filter_val})"
+                )
+                break
             alias_match = re.search(r'\b(' + table + r')\s+(?:AS\s+)?(\w+)', sql, re.IGNORECASE)
             prefix = ""
             if alias_match:
@@ -277,7 +284,7 @@ def sql_generator_agent(state: AgentState) -> dict:
         question=question
     )
 
-    sql = call_llm(prompt, max_tokens=500)
+    sql = call_llm(prompt, max_tokens=1024, system_prompt=AGENT_CONFIGS["sql_agent"]["system_prompt"])
     sql = sql.strip()
 
     # Clean up: remove markdown code blocks if present
@@ -286,10 +293,26 @@ def sql_generator_agent(state: AgentState) -> dict:
         sql = "\n".join(l for l in lines if not l.startswith("```"))
         sql = sql.strip()
 
+    # Clean up: remove common LLM preamble text before the actual SQL
+    # Some models prepend "Here is the SQL query:" or similar
+    sql_match = re.search(r'(SELECT\b|WITH\b)', sql, re.IGNORECASE)
+    if sql_match and sql_match.start() > 0:
+        sql = sql[sql_match.start():]
+
+    # Strip trailing explanation text after the SQL (look for double newline or common patterns)
+    sql = re.split(r'\n\s*\n', sql)[0].strip()
+    sql = re.split(r'\n\s*(?:This|Note|Explanation|The above|Bu sorgu)', sql, flags=re.IGNORECASE)[0].strip()
+
     # Security: reject non-SELECT queries
     first_word = sql.split()[0].upper() if sql.split() else ""
     if first_word not in ("SELECT", "WITH"):
-        return {"sql_query": None, "error": "Only SELECT queries are allowed."}
+        # LLM failed to produce valid SQL — use keyword-based fallback
+        print(f"[SQL Generator] LLM produced invalid SQL (starts with '{first_word}'), using fallback")
+        from llm import _generate_fallback_sql
+        sql = _generate_fallback_sql(prompt)
+        first_word = sql.split()[0].upper() if sql.split() else ""
+        if first_word not in ("SELECT", "WITH"):
+            return {"sql_query": None, "error": "Only SELECT queries are allowed."}
 
     # Security: block UNION/INTERSECT/EXCEPT to prevent cross-table data exfiltration
     _BANNED_SET_OPS = re.compile(r'\b(UNION\s+(ALL\s+)?SELECT|INTERSECT\s+(ALL\s+)?SELECT|EXCEPT\s+(ALL\s+)?SELECT)\b', re.IGNORECASE)

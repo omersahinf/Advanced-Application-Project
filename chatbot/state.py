@@ -27,3 +27,6 @@ class AgentState(TypedDict):
     # Visualization
     visualization_code: Optional[str]
     visualization_html: Optional[str]
+
+    # Streaming / Transparency
+    current_step: Optional[str]

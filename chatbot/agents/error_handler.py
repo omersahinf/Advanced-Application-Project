@@ -1,6 +1,6 @@
 """Error Handler Agent - diagnoses SQL errors and attempts to fix them."""
 from state import AgentState
-from prompts import ERROR_HANDLER_PROMPT
+from prompts import AGENT_CONFIGS, ERROR_HANDLER_PROMPT
 from database import DB_SCHEMA_DESCRIPTION
 from llm import call_llm
 from agents.sql_generator import _inject_role_filter
@@ -13,7 +13,7 @@ def error_handler_agent(state: AgentState) -> dict:
         schema=DB_SCHEMA_DESCRIPTION,
     )
 
-    fixed_sql = call_llm(prompt, max_tokens=500).strip()
+    fixed_sql = call_llm(prompt, max_tokens=1024, system_prompt=AGENT_CONFIGS["error_agent"]["system_prompt"]).strip()
 
     if fixed_sql.startswith("```"):
         lines = fixed_sql.split("\n")

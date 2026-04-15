@@ -34,8 +34,45 @@ try:
 
         text = message.content.strip()
 
+        # Step 1: Guardrails Check
+        async with cl.Step(name="🔒 Guardrails Check", type="tool") as step:
+            step.output = "Validating question scope..."
+
+        # Run the full pipeline
         result = run_query(text, role, user_id, store_id)
 
+        # Step 2: Show what happened in the pipeline
+        if result.get("is_in_scope") is False:
+            async with cl.Step(name="🔒 Guardrails Check", type="tool") as step:
+                step.output = "❌ Question is out of scope or is a greeting"
+        else:
+            async with cl.Step(name="🔒 Guardrails Check", type="tool") as step:
+                step.output = "✅ Question is in scope"
+
+            if result.get("sql_query"):
+                async with cl.Step(name="🔧 SQL Generation", type="tool") as step:
+                    step.output = f"```sql\n{result['sql_query']}\n```"
+
+            if result.get("data"):
+                row_count = result["data"].get("row_count", 0)
+                async with cl.Step(name="⚡ Query Execution", type="tool") as step:
+                    step.output = f"✅ Returned **{row_count}** rows"
+
+            if result.get("error"):
+                async with cl.Step(name="⚠️ Error Handling", type="tool") as step:
+                    step.output = f"Retried {result.get('iteration_count', 0)} times"
+
+            async with cl.Step(name="📊 Analysis", type="tool") as step:
+                step.output = "Results analyzed and explained"
+
+            if result.get("visualization_html"):
+                async with cl.Step(name="📈 Visualization", type="tool") as step:
+                    step.output = "✅ Chart generated"
+            else:
+                async with cl.Step(name="📈 Visualization", type="tool") as step:
+                    step.output = "No chart needed for this query"
+
+        # Build response
         response_parts = [result["answer"]]
 
         if result.get("sql_query"):

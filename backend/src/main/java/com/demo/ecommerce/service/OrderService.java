@@ -7,7 +7,8 @@ import com.demo.ecommerce.exception.BadRequestException;
 import com.demo.ecommerce.exception.ResourceNotFoundException;
 import com.demo.ecommerce.exception.UnauthorizedOperationException;
 import com.demo.ecommerce.repository.*;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import static com.demo.ecommerce.entity.OrderStatus.*;
 import static com.demo.ecommerce.entity.ShipmentStatus.*;
 import static com.demo.ecommerce.entity.StoreStatus.*;
@@ -22,9 +23,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;

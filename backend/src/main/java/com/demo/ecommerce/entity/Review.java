@@ -29,11 +29,17 @@ public class Review {
     @Column(length = 2000)
     private String reviewBody;
 
-    private String sentiment; // POSITIVE, NEUTRAL, NEGATIVE
+    @Enumerated(EnumType.STRING)
+    private Sentiment sentiment;
 
     private Integer helpfulVotes;
 
     private Integer totalVotes;
+
+    @Column(length = 1000)
+    private String corporateReply;
+
+    private LocalDateTime replyDate;
 
     @Column(name = "review_date")
     private LocalDateTime reviewDate;
@@ -62,8 +68,8 @@ public class Review {
     public String getReviewBody() { return reviewBody; }
     public void setReviewBody(String reviewBody) { this.reviewBody = reviewBody; }
 
-    public String getSentiment() { return sentiment; }
-    public void setSentiment(String sentiment) { this.sentiment = sentiment; }
+    public Sentiment getSentiment() { return sentiment; }
+    public void setSentiment(Sentiment sentiment) { this.sentiment = sentiment; }
 
     public Integer getHelpfulVotes() { return helpfulVotes; }
     public void setHelpfulVotes(Integer helpfulVotes) { this.helpfulVotes = helpfulVotes; }
@@ -73,4 +79,10 @@ public class Review {
 
     public LocalDateTime getReviewDate() { return reviewDate; }
     public void setReviewDate(LocalDateTime reviewDate) { this.reviewDate = reviewDate; }
+
+    public String getCorporateReply() { return corporateReply; }
+    public void setCorporateReply(String corporateReply) { this.corporateReply = corporateReply; }
+
+    public LocalDateTime getReplyDate() { return replyDate; }
+    public void setReplyDate(LocalDateTime replyDate) { this.replyDate = replyDate; }
 }

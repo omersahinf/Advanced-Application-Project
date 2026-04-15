@@ -1,9 +1,18 @@
 """Analysis Agent - explains query results in natural language."""
 import json
+import pandas as pd
 from state import AgentState
-from prompts import ANALYSIS_PROMPT
+from prompts import AGENT_CONFIGS, ANALYSIS_PROMPT
 from llm import call_llm
 import config
+
+# Phrases that indicate the LLM returned a generic/fallback response
+_FALLBACK_INDICATORS = [
+    "please see the data table",
+    "i processed your request",
+    "the query returned some rows",
+    "the query returned",
+]
 
 
 def analysis_agent(state: AgentState) -> dict:
@@ -21,11 +30,24 @@ def analysis_agent(state: AgentState) -> dict:
             sql_query=state.get("sql_query", ""),
             row_count=row_count,
             results=results_str,
+            user_role=state.get("user_role", "ADMIN"),
         )
-        answer = call_llm(prompt, max_tokens=300)
-        return {"final_answer": answer.strip()}
+        answer = call_llm(
+            prompt, max_tokens=1024,
+            system_prompt=AGENT_CONFIGS["analysis_agent"]["system_prompt"]
+        )
 
-    # Fallback: generate analysis without LLM
+        # Check if the LLM gave a real analysis or fell back to generic response
+        answer_lower = answer.strip().lower()
+        is_fallback = any(fb in answer_lower for fb in _FALLBACK_INDICATORS)
+
+        if answer and not is_fallback and len(answer.strip()) > 20:
+            return {"final_answer": answer.strip()}
+
+        # LLM returned generic fallback — use our own Pandas-based analysis
+        print("[Analysis] LLM returned generic fallback, using Pandas analysis")
+
+    # Fallback: generate analysis without LLM using Pandas
     return {"final_answer": _build_analysis(state["question"], columns, rows, row_count)}
 
 
@@ -33,6 +55,10 @@ def _build_analysis(question: str, columns: list, rows: list, row_count: int) ->
     if not rows:
         return "The query returned no results. This might mean there's no matching data for your question."
 
+    # Convert to pandas DataFrame for richer analysis
+    df = pd.DataFrame(rows)
+
+    # Single scalar result
     if row_count == 1 and len(columns) <= 3:
         parts = [f"**{col}**: {rows[0].get(col, 'N/A')}" for col in columns]
         return f"Result: {', '.join(parts)}"
@@ -41,29 +67,41 @@ def _build_analysis(question: str, columns: list, rows: list, row_count: int) ->
     value_cols = columns[1:] if len(columns) > 1 else []
 
     lines = [f"Found **{row_count}** results:\n"]
-    for row in rows[:8]:
+    for row in rows[:10]:
         label = row.get(label_col, "N/A")
         if value_cols:
             details = []
-            for vc in value_cols:
+            for vc in value_cols[:3]:  # Show max 3 value columns per row
                 v = row.get(vc, "N/A")
-                if isinstance(v, float):
-                    v = f"{v:,.2f}"
-                details.append(f"{vc}={v}")
-            lines.append(f"  - **{label}** ({', '.join(details)})")
+                if isinstance(v, (int, float)):
+                    v = f"{v:,.2f}" if isinstance(v, float) else f"{v:,}"
+                details.append(f"{vc}: {v}")
+            lines.append(f"  • **{label}** — {', '.join(details)}")
         else:
-            lines.append(f"  - {label}")
+            lines.append(f"  • {label}")
 
-    if row_count > 8:
-        lines.append(f"  ... and {row_count - 8} more rows.")
+    if row_count > 10:
+        lines.append(f"\n  _...and {row_count - 10} more rows._")
 
-    # Summary for numeric columns
-    for vc in value_cols[:1]:
-        try:
-            values = [float(r.get(vc, 0)) for r in rows if r.get(vc) is not None]
-            if values:
-                lines.append(f"\nHighest {vc}: **{rows[0].get(label_col)}** ({values[0]:,.2f})")
-        except (ValueError, TypeError):
-            pass
+    # Summary statistics for numeric columns using Pandas
+    numeric_summaries = []
+    for vc in value_cols[:2]:
+        if vc in df.columns:
+            try:
+                numeric_col = pd.to_numeric(df[vc], errors='coerce').dropna()
+                if not numeric_col.empty and len(numeric_col) > 1:
+                    top_idx = numeric_col.idxmax()
+                    top_label = rows[top_idx].get(label_col, "N/A") if top_idx < len(rows) else "N/A"
+                    numeric_summaries.append(
+                        f"**{vc}** — Highest: {top_label} ({numeric_col.max():,.2f}), "
+                        f"Average: {numeric_col.mean():,.2f}, Total: {numeric_col.sum():,.2f}"
+                    )
+            except (ValueError, TypeError, IndexError):
+                pass
+
+    if numeric_summaries:
+        lines.append("\n**Key Insights:**")
+        for s in numeric_summaries:
+            lines.append(f"  📊 {s}")
 
     return "\n".join(lines)

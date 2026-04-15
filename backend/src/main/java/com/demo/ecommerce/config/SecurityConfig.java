@@ -1,6 +1,7 @@
 package com.demo.ecommerce.config;
 
 import com.demo.ecommerce.security.JwtFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -24,9 +26,14 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final com.demo.ecommerce.security.RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
+    @Value("${app.cors.origins:http://localhost:4200}")
+    private String corsOrigins;
+
+    public SecurityConfig(JwtFilter jwtFilter, com.demo.ecommerce.security.RateLimitFilter rateLimitFilter) {
         this.jwtFilter = jwtFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -59,7 +66,7 @@ public class SecurityConfig {
 
                 // All other /api/** require authentication (fine-grained via @PreAuthorize)
                 auth.requestMatchers("/api/**").authenticated();
-                auth.anyRequest().permitAll();
+                auth.anyRequest().denyAll();
             })
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
@@ -74,6 +81,7 @@ public class SecurityConfig {
                 })
             );
 
+        http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -87,7 +95,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(Arrays.asList(corsOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

@@ -2,11 +2,12 @@
 import ast
 import json
 import signal
+import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import plotly.express as px
 from state import AgentState
-from prompts import VISUALIZATION_PROMPT
+from prompts import AGENT_CONFIGS, VISUALIZATION_PROMPT
 from llm import call_llm
 
 # AST node types that are forbidden in generated visualization code
@@ -28,13 +29,56 @@ def _validate_code_ast(code: str) -> bool:
     return True
 
 
+def _detect_chart_type(df: pd.DataFrame, columns: list, question: str) -> str:
+    """Detect the best chart type based on data shape and question context."""
+    q = question.lower()
+
+    # Time series detection
+    time_keywords = ["trend", "over time", "weekly", "monthly", "daily", "date", "timeline"]
+    if any(k in q for k in time_keywords):
+        return "line"
+
+    # Distribution / proportion
+    if "distribution" in q or "proportion" in q or "breakdown" in q or "percentage" in q:
+        if len(df) <= 8:
+            return "pie"
+        return "bar"
+
+    # Comparison
+    if "compare" in q or "comparison" in q or "vs" in q:
+        return "grouped_bar"
+
+    # Default: bar chart for categorical data
+    return "bar"
+
+
+def _clean_col_name(name: str) -> str:
+    """Convert SQL column names like 'ROUND(p.unit_price, 2)' to 'Unit Price'."""
+    import re
+    # Extract inner column from functions: ROUND(p.unit_price, 2) -> unit_price
+    match = re.search(r'\((?:\w+\.)?(\w+)', name)
+    if match:
+        name = match.group(1)
+    # Remove table alias prefix: p.unit_price -> unit_price
+    if '.' in name:
+        name = name.split('.')[-1]
+    # Convert snake_case to Title Case: unit_price -> Unit Price
+    return name.replace('_', ' ').title()
+
+
 def _build_fallback_chart(rows: list, columns: list, question: str):
-    """Build a simple bar chart as fallback when LLM-generated code fails."""
+    """Build a chart as fallback when LLM-generated code fails."""
     try:
-        if len(columns) < 2:
+        if len(columns) < 2 or len(rows) < 2:
             return None
-        # Use first column as labels, second numeric column as values
-        labels = [str(r.get(columns[0], "")) for r in rows[:15]]
+
+        df = pd.DataFrame(rows)
+        chart_type = _detect_chart_type(df, columns, question)
+
+        # Use first column as labels
+        label_col = columns[0]
+        labels = [str(r.get(label_col, "")) for r in rows[:15]]
+
         # Find first numeric column
         value_col = None
         for col in columns[1:]:
@@ -47,12 +91,36 @@ def _build_fallback_chart(rows: list, columns: list, question: str):
         if not value_col:
             return None
         values = [float(r.get(value_col, 0)) for r in rows[:15]]
-        fig = go.Figure(data=[go.Bar(x=labels, y=values)])
+
+        # Color palette
+        colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A',
+                  '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+
+        if chart_type == "pie":
+            fig = go.Figure(data=[go.Pie(
+                labels=labels, values=values,
+                marker=dict(colors=colors[:len(labels)]),
+                textinfo='percent+label'
+            )])
+        elif chart_type == "line":
+            fig = go.Figure(data=[go.Scatter(
+                x=labels, y=values, mode='lines+markers',
+                line=dict(color='#636EFA', width=2),
+                marker=dict(size=8)
+            )])
+        else:
+            fig = go.Figure(data=[go.Bar(
+                x=labels, y=values,
+                marker_color=colors[:len(labels)]
+            )])
+
         fig.update_layout(
-            title=question[:60],
-            xaxis_title=columns[0],
-            yaxis_title=value_col,
-            template="plotly_white"
+            title=question[:80],
+            xaxis_title=_clean_col_name(label_col),
+            yaxis_title=_clean_col_name(value_col),
+            template='plotly_white',
+            font=dict(size=12),
+            margin=dict(l=50, r=30, t=60, b=50)
         )
         return fig
     except Exception:
@@ -78,7 +146,10 @@ def visualization_agent(state: AgentState) -> dict:
         results=results_str,
     )
 
-    code = call_llm(prompt, max_tokens=600).strip()
+    code = call_llm(
+        prompt, max_tokens=600,
+        system_prompt=AGENT_CONFIGS["viz_agent"]["system_prompt"]
+    ).strip()
 
     if "NO_VIZ" in code:
         # LLM said no viz, but if we have 2+ rows, generate fallback anyway
@@ -122,6 +193,7 @@ def visualization_agent(state: AgentState) -> dict:
         "go": go,
         "px": px,
         "json": json,
+        "pd": pd,
     }
 
     fig = None

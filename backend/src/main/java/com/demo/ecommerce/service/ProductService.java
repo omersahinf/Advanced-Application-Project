@@ -138,8 +138,14 @@ public class ProductService {
         productRepository.delete(product);
     }
 
-    public List<Product> getRawProductsForUser(Long userId) {
-        return productRepository.findByStoreOwnerId(userId);
+    public List<Product> getRawProductsForUser(Long userId, String role) {
+        // CORPORATE: only their own store's products
+        if ("CORPORATE".equals(role)) {
+            return productRepository.findByStoreOwnerId(userId);
+        }
+        // ADMIN and INDIVIDUAL: can see all products
+        // (Legacy chat is read-only context; real data isolation happens in Python chatbot)
+        return productRepository.findAll();
     }
 
     public List<ProductDto> searchProductsForOwner(Long ownerId, String query) {

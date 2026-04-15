@@ -1,4 +1,5 @@
 """LLM wrapper - supports OpenAI-compatible APIs."""
+import re
 from openai import OpenAI
 import config
 
@@ -15,20 +16,50 @@ def get_client() -> OpenAI:
     return _client
 
 
-def call_llm(prompt: str, max_tokens: int = 300, temperature: float = 0.1) -> str:
-    """Call the LLM with a prompt and return the response text."""
+def _clean_llm_response(raw: str) -> str:
+    """Strip markdown fences and common LLM preamble from the response."""
+    text = raw.strip()
+    # Remove ```sql ... ``` or ``` ... ``` blocks — keep only the inner content
+    if "```" in text:
+        lines = text.split("\n")
+        cleaned = [l for l in lines if not l.strip().startswith("```")]
+        text = "\n".join(cleaned).strip()
+    return text
+
+
+def call_llm(prompt: str, max_tokens: int = 300, temperature: float = 0.1,
+             system_prompt: str = None) -> str:
+    """Call the LLM with a prompt and return the response text.
+
+    Args:
+        prompt: The user message to send.
+        max_tokens: Maximum tokens in the response.
+        temperature: Sampling temperature (lower = more deterministic).
+        system_prompt: Optional system message sent before the user message.
+    """
     if not config.OPENAI_API_KEY:
         return _fallback_response(prompt)
 
     try:
         client = get_client()
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
         response = client.chat.completions.create(
             model=config.LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
         )
-        return response.choices[0].message.content or ""
+        raw = response.choices[0].message.content or ""
+        result = _clean_llm_response(raw)
+        print(f"[LLM] model={config.LLM_MODEL} | raw_len={len(raw)} | result_preview={result[:120]}")
+        if not result.strip():
+            print("[LLM] Empty response from LLM, using fallback")
+            return _fallback_response(prompt)
+        return result
     except Exception as e:
         print(f"LLM error: {e}")
         return _fallback_response(prompt)
@@ -41,17 +72,20 @@ def _fallback_response(prompt: str) -> str:
     # Guardrails classification
     if "classify" in p or "GREETING" in prompt or "one word" in p:
         greetings = ["hello", "hi ", "hey", "good morning", "good afternoon",
-                     "good evening", "selam", "merhaba", "howdy"]
+                     "good evening", "howdy"]
         question_text = p.split("user message:")[-1].strip() if "user message:" in p else p
         if any(g in question_text for g in greetings):
             return "GREETING"
-        ecommerce_keywords = ["product", "order", "sale", "revenue", "customer", "review",
-                              "shipment", "store", "stock", "price", "category", "total",
-                              "average", "count", "how many", "rating", "spend", "delivery",
-                              "ship", "buy", "sell", "income", "profit", "inventory",
-                              "discount", "payment", "refund",
-                              "second", "third", "highest", "lowest", "more", "detail",
-                              "about that", "about the", "show me", "tell me"]
+        ecommerce_keywords = [
+            "product", "order", "sale", "revenue", "customer", "review",
+            "shipment", "store", "stock", "price", "category", "total",
+            "average", "count", "how many", "rating", "spend", "delivery",
+            "ship", "buy", "sell", "income", "profit", "inventory",
+            "discount", "payment", "refund",
+            "second", "third", "highest", "lowest", "more", "detail",
+            "about that", "about the", "show me", "tell me",
+            "expensive", "cheapest", "best selling", "top",
+        ]
         if any(k in question_text for k in ecommerce_keywords):
             return "IN_SCOPE"
         return "OUT_OF_SCOPE"
@@ -166,7 +200,10 @@ def _generate_fallback_sql(prompt: str) -> str:
 
     # Extract only the user's current question (not conversation history)
     question = p
-    if "new question:" in p:
+    if "current question:" in p:
+        idx = p.index("current question:") + len("current question:")
+        question = p[idx:].strip()
+    elif "new question:" in p:
         idx = p.index("new question:") + len("new question:")
         question = p[idx:].strip()
     elif "user question:" in p:
@@ -176,11 +213,9 @@ def _generate_fallback_sql(prompt: str) -> str:
     # Handle follow-up references using conversation history
     has_history = "conversation history" in p or "previous conversation" in p
     if has_history and ("second" in question or "next" in question or "another" in question or "more" in question):
-        # Extract previous SQL from context (may be multi-line)
         prev_sql = ""
         if "sql used:" in p:
             sql_start = p.index("sql used:") + len("sql used:")
-            # Find the end: look for "result:" which follows the SQL
             if "result:" in p[sql_start:]:
                 sql_end = p.index("result:", sql_start)
             else:
@@ -193,53 +228,173 @@ def _generate_fallback_sql(prompt: str) -> str:
                 return prev_sql + " LIMIT 1 OFFSET 2"
             return prev_sql
 
-    if "total revenue" in question and "store" not in question:
-        return "SELECT ROUND(SUM(grand_total), 2) as total_revenue FROM orders WHERE status != 'CANCELLED'"
-    if ("revenue" in question and "store" in question) or "store performance" in question:
-        return """SELECT s.name as store_name, ROUND(SUM(o.grand_total), 2) as revenue, COUNT(o.id) as order_count
-FROM stores s JOIN orders o ON s.id = o.store_id WHERE o.status != 'CANCELLED'
-GROUP BY s.name ORDER BY revenue DESC"""
+    # --- Sales/revenue by category ---
+    if ("sales" in question or "revenue" in question) and "categor" in question:
+        sql = """SELECT c.name as category, ROUND(SUM(oi.price * oi.quantity), 2) as total_sales, COUNT(DISTINCT o.id) as order_count
+FROM order_items oi JOIN products p ON oi.product_id = p.id
+JOIN categories c ON p.category_id = c.id
+JOIN orders o ON oi.order_id = o.id WHERE o.status != 'CANCELLED'"""
+        if "last month" in question or "previous month" in question:
+            sql += " AND o.order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND o.order_date < DATE_TRUNC('month', CURRENT_DATE)"
+        elif "this month" in question:
+            sql += " AND o.order_date >= DATE_TRUNC('month', CURRENT_DATE)"
+        sql += " GROUP BY c.name ORDER BY total_sales DESC"
+        return sql
+
+    # --- Compare this month vs last month ---
+    if "compare" in question and "month" in question:
+        return """SELECT
+  COUNT(*) FILTER (WHERE order_date >= DATE_TRUNC('month', CURRENT_DATE)) as this_month_orders,
+  ROUND(SUM(grand_total) FILTER (WHERE order_date >= DATE_TRUNC('month', CURRENT_DATE)), 2) as this_month_revenue,
+  COUNT(*) FILTER (WHERE order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND order_date < DATE_TRUNC('month', CURRENT_DATE)) as last_month_orders,
+  ROUND(SUM(grand_total) FILTER (WHERE order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND order_date < DATE_TRUNC('month', CURRENT_DATE)), 2) as last_month_revenue
+FROM orders WHERE status != 'CANCELLED'"""
+
+    # --- Cancellation trend ---
+    if "cancel" in question and ("trend" in question or "over time" in question or "monthly" in question):
+        return """SELECT DATE_TRUNC('month', order_date) as month,
+  COUNT(*) FILTER (WHERE status = 'CANCELLED') as cancelled,
+  COUNT(*) as total_orders,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'CANCELLED') / NULLIF(COUNT(*), 0), 1) as cancellation_rate
+FROM orders GROUP BY DATE_TRUNC('month', order_date)
+ORDER BY month"""
+
+    # --- Shipped by mode (air/flight, sea/ship, road) ---
+    if "shipped" in question or ("shipping" in question and "mode" in question):
+        mode_filter = ""
+        if "air" in question or "flight" in question:
+            mode_filter = " WHERE UPPER(s.mode) = 'FLIGHT'"
+        elif "sea" in question:
+            mode_filter = " WHERE UPPER(s.mode) = 'SHIP'"
+        elif "road" in question:
+            mode_filter = " WHERE UPPER(s.mode) = 'ROAD'"
+        return f"""SELECT s.mode, COUNT(*) as shipment_count
+FROM shipments s{mode_filter}
+GROUP BY s.mode ORDER BY shipment_count DESC"""
+
+    # --- Top N customers by revenue ---
+    if "top" in question and "customer" in question:
+        limit = 5
+        limit_match = re.search(r'top\s+(\d+)', question)
+        if limit_match:
+            limit = int(limit_match.group(1))
+        return f"""SELECT u.first_name || ' ' || u.last_name as customer,
+ROUND(SUM(o.grand_total), 2) as total_revenue, COUNT(o.id) as order_count
+FROM orders o JOIN users u ON o.user_id = u.id
+WHERE o.status != 'CANCELLED'
+GROUP BY u.first_name, u.last_name
+ORDER BY total_revenue DESC LIMIT {limit}"""
+
+    # --- Most expensive / cheapest product ---
+    if "most expensive" in question or "highest price" in question:
+        return """SELECT p.name, p.unit_price, c.name as category, s.name as store
+FROM products p LEFT JOIN categories c ON p.category_id = c.id
+JOIN stores s ON p.store_id = s.id ORDER BY p.unit_price DESC LIMIT 5"""
+    if "cheapest" in question or "lowest price" in question:
+        return """SELECT p.name, p.unit_price, c.name as category, s.name as store
+FROM products p LEFT JOIN categories c ON p.category_id = c.id
+JOIN stores s ON p.store_id = s.id ORDER BY p.unit_price ASC LIMIT 5"""
+
+    # --- Best selling / top product ---
     if "top product" in question or "best selling" in question or "best-selling" in question:
         return """SELECT p.name, COUNT(oi.id) as times_ordered, ROUND(SUM(oi.price * oi.quantity), 2) as total_revenue
 FROM order_items oi JOIN products p ON oi.product_id = p.id
 JOIN orders o ON oi.order_id = o.id WHERE o.status != 'CANCELLED'
 GROUP BY p.name ORDER BY total_revenue DESC LIMIT 10"""
+
+    # --- Total revenue ---
+    if ("total revenue" in question) and "store" not in question:
+        return "SELECT ROUND(SUM(grand_total), 2) as total_revenue FROM orders WHERE status != 'CANCELLED'"
+
+    # --- Revenue by store ---
+    if ("revenue" in question and "store" in question) or "store performance" in question:
+        return """SELECT s.name as store_name, ROUND(SUM(o.grand_total), 2) as revenue, COUNT(o.id) as order_count
+FROM stores s JOIN orders o ON s.id = o.store_id WHERE o.status != 'CANCELLED'
+GROUP BY s.name ORDER BY revenue DESC"""
+
+    # --- Order status ---
     if "order" in question and "status" in question:
         return "SELECT status, COUNT(*) as order_count FROM orders GROUP BY status ORDER BY order_count DESC"
+
+    # --- Average rating ---
     if "average rating" in question or "avg rating" in question:
         return "SELECT ROUND(AVG(star_rating), 2) as avg_rating, COUNT(*) as total_reviews FROM reviews"
+
+    # --- Product ratings/reviews ---
     if ("rating" in question or "review" in question) and "product" in question:
-        return """SELECT p.name as product, ROUND(AVG(r.star_rating), 2) as avg_rating, COUNT(r.id) as review_count
+        direction = "ASC" if ("lowest" in question or "worst" in question or "bottom" in question) else "DESC"
+        return f"""SELECT p.name as product, ROUND(AVG(r.star_rating), 2) as avg_rating, COUNT(r.id) as review_count
 FROM reviews r JOIN products p ON r.product_id = p.id
-GROUP BY p.name ORDER BY avg_rating DESC"""
+GROUP BY p.name ORDER BY avg_rating {direction}"""
+
+    # --- Low stock ---
     if "low stock" in question or "low-stock" in question:
         return """SELECT p.name, p.stock, s.name as store_name
 FROM products p JOIN stores s ON p.store_id = s.id
 WHERE p.stock < 15 ORDER BY p.stock ASC"""
-    if "customer" in question and ("city" in question or "location" in question):
+
+    # --- Customer by city ---
+    if ("customer" in question) and ("city" in question or "location" in question):
         return "SELECT city, COUNT(*) as customer_count, ROUND(AVG(total_spend), 2) as avg_spend FROM customer_profiles GROUP BY city ORDER BY customer_count DESC"
+
+    # --- Spend by category ---
     if "spend" in question and "category" in question:
         return """SELECT c.name as category, ROUND(SUM(oi.price * oi.quantity), 2) as total_spend
 FROM order_items oi JOIN products p ON oi.product_id = p.id
 JOIN categories c ON p.category_id = c.id
 JOIN orders o ON oi.order_id = o.id WHERE o.status != 'CANCELLED'
 GROUP BY c.name ORDER BY total_spend DESC"""
+
+    # --- Sentiment ---
     if "sentiment" in question:
         return "SELECT sentiment, COUNT(*) as review_count FROM reviews GROUP BY sentiment ORDER BY review_count DESC"
-    if "product" in question and ("list" in question or "all" in question or "show" in question):
+
+    # --- Product list / show products ---
+    if "product" in question and ("list" in question or "all" in question or "show" in question or "tell" in question or "about" in question):
         return """SELECT p.name, p.unit_price, p.stock, c.name as category, s.name as store
 FROM products p LEFT JOIN categories c ON p.category_id = c.id
 JOIN stores s ON p.store_id = s.id ORDER BY p.name LIMIT 20"""
+
+    # --- Orders ---
     if "order" in question:
         return """SELECT o.id, u.first_name || ' ' || u.last_name as customer, s.name as store,
 o.status, ROUND(o.grand_total, 2) as total, o.payment_method, o.order_date
 FROM orders o JOIN users u ON o.user_id = u.id JOIN stores s ON o.store_id = s.id
 ORDER BY o.order_date DESC LIMIT 20"""
+
+    # --- Revenue/sales ---
     if "revenue" in question or "sales" in question or "income" in question:
         return "SELECT ROUND(SUM(grand_total), 2) as total_revenue, COUNT(*) as total_orders FROM orders WHERE status != 'CANCELLED'"
+
+    # --- Generic product query ---
     if "product" in question:
         return """SELECT p.name, p.unit_price, p.stock, c.name as category, s.name as store
 FROM products p LEFT JOIN categories c ON p.category_id = c.id
 JOIN stores s ON p.store_id = s.id ORDER BY p.unit_price DESC LIMIT 20"""
+
+    # --- Stores ---
+    if "store" in question:
+        return "SELECT s.name, s.description, s.status, u.first_name || ' ' || u.last_name as owner FROM stores s JOIN users u ON s.owner_id = u.id"
+
+    # --- Categories ---
+    if "categor" in question:
+        return "SELECT id, name, parent_id FROM categories ORDER BY id"
+
+    # --- Shipments ---
+    if "shipment" in question:
+        return """SELECT s.tracking_number, s.carrier, s.mode, s.status, s.destination,
+s.shipped_date, s.estimated_arrival FROM shipments s ORDER BY s.shipped_date DESC LIMIT 20"""
+
+    # --- Reviews ---
+    if "review" in question:
+        return """SELECT p.name as product, r.star_rating, r.sentiment, r.review_body
+FROM reviews r JOIN products p ON r.product_id = p.id
+ORDER BY r.review_date DESC LIMIT 20"""
+
+    # --- Customer profiles ---
+    if "customer" in question:
+        return """SELECT u.first_name || ' ' || u.last_name as name, cp.city, cp.membership_type,
+ROUND(cp.total_spend, 2) as total_spend, cp.items_purchased, cp.satisfaction_level
+FROM customer_profiles cp JOIN users u ON cp.user_id = u.id ORDER BY cp.total_spend DESC LIMIT 20"""
 
     return "SELECT COUNT(*) as total_orders, ROUND(SUM(grand_total), 2) as total_revenue FROM orders WHERE status != 'CANCELLED'"

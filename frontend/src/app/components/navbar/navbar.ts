@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
@@ -6,14 +6,17 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-navbar',
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <nav class="navbar">
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
       <div class="nav-inner">
-        <a class="logo" routerLink="/">
+        <a class="logo" routerLink="/" aria-label="Home">
           <span class="logo-icon">📊</span> E-Commerce Analytics
         </a>
 
         @if (auth.isLoggedIn()) {
-          <div class="nav-links">
+          <button class="hamburger" (click)="toggleMenu()" [class.open]="menuOpen()" aria-label="Toggle navigation menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="nav-links" [class.show]="menuOpen()">
             <!-- Shared -->
             <a routerLink="/products" routerLinkActive="active">Products</a>
             <a routerLink="/chat" routerLinkActive="active">AI Chat</a>
@@ -47,12 +50,12 @@ import { AuthService } from '../../services/auth.service';
             }
           </div>
 
-          <div class="user-info">
+          <div class="user-info" [class.show]="menuOpen()">
             <span class="role-badge" [class]="'role-' + (auth.currentRole() || '').toLowerCase()">
               {{ auth.currentRole() }}
             </span>
             <a class="btn-profile" routerLink="/profile">{{ auth.currentEmail() }}</a>
-            <button class="btn-logout" (click)="auth.logout()">Logout</button>
+            <button class="btn-logout" (click)="auth.logout()" aria-label="Logout">Logout</button>
           </div>
         }
       </div>
@@ -138,8 +141,44 @@ import { AuthService } from '../../services/auth.service';
       transition: all 0.15s;
     }
     .btn-logout:hover { background: #f1f5f9; color: #1a1a2e; }
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      margin-left: auto;
+    }
+    .hamburger span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: #374151;
+      border-radius: 1px;
+      transition: all 0.25s;
+    }
+    .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
+    @media (max-width: 768px) {
+      .nav-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 0; }
+      .hamburger { display: flex; }
+      .nav-links, .user-info { display: none; width: 100%; }
+      .nav-links.show, .user-info.show { display: flex; }
+      .nav-links.show { flex-direction: column; gap: 2px; padding: 8px 0; }
+      .nav-links.show a { padding: 10px 12px; }
+      .separator { display: none; }
+      .user-info.show { flex-wrap: wrap; padding: 8px 0; border-top: 1px solid #e5e7eb; }
+    }
   `]
 })
 export class NavbarComponent {
+  menuOpen = signal(false);
   constructor(public auth: AuthService) {}
+
+  toggleMenu() {
+    this.menuOpen.update(v => !v);
+  }
 }

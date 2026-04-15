@@ -76,7 +76,7 @@ customer_profiles = Table("customer_profiles", metadata,
     Column("prior_purchases", Integer))
 
 
-_DB_TYPE = "PostgreSQL" if config.USE_SHARED_DB else "SQLite"
+_DB_TYPE = "PostgreSQL"
 
 DB_SCHEMA_DESCRIPTION = f"""
 Database Schema ({_DB_TYPE}):

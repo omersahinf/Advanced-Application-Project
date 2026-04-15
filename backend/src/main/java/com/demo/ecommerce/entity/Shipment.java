@@ -22,8 +22,9 @@ public class Shipment {
 
     private String mode; // Ship, Flight, Road
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // PROCESSING, SHIPPED, IN_TRANSIT, DELIVERED, RETURNED
+    private ShipmentStatus status;
 
     private String trackingNumber;
 
@@ -56,8 +57,8 @@ public class Shipment {
     public String getMode() { return mode; }
     public void setMode(String mode) { this.mode = mode; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public ShipmentStatus getStatus() { return status; }
+    public void setStatus(ShipmentStatus status) { this.status = status; }
 
     public String getTrackingNumber() { return trackingNumber; }
     public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }

@@ -359,157 +359,152 @@ References:
 - **Lazy Loading:** All route components use `loadComponent` for code splitting
 - **Auth Interceptor:** Attaches `Authorization: Bearer <token>` to all requests; catches 401 -> logout
 - **Guards:** `authGuard` (is logged in?), `roleGuard(roles)` (has required role?)
-- **Data Visualization:** Chart.js on canvas elements in all 3 dashboard components
-- **Chat Interface:** Sends to `/api/chat/ask`. SQL shown in `<pre>` block, tabular data in `<table>` (both in main DOM). Plotly visualization HTML rendered in sandboxed `<iframe sandbox="allow-scripts">` via Blob URL (isolated from main DOM)
-- **Navbar:** Role-aware sidebar navigation with collapsible layout, profile card, and logout
+- **Data Visualization:** **Chart.js** on canvas elements in every dashboard + Admin → Analytics tab (loaded eagerly); **Plotly** lazy-loaded only on `/chat` for the Text2SQL Visualization Agent output
+- **Chat Interface:** Streams from `/api/chat/stream` (Server-Sent Events) via `ChatService.streamMessage()`. The UI has four message kinds — `text`, `streaming` (live 5-step pipeline), `blocked` (out-of-scope refusal), `error`, and `result` (tabbed **Chart / Table / SQL** card). Plotly visualization HTML is rendered in a sandboxed `<iframe sandbox="allow-scripts">` via a `Blob` URL (isolated from the main DOM)
+- **App shell:** Logged-in layout = role-aware left sidebar (`app-navbar`) + fixed top strip (`app-top-header` with route-derived page title, role switcher, **Ask Flower AI** chip, user chip, cart badge for Individual); `<router-outlet />` in the center. Unauthenticated routes (e.g. `/login`) render full-width without the shell.
 
-### Frontend Design System — Wispr Flow Inspired Theme
+### Frontend Design System — Flower
 
-The UI uses a warm, natural color palette inspired by [Wispr Flow](https://wisprflow.ai). All design tokens are extracted from Wispr Flow's production CSS (`flowsite-dev.webflow.shared.min.css`).
+The UI is built on the **Flower** design system — a warm, editorial theme with Inter (sans), Georgia (serif headings), and JetBrains Mono (IDs / SQL / codes) as the type stack. Every visual decision is driven by two source-of-truth documents in the repo:
 
-#### Color Palette (Wispr Flow Brand Tokens)
+- **`FLOWER_DESIGN_SYSTEM.md`** — formal token spec, component patterns, and per-page layouts.
+- **`Flower Prototype.html`** — pixel-perfect static reference. When the MD and the prototype disagree, the **prototype wins** and the MD is updated to match.
 
-| Token Name | Hex Code | RGB | Usage |
-|------------|----------|-----|-------|
-| **lumen-dark** | `#e4e4d0` | rgb(228, 228, 208) | Page backgrounds, main content area, login page background |
-| **lumen** | `#ffffeb` | rgb(255, 255, 235) | Card backgrounds, sidebar, input fields, form containers |
-| **dawn** | `#f0d7ff` | rgb(240, 215, 255) | Primary action buttons (Sign In, Submit), badges, lavender accents |
-| **fathom** | `#034f46` | rgb(3, 79, 70) | Logo, active navigation items, focus states, primary accent (dark teal) |
-| **vast** | `#1a1a1a` | rgb(26, 26, 26) | Headings, primary text, button borders on login |
-| **glow** | `#ffa946` | rgb(255, 169, 70) | Warning/attention accents (orange) |
-| **pulse** | `#7f1c34` | rgb(127, 28, 52) | Error states (dark red) |
-| **white** | `#ffffff` | rgb(255, 255, 255) | — |
+All design tokens live as **CSS custom properties** in `frontend/src/styles/_tokens.scss` on `:root`, so they are resolvable at runtime (theme previews, JS access, Chart.js color config). No component SCSS hard-codes hex values — every color is pulled from a token.
 
-#### Derived / Secondary Colors
+#### Style layer — SCSS partials (`frontend/src/styles/`)
 
-| Color | Hex Code | Usage |
-|-------|----------|-------|
-| Border (primary) | `#d5d5c0` | Card borders, dividers, sidebar border |
-| Border (input) | `#c8c8b4` | Input field borders, scrollbar thumb |
-| Text (secondary) | `#666666` | Secondary text, descriptions, muted labels |
-| Text (muted) | `#999999` | Placeholders, disabled text |
-| Hover background | `#f5f5e1` | Table row hover, button hover states |
-| Hover background (nav) | `#e4e4d0` | Sidebar navigation item hover (matches page bg) |
-| Active accent (alpha) | `rgba(3, 79, 70, 0.08)` | Active navigation item background |
-| Focus ring | `rgba(3, 79, 70, 0.12)` | Input focus box-shadow |
-| Dawn hover | `#e4c4f7` | Primary button hover state (darker dawn) |
+| File | Responsibility |
+|------|----------------|
+| `_tokens.scss` | Design tokens (colors, fonts, radii, spacing, shadows) as `:root` custom properties. |
+| `_typography.scss` | Google Fonts loader hook + type-scale classes (`.serif-h1`..`.serif-h3`, `.mono`, `.label`, `.section-label`). |
+| `_components.scss` | Reusable primitives: `.btn`, `.btn-primary`, `.btn-dark`, `.btn-ghost`, `.card`, `.input`, `.select`, `.badge-*`, `.status-pill-*`, table chrome. |
+| `_responsive.scss` | Breakpoint mixins: `lt-sm`, `lt-md`, `lt-lg`, `lt-xl` used from inside component SCSS via `@use`. |
+| `_utilities.scss` | Flex / stack / spacing helpers, `.sr-only`, `.section-label`, focus-ring helpers. |
+| `styles.scss` | Entry point; `@use`s all partials and wires them into the app. |
 
-#### Semantic Colors (preserved across themes)
+> The previous `frontend/src/styles.css` was removed during the Flower redesign. `angular.json` now points to `src/styles/styles.scss`, and component SCSS files use `@use '../../../styles/tokens' as t;` instead of redefining colors locally.
 
-| Purpose | Hex Code | Usage |
-|---------|----------|-------|
-| Error/Admin red | `#dc2626` | Error messages, admin role badge text |
-| Error background | `#fce5e5` | Admin badge background, error notification bg |
-| Success green | `#16a34a` | Individual role badge text, success states |
-| Success background | `#dcfce7` | Individual badge background |
-| Corporate purple text | `#6b21a8` | Corporate role badge text |
-| Corporate purple bg | `#f0d7ff` | Corporate badge background (same as dawn) |
-| Warning amber | `#d97706` | Warning states |
-| Warning background | `#fef3c7` | Warning notification background |
+#### Color palette (Flower tokens)
 
-#### Login Page UI Pattern (Wispr Flow Get-Started Style)
-
-The login page replicates the Wispr Flow `/get-started` page layout and styling:
-
-| Element | Wispr Flow CSS | Our Implementation |
-|---------|---------------|-------------------|
-| **Page background** | `background-color: var(--base-color--lumen-dark)` | `background: #e4e4d0` |
-| **Card container** | `border-radius: 32px; padding: 2rem` | `border-radius: 32px; padding: 2rem; background: #ffffeb` |
-| **Quick-login buttons** | `border: 2px solid #1a1a1a; border-radius: 8px; padding: 1rem; font-weight: 600` | Labels: **Continue as Admin / Corporate / Individual** (demo accounts); same Wispr button chrome |
-| **Button hover** | `transition: opacity 0.2s` | `opacity: 0.7` on hover |
-| **"or" separator** | Plain text between button group and input | `text-align: center; padding: 20px 0` |
-| **Email/Password inputs** | Bottom border only (`border-bottom: 2px solid #1a1a1a`), no box | Same — `border: none; border-bottom: 2px solid #1a1a1a; border-radius: 0; background: transparent` |
-| **Submit button** | `background-color: var(--base-color--dawn); border-radius: 8px` | Label **Continue**; `background: #f0d7ff; border-radius: 8px; padding: 1rem` |
-| **Wispr “Last used” chip** | Small dawn pill on a provider button | Not used on our quick-login rows (three plain bordered buttons only). |
-
-#### Sidebar Navigation Pattern
-
-| Property | Value |
-|----------|-------|
-| Width | 250px (68px when collapsed) |
-| Background | `#ffffeb` (lumen) |
-| Border right | `1px solid #d5d5c0` |
-| Nav item (default) | `color: #666; font-size: 14px; border-radius: 10px` |
-| Nav item (hover) | `color: #1a1a1a; background: #e4e4d0` |
-| Nav item (active) | `color: #034f46; background: rgba(3, 79, 70, 0.08)` |
-| Section labels | `font-size: 10px; color: #999; letter-spacing: 1.2px; text-transform: uppercase` |
-| User avatar | `background: linear-gradient(135deg, #034f46, #1c6056)` |
-| Badge (new) | `background: #f0d7ff; color: #1a1a1a` |
-
-#### Card & Component Pattern
-
-| Property | Value |
-|----------|-------|
-| Card background | `#ffffeb` |
-| Card border | `1px solid #d5d5c0` |
-| Card border-radius | `16px` |
-| Card shadow | `0 1px 4px rgba(0, 0, 0, 0.04)` |
-| Table header bg | `#f5f5e1` |
-| Table row hover | `#f5f5e1` |
-| Input background | `#ffffeb` |
-| Input border | `1px solid #c8c8b4` |
-| Input focus border | `#034f46` with `box-shadow: 0 0 0 3px rgba(3, 79, 70, 0.12)` |
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `--fathom` | `#034f46` | Primary brand teal — logo, active sidebar item, focus accents. |
+| `--fathom-dark` | `#023a34` | Pressed / active primary button state. |
+| `--fathom-light` / `--dawn` | `#dfe9e5` | Warm fathom highlight — active filter pills, Ask Flower AI chip. |
+| `--bg` | `#e4e4d0` | Page background (the old "lumen-dark"). |
+| `--bg-2` | `#f1f1dc` | Secondary surface (zebra stripes, sub-panels). |
+| `--lumen` | `#faf8ea` | Card / sidebar / input background. |
+| `--text` / `--vast` | `#1a1a1a` | Primary text and headings. |
+| `--text-2` | `#5a5a52` | Secondary text / descriptions. |
+| `--text-3` | `#8a8a7c` | Muted text, Chart.js axis labels, section labels. |
+| `--border` / `--border-2` | `#d5d5c0` / `#c0c0a8` | Card and input borders. |
+| `--ok` / `--ok-tint` / `--ok-bg` | `#16a34a` / 12% / `#dcfce7` | Success states, Individual role badge, Delivered / Active pills. |
+| `--warn` / `--warn-tint` | `#ffa946` / 18% | Warning accents; paired with `--pending-text` `#b45309` on PENDING pills. |
+| `--err` / `--err-tint` / `--err-bg` | `#dc2626` / 12% / `#fce5e5` | Error states, Admin role badge, Cancelled pill. |
+| `--corp-bg` / `--corp-text` | `#dfe9e5` / `#034f46` | Corporate role badge. |
+| `--hover` | `#f5f5e1` | Table row / button hover background. |
+| `--focus-ring` / `--focus-ring-soft` | 25% / 12% teal | `focus-visible` rings. |
+| `--radius-card` / `--radius-ctrl` / `--radius-pill` | 12px / 8px / 999px | Radii scale. |
 
 #### Typography
 
-| Element | Font | Weight | Size | Color |
-|---------|------|--------|------|-------|
-| Body | Inter, -apple-system, sans-serif | 400 | 14px | `#1a1a1a` |
-| Headings | Inter | 700 | 20-28px | `#1a1a1a` |
-| Labels | Inter | 600 | 13px | `#444444` |
-| Muted/secondary | Inter | 400-500 | 12-14px | `#666666` |
-| Section labels | Inter | 700 | 10px | `#999999` |
+| Element | Font var | Weight | Size |
+|---------|----------|--------|------|
+| Body | `--sans` (Inter) | 400 | 14px |
+| Labels / button text | `--sans` | 500–600 | 13–14px |
+| Muted / captions | `--sans` | 400–500 | 11–12px |
+| Section labels (sidebar) | `--sans` | 700 | 10px, uppercase, letter-spaced |
+| Card `h2` / `h3` | `--serif` (Georgia) | 400 | 20–28px |
+| Login "Get started" hero | `--serif` | 400 | ~40px |
+| IDs / SKUs / SQL / audit actions | `--mono` (JetBrains Mono) | 400–500 | 12–13px |
 
-#### Brand & naming (Flower)
+Inter and JetBrains Mono are loaded from Google Fonts via `<link>` in `src/index.html` with `preconnect`; Georgia is resolved from system fonts.
 
-| Item | Detail |
-|------|--------|
-| **Product name in UI** | **Flower** — shown on the login brand row and in the sidebar logo text (replaces earlier placeholder copy such as “DataPulse” in the UI only; backend routes and code identifiers are unchanged unless renamed separately). |
-| **Logo mark** | Inline SVG: four vertical bars of different heights (Wispr Flow–style “sound wave / bar chart”), fill `#1a1a1a`. Login uses `40×40` (`viewBox="0 0 32 32"`); sidebar uses `24×24` (`viewBox="0 0 28 28"`). |
+#### Shared Flower primitives (`frontend/src/app/shared/`)
 
-#### Login page — layout & copy (current)
+Extracted during the pixel-perfect pass so every role / page renders the same controls.
 
-| Topic | Implementation |
-|-------|----------------|
-| **Structure** | Brand row **above** the card (icon + wordmark “Flower”), then a single card. Inside the card: serif **“Get started”** heading; three demo quick-login buttons labeled **Continue as Admin / Continue as Corporate / Continue as Individual**; **“or”**; email and password fields; primary button text **Continue** (loading: “Signing in…”). |
-| **Vertical layout** | `.login-page` uses `justify-content: flex-start` (not vertical centering) so the block sits higher like [wisprflow.ai/get-started](https://wisprflow.ai/get-started). Padding: `padding: 2rem`, `padding-top: 5rem`, `padding-bottom: 4rem`, `gap: 2.5rem` between the brand row and the card. |
-| **Card size** | `max-width: 34rem` (~544px), `border-radius: 32px`, `padding: 2rem`, background `#ffffeb`. |
-| **Brand row nudge** | `.brand` uses `position: relative; top: -1.3rem` so only the logo + “Flower” row shifts **up** slightly; the **Get started** card position is unchanged (avoids changing `gap` / `padding-top`, which would move the card). |
-| **“Get started” title** | Large serif heading (e.g. Georgia), `font-size: ~2.5rem`, centered. |
+| Component / Utility | Purpose |
+|---------------------|---------|
+| `flower-logo` | Inline SVG wordmark-and-mark used on login (40px) and sidebar (24px). |
+| `flower-icon` | Single-source line-SVG icon set (`plus`, `trash`, `edit`, `store`, `tag`, `chevron_right`, `download`, `upload`, `search`, `filter`, `package`, `user`, …). SVG strings are composed in a computed signal and injected via `DomSanitizer.bypassSecurityTrustHtml` so the SVG namespace is preserved. |
+| `flower-stars` | 5-star rating visual, driven by a numeric `value` input — used in reviews, product cards, store comparison, and admin store cards. |
+| `flower-dialog` | Modal shell (title + scrollable body + footer slot) used by Admin Users invite, Admin Categories editor, Corporate Products add/edit, Corporate Reviews reply. |
+| `status-pill` | One component, verbatim prototype color mapping for every backend status (`ACTIVE`, `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`, `PENDING_APPROVAL`, `CLOSED`, …). |
+| `kpi-card` | Dashboard KPI tile (label, value, sub-text, optional icon, optional delta chip). Used on Individual, Corporate, and Admin dashboards. |
+| `product-hero` | Large emoji hero block used as the product "thumbnail" in all catalogs. |
+| `product-emoji.ts` | Maps `product.name + product.category` to an emoji via a **prioritized regex rule list** — more-specific keywords first (e.g. `desk lamp` before `lamp`, `canvas print` before generic `canvas`). Covers the entire `DataSeeder.java` catalog. |
 
-#### App shell (logged-in)
+#### App shell (logged-in layout) — `app.html`
+
+| Layer | Component | Notes |
+|-------|-----------|-------|
+| Left rail | `app-navbar` (`components/navbar`) | Role-aware sidebar. Logo row at top, section labels ("ACCOUNT" / "MANAGE" / "PLATFORM"), nav items with `flower-icon`, user chip at bottom with initial avatar + logout. Collapses to a mobile drawer under `lt-md`. |
+| Top strip | `app-top-header` (`components/top-header`) | Route-derived page title (reacts to `NavigationEnd`), role switcher (for dev/demo), **Ask Flower AI** chip that routes to `/chat`, cart badge (Individual only), user chip. |
+| Page body | `<router-outlet />` inside `.main-content` (`app.css`) | Background `--bg`. Unauthenticated routes render full-width without the shell. |
+
+#### Login page — final (after C19 re-audit)
 
 | Topic | Detail |
 |-------|--------|
-| **Root layout** | `App` shows a sidebar + main content when authenticated; unauthenticated routes (e.g. `/login`) render only `<router-outlet>` so the login page is full-width without the sidebar. Implemented in `frontend/src/app/app.html` + `app.ts` (`AuthService` for `isLoggedIn()`). |
-| **Main content background** | `#e4e4d0` (`app.css` `.main-content`, aligned with lumen-dark). |
+| Structure | Brand row (40px `flower-logo` + "Flower" wordmark) → single card → course footer. Card contains Georgia "Get started" hero, subtitle, three demo quick-login buttons, "or" divider, email + password bottom-border inputs, **Continue** primary button (loading text "Signing in…"), and the demo accounts footer **inside** the card. |
+| Demo buttons | "Continue as Admin" 🔑, "Continue as Corporate" 💼, "Continue as Individual" 👤. Each pre-fills the email field; password is `password`. |
+| Background | `--bg`. Card uses `--lumen`, `border-radius: 32px`, `max-width: 34rem`. |
+| Inputs | Bottom border only (`border-bottom: 2px solid var(--text)`), transparent background, no box. |
+| Primary CTA | Prototype soft pink `#f0d7ff`, `border-radius: 10px`, full-width. |
+| Course footer | Fixed line below the card: "CSE 214 · Advanced Application Development · Final Project". |
 
-#### Global styles (`frontend/src/styles.css`)
+#### Dashboards
 
-| Topic | Detail |
-|-------|--------|
-| **Body** | Background `#e4e4d0`, text `#1a1a1a`. |
-| **Links** | Teal accent `#034f46` (fathom), hover darkened. |
-| **`.btn-primary`** | Background `#f0d7ff` (dawn), text `#1a1a1a` — matches Wispr primary actions, not a saturated purple. |
-| **`.card`, inputs** | Cards `#ffffeb`, borders `#d5d5c0` / `#c8c8b4`; focus ring uses teal `rgba(3, 79, 70, 0.12)`. |
+- **Chart.js** drives KPI charts on Individual, Corporate, and Admin dashboards plus Admin → Analytics. Palette is pulled from `--fathom`, `--fathom-dark`, `--warn`, `--err`, `--text-3` so dashboards stay on-theme.
+- Gridlines use `--border` dashed; axis label font = Inter 11px `--text-3`; legend placement matches the prototype (top-right for bars, bottom-center for donuts).
+- Canvas elements live inside `@if (data())` blocks. Chart creation is scheduled via `requestAnimationFrame` with a short retry so the `@ViewChild` canvas is present after the async signal resolves — this prevents silent empty charts under zoneless change detection.
+
+#### Text2SQL Chatbot UI (`/chat`)
+
+Two-column grid: **messages (1fr) | agent rail (300px)**, collapsing to a stacked layout under `lt-lg`.
+
+- **Message stream.** Four message kinds: `text` (plain), `streaming` (inline 5-step pipeline with the active step highlighted), `blocked` (out-of-scope refusal), `error` (error banner), and `result` (tabbed card).
+- **Result card tabs.** **Chart** renders the LLM-generated Plotly HTML inside a sandboxed `<iframe sandbox="allow-scripts">` via a `Blob` URL (isolated from the main DOM). **Table** renders the JSON rows into a Flower-styled `<table>`. **SQL** shows the generated query in a `<pre>` block with `--mono`.
+- **Right rail.** Fixed 5-step pipeline (Guardrails → SQL Generation → Validator → Executor → Visualizer), a session-context card (role / email / company / session id), and a suggested-prompts list drawn from the prototype.
+- **Streaming.** The component consumes `/api/chat/stream` (Server-Sent Events) via `ChatService.streamMessage()` and maps each backend step (`guardrails`, `generate_sql`, `execute`, `analyze`, `visualize`, `decide_graph`, `error_handler`) onto the fixed 5-step pipeline. Plotly is **lazy-loaded only on this route** (`plotly.js-dist-min` dynamic `import()` in the chat service).
+
+#### Responsive breakpoints (`_responsive.scss`)
+
+| Mixin | Max width | Typical effect |
+|-------|-----------|----------------|
+| `lt-xl` | 1200px | Dashboard KPI grid 4-col → 2-col. |
+| `lt-lg` | 1024px | Chatbot right rail stacks under the messages; 2-col chart rows → 1-col. |
+| `lt-md` | 768px | Sidebar collapses into a mobile drawer; top-header simplifies; tables enter horizontal scroll. |
+| `lt-sm` | 480px | Cart / orders / reviews cards go single-column; KPI values shrink. |
+
+#### Accessibility
+
+- `sr-only` skip link at the top of `app.html` targets `#main-content`.
+- All interactive controls use visible `focus-visible` rings (`--focus-ring`) instead of `outline: none`.
+- `@media (prefers-reduced-motion: reduce)` disables hover transitions and non-essential animations globally (`_components.scss`).
 
 #### Zoneless Angular fix — Admin Analytics
 
 | Issue | Fix |
 |-------|-----|
-| **Symptom** | On `/admin/analytics`, **Cross-Store Comparison** (and related tabs) could stay on **Loading...** until the user switched tabs; data had already loaded. |
-| **Cause** | The app runs in **zoneless** mode: plain property assignments from HTTP subscriptions do not trigger change detection. |
-| **Fix** | `AdminAnalyticsComponent` stores `tab`, `stores`, `segmentation`, and `auditLogs` as **`signal()`** values and uses `.set()` in subscriptions so the UI updates when data arrives (`frontend/src/app/components/admin-analytics/admin-analytics.ts`). |
+| **Symptom** | `/admin/analytics` tabs could stay on **Loading…** until the user switched tabs; data had already arrived. |
+| **Cause** | The app runs in **zoneless** mode — plain property assignments from HTTP subscriptions do not trigger change detection. |
+| **Fix** | `AdminAnalyticsComponent` stores `tab`, `stores`, `segmentation`, and `auditLogs` as `signal()` values and mutates them with `.set()` inside subscriptions. The same pattern is applied across every Flower-redesigned dashboard and admin page. |
 
-#### UI files touched by the theme & Flower work (non-exhaustive)
+#### UI files touched by the Flower redesign (non-exhaustive)
 
-| Area | Typical files |
-|------|----------------|
-| **Global / shell** | `frontend/src/styles.css`, `frontend/src/app/app.css`, `frontend/src/app/app.html`, `frontend/src/app/app.ts` |
-| **Auth chrome** | `frontend/src/app/components/login/login.ts`, `frontend/src/app/components/navbar/navbar.ts` |
-| **Dashboards & charts** | `individual-dashboard.ts`, `corporate-dashboard.ts`, `admin-dashboard.ts` |
-| **Feature pages** | Product list/detail, cart, checkout, orders, reviews, profile, chatbot, corporate admin pages, admin CRUD/analytics/settings |
-| **Admin analytics** | `admin-analytics.ts` (signals + Wispr-aligned styles) |
+| Area | Files |
+|------|-------|
+| Global styles | `frontend/src/styles/_tokens.scss`, `_typography.scss`, `_components.scss`, `_responsive.scss`, `_utilities.scss`, `styles.scss` |
+| Shell | `frontend/src/app/app.html`, `app.css`, `app.ts`, `components/navbar/*`, `components/top-header/*` |
+| Shared primitives | `shared/flower-logo`, `flower-icon`, `flower-stars`, `flower-dialog`, `status-pill`, `kpi-card`, `product-hero`, `product-emoji.ts` |
+| Individual | `components/individual-dashboard`, `product-list`, `product-detail`, `cart`, `checkout`, `my-orders`, `my-reviews`, `profile` |
+| Corporate | `components/corporate-dashboard`, `corporate-products`, `corporate-orders`, `corporate-reviews` |
+| Admin | `components/admin-dashboard`, `admin-users`, `admin-stores`, `admin-categories`, `admin-analytics`, `admin-audit`, `admin-settings` |
+| Chatbot | `components/chatbot/{chatbot.ts, chatbot.html, chatbot.scss}` + `services/chat.service.ts` SSE handling |
+| Auth | `components/login/{login.ts, login.scss}` |
 
 ---
 

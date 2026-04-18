@@ -68,9 +68,7 @@ declare const Stripe: any;
               </div>
             } @else {
               <h3>Card details</h3>
-              <p class="test-hint">
-                Test card: 4242 4242 4242 4242 · any future date · any CVC
-              </p>
+              <p class="test-hint">Test card: 4242 4242 4242 4242 · any future date · any CVC</p>
               <div #cardElement class="card-element"></div>
               @if (cardError) {
                 <p class="card-error">{{ cardError }}</p>

@@ -1,231 +1,148 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../services/order.service';
 import { Order } from '../../models/product.model';
 
+type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+
 @Component({
   selector: 'app-corporate-orders',
+  standalone: true,
   imports: [DatePipe, DecimalPipe, FormsModule],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>Order Management</h1>
+      <div class="toolbar">
+        @for (f of filters; track f.value) {
+          <button
+            type="button"
+            class="filter-chip"
+            [class.active]="statusFilter() === f.value"
+            (click)="statusFilter.set(f.value)"
+          >
+            {{ f.label }}
+          </button>
+        }
+
+        <div class="date-filter">
+          <label>
+            From
+            <input type="date" [(ngModel)]="startDate" (change)="filterByDate()" />
+          </label>
+          <label>
+            To
+            <input type="date" [(ngModel)]="endDate" (change)="filterByDate()" />
+          </label>
+          @if (startDate || endDate) {
+            <button type="button" class="btn-clear" (click)="clearDateFilter()">Clear</button>
+          }
+        </div>
       </div>
 
-      <div class="date-filter">
-        <label>From: <input type="date" [(ngModel)]="startDate" (change)="filterByDate()" /></label>
-        <label>To: <input type="date" [(ngModel)]="endDate" (change)="filterByDate()" /></label>
-        <button class="btn-xs primary" (click)="clearDateFilter()">Clear</button>
-      </div>
-
-      <div class="table-card card">
-        <table>
-          <thead>
-            <tr>
-              <th>Order #</th>
-              <th>Customer</th>
-              <th>Date</th>
-              <th>Items</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (o of orders(); track o.id) {
+      <div class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
               <tr>
-                <td>
-                  <strong>#{{ o.id }}</strong>
-                </td>
-                <td>{{ o.userName }}</td>
-                <td>{{ o.orderDate | date: 'short' }}</td>
-                <td>{{ o.items.length || 0 }} items</td>
-                <td>\${{ o.grandTotal | number: '1.2-2' }}</td>
-                <td>
-                  <span class="status-badge" [class]="'s-' + o.status.toLowerCase()">{{
-                    o.status
-                  }}</span>
-                </td>
-                <td>
-                  @if (o.status === 'PENDING') {
-                    <button class="btn-xs success" (click)="updateStatus(o.id, 'CONFIRMED')">
-                      Confirm
-                    </button>
-                  }
-                  @if (o.status === 'CONFIRMED') {
-                    <button class="btn-xs primary" (click)="updateStatus(o.id, 'SHIPPED')">
-                      Ship
-                    </button>
-                  }
-                  @if (o.status === 'SHIPPED') {
-                    <button class="btn-xs success" (click)="updateStatus(o.id, 'DELIVERED')">
-                      Delivered
-                    </button>
-                  }
-                </td>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th style="text-align:right">Action</th>
               </tr>
-              @if (o.items && o.items.length > 0) {
-                <tr class="detail-row">
-                  <td colspan="7">
-                    <div class="items-detail">
-                      @for (item of o.items; track item.id) {
-                        <span class="item-pill"
-                          >{{ item.productName }} x{{ item.quantity }} (\${{
-                            item.price | number: '1.2-2'
-                          }})</span
-                        >
-                      }
+            </thead>
+            <tbody>
+              @for (o of visibleOrders(); track o.id) {
+                <tr>
+                  <td class="cell-order-id">#{{ o.id }}</td>
+                  <td>
+                    <div class="customer-cell">
+                      <span class="avatar-pill" aria-hidden="true">{{
+                        avatarInitial(o.userName)
+                      }}</span>
+                      <span class="customer-name">{{ o.userName }}</span>
                     </div>
                   </td>
+                  <td>{{ o.items.length || 0 }} items</td>
+                  <td class="cell-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
+                  <td>{{ o.orderDate | date: 'MMM d, y' }}</td>
+                  <td>
+                    <span class="status-pill" [class]="'s-' + o.status.toLowerCase()">
+                      {{ o.status }}
+                    </span>
+                  </td>
+                  <td style="text-align:right">
+                    @if (o.status === 'PENDING') {
+                      <button class="btn-action" type="button"
+                              (click)="updateStatus(o.id, 'CONFIRMED')">
+                        Confirm
+                      </button>
+                    } @else if (o.status === 'CONFIRMED') {
+                      <button class="btn-action" type="button"
+                              (click)="updateStatus(o.id, 'SHIPPED')">
+                        Ship
+                      </button>
+                    } @else if (o.status === 'SHIPPED') {
+                      <button class="btn-action" type="button"
+                              (click)="updateStatus(o.id, 'DELIVERED')">
+                        Mark delivered
+                      </button>
+                    }
+                  </td>
                 </tr>
+                @if (o.items && o.items.length > 0) {
+                  <tr class="detail-row">
+                    <td class="detail-cell" colspan="7">
+                      <div class="items-detail">
+                        @for (item of o.items; track item.id) {
+                          <span class="item-pill">
+                            {{ item.productName }} × {{ item.quantity }} (\${{
+                              item.price | number: '1.2-2'
+                            }})
+                          </span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
               }
-            }
-          </tbody>
-        </table>
-        @if (orders().length === 0) {
-          <div class="empty">No orders yet</div>
+            </tbody>
+          </table>
+        </div>
+        @if (visibleOrders().length === 0) {
+          <div class="empty-state" style="padding:40px 16px">
+            <div class="empty-icon" aria-hidden="true">📭</div>
+            <div class="empty-title">No orders match these filters</div>
+          </div>
         }
       </div>
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        margin-bottom: 20px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .table-card {
-        padding: 0;
-        overflow-x: auto;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      th {
-        background: #f5f5e1;
-        padding: 12px 16px;
-        text-align: left;
-        font-weight: 600;
-        color: #666;
-        font-size: 11px;
-        text-transform: uppercase;
-      }
-      td {
-        padding: 12px 16px;
-        border-top: 1px solid #d5d5c0;
-      }
-      tr:hover td {
-        background: #f5f5e1;
-      }
-      .detail-row td {
-        padding: 8px 16px;
-        background: #f5f5e1 !important;
-      }
-      .items-detail {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .item-pill {
-        font-size: 12px;
-        background: #ffffeb;
-        padding: 4px 10px;
-        border-radius: 6px;
-        border: 1px solid #d5d5c0;
-        color: #1a1a1a;
-      }
-      .status-badge {
-        font-size: 11px;
-        font-weight: 700;
-        padding: 3px 10px;
-        border-radius: 12px;
-        text-transform: uppercase;
-      }
-      .s-pending {
-        background: #fef3c7;
-        color: #d97706;
-      }
-      .s-confirmed {
-        background: #034f46;
-        color: #ffffeb;
-      }
-      .s-shipped {
-        background: #e0e7ff;
-        color: #4338ca;
-      }
-      .s-delivered {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .s-cancelled {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .btn-xs {
-        padding: 4px 10px;
-        border: none;
-        border-radius: 4px;
-        font-size: 11px;
-        cursor: pointer;
-        font-weight: 600;
-        margin-right: 4px;
-      }
-      .btn-xs.success {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .btn-xs.primary {
-        background: #034f46;
-        color: #ffffeb;
-      }
-      .date-filter {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 16px;
-      }
-      .date-filter label {
-        font-size: 13px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: #666;
-      }
-      .date-filter input[type='date'] {
-        padding: 6px 10px;
-        border: 1px solid #c8c8b4;
-        border-radius: 6px;
-        font-size: 13px;
-        font-family: inherit;
-        background: #ffffeb;
-        color: #1a1a1a;
-      }
-      .empty {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-      }
-    `,
-  ],
+  styleUrls: ['./corporate-orders.scss'],
 })
 export class CorporateOrdersComponent implements OnInit {
-  orders = signal<Order[]>([]);
   allOrders = signal<Order[]>([]);
+  filteredByDate = signal<Order[]>([]);
+  statusFilter = signal<StatusFilter>('ALL');
   startDate = '';
   endDate = '';
+
+  filters: { value: StatusFilter; label: string }[] = [
+    { value: 'ALL', label: 'All' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'CONFIRMED', label: 'Confirmed' },
+    { value: 'SHIPPED', label: 'Shipped' },
+    { value: 'DELIVERED', label: 'Delivered' },
+    { value: 'CANCELLED', label: 'Cancelled' },
+  ];
+
+  visibleOrders = computed(() => {
+    const list = this.filteredByDate();
+    const s = this.statusFilter();
+    return s === 'ALL' ? list : list.filter((o) => o.status === s);
+  });
 
   constructor(private orderService: OrderService) {}
 
@@ -236,7 +153,7 @@ export class CorporateOrdersComponent implements OnInit {
   load() {
     this.orderService.getStoreOrders().subscribe((o) => {
       this.allOrders.set(o);
-      this.orders.set(o);
+      this.filteredByDate.set(o);
     });
   }
 
@@ -251,16 +168,21 @@ export class CorporateOrdersComponent implements OnInit {
       end.setHours(23, 59, 59, 999);
       filtered = filtered.filter((o) => new Date(o.orderDate) <= end);
     }
-    this.orders.set(filtered);
+    this.filteredByDate.set(filtered);
   }
 
   clearDateFilter() {
     this.startDate = '';
     this.endDate = '';
-    this.orders.set(this.allOrders());
+    this.filteredByDate.set(this.allOrders());
   }
 
   updateStatus(orderId: number, status: string) {
     this.orderService.updateOrderStatus(orderId, status).subscribe(() => this.load());
+  }
+
+  avatarInitial(name: string | undefined): string {
+    if (!name) return '?';
+    return name.trim().charAt(0).toUpperCase();
   }
 }

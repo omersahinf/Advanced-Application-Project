@@ -1,0 +1,442 @@
+@use '../../../styles/responsive' as r;
+
+:host { display: block; }
+
+.welcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .welcome-copy {
+    h2 {
+      font-family: var(--serif);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 4px;
+      letter-spacing: -0.4px;
+    }
+    p {
+      color: var(--text-3);
+      font-size: 13.5px;
+      margin: 0;
+    }
+  }
+}
+
+.welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--lumen);
+  border-radius: var(--radius-ctrl);
+
+  input[type='date'] {
+    padding: 4px 6px;
+    border: none;
+    font-size: 12.5px;
+    font-family: inherit;
+    background: transparent;
+    color: var(--text);
+
+    &:focus { outline: none; }
+  }
+
+  .sep { color: var(--text-3); font-size: 12px; }
+}
+
+.btn-clear,
+.btn-configure {
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--lumen);
+  color: var(--text-2);
+  border-radius: var(--radius-ctrl);
+  cursor: pointer;
+
+  &:hover { background: var(--hover); color: var(--text); }
+}
+
+.widget-config {
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+
+  h3 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    margin: 0 0 10px;
+  }
+}
+
+.config-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+  }
+}
+
+/* --- Revenue line chart (wide, with click-drilldown) --------------- */
+.chart-wide {
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+
+  h3 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px;
+    letter-spacing: -0.2px;
+  }
+
+  .drill-hint {
+    font-size: 12px;
+    color: var(--text-3);
+    margin: 0 0 14px;
+  }
+
+  canvas {
+    width: 100% !important;
+    height: 340px !important;
+    max-height: 340px;
+    display: block;
+  }
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  @include r.lt-md { grid-template-columns: 1fr; }
+
+  .chart-card {
+    background: var(--lumen);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 20px 22px;
+
+    h3 {
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 12px;
+      letter-spacing: -0.2px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 280px !important;
+      max-height: 280px;
+      display: block;
+    }
+  }
+}
+
+/* --- Drill-down panel --------------------------------------------- */
+.drilldown {
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+
+  h3 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+  }
+
+  h4 {
+    margin: 18px 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    background: var(--bg-2);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+}
+
+.drilldown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.drill-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0 16px;
+
+  @include r.lt-md { grid-template-columns: 1fr; }
+}
+
+.drill-kpi {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctrl);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .dk-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .dk-value {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--fathom);
+    letter-spacing: -0.2px;
+  }
+}
+
+.status-pill {
+  display: inline-flex;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &.s-pending    { background: var(--warn-tint); color: var(--pending-text); }
+  &.s-confirmed  { background: var(--fathom-tint); color: var(--fathom); }
+  &.s-shipped    { background: var(--info-tint); color: var(--info); }
+  &.s-delivered  { background: var(--ok-tint); color: var(--ok); }
+  &.s-cancelled  { background: var(--err-tint); color: var(--err); }
+}
+
+.empty-drill {
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+/* --- Customer segmentation panel ---------------------------------- */
+.segmentation-section {
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+
+  h3 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 14px;
+    letter-spacing: -0.2px;
+  }
+
+  h4 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    margin: 0 0 8px;
+  }
+}
+
+.seg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+
+  @include r.lt-md { grid-template-columns: 1fr; }
+}
+
+.seg-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctrl);
+  padding: 14px;
+  text-align: center;
+
+  .seg-value {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .seg-label {
+    font-size: 10.5px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+}
+
+.seg-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  @include r.lt-md { grid-template-columns: 1fr; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    background: var(--bg-2);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &.badge-gold   { background: var(--warn-tint); color: var(--pending-text); }
+  &.badge-silver { background: #f1f5f9; color: #64748b; }
+  &.badge-bronze { background: #fff7ed; color: #b45309; }
+}
+
+/* --- Quick links --------------------------------------------------- */
+.quick-links {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+
+  @include r.lt-md { grid-template-columns: 1fr; }
+}
+
+.quick-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--fathom);
+    box-shadow: 0 6px 14px rgba(3, 79, 70, 0.08);
+  }
+
+  .quick-icon {
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--fathom-tint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 16px;
+  color: var(--text-3);
+  font-size: 14px;
+}

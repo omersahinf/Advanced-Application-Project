@@ -21,9 +21,7 @@ import { Review } from '../../models/product.model';
                 <span class="sentiment" [class]="'sent-' + r.sentiment.toLowerCase()">
                   {{ r.sentiment }}
                 </span>
-                <button class="btn-xs-danger" type="button" (click)="remove(r.id)">
-                  Delete
-                </button>
+                <button class="btn-xs-danger" type="button" (click)="remove(r.id)">Delete</button>
               </div>
             </div>
             <p class="review-body">{{ r.reviewBody || 'No comment' }}</p>

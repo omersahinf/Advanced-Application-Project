@@ -1,8 +1,9 @@
 import { Component, OnInit, signal, ElementRef, NgZone, effect } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe, KeyValuePipe } from '@angular/common';
+import { DecimalPipe, KeyValuePipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DashboardService } from '../../services/dashboard.service';
+import { AuthService } from '../../services/auth.service';
 import {
   CorporateDashboard,
   CustomerSegmentation,
@@ -14,82 +15,82 @@ Chart.register(...registerables);
 
 @Component({
   selector: 'app-corporate-dashboard',
-  imports: [RouterLink, DecimalPipe, KeyValuePipe, FormsModule],
+  standalone: true,
+  imports: [RouterLink, DecimalPipe, KeyValuePipe, DatePipe, FormsModule],
   template: `
     <div class="page">
-      <div class="page-header">
-        @if (data(); as d) {
-          <div class="header-top">
-            <div>
-              <h1>Welcome back! 👋</h1>
-              <p>Here's what's happening with your store today</p>
-            </div>
-            <div class="date-filter">
-              <input type="date" [(ngModel)]="startDate" (change)="onDateFilter()" />
-              <input type="date" [(ngModel)]="endDate" (change)="onDateFilter()" />
-              @if (startDate || endDate) {
-                <button class="btn-clear" (click)="clearDateFilter()">Clear</button>
-              }
-              <button class="btn-configure" (click)="showConfig = !showConfig">
-                {{ showConfig ? 'Done' : '⚙️' }}
-              </button>
-            </div>
+      <div class="welcome">
+        <div class="welcome-copy">
+          <h2>Welcome back{{ firstName() ? ', ' + firstName() : '' }} 👋</h2>
+          <p>Here's what's happening with your store today.</p>
+        </div>
+        <div class="welcome-actions">
+          <div class="date-picker">
+            <input type="date" [(ngModel)]="startDate" (change)="onDateFilter()" />
+            <span class="sep">→</span>
+            <input type="date" [(ngModel)]="endDate" (change)="onDateFilter()" />
           </div>
-        }
+          @if (startDate || endDate) {
+            <button class="btn-clear" type="button" (click)="clearDateFilter()">Clear</button>
+          }
+          <button class="btn-configure" type="button" (click)="showConfig = !showConfig">
+            {{ showConfig ? 'Done' : 'Configure widgets' }}
+          </button>
+        </div>
       </div>
 
       @if (showConfig) {
-        <div class="widget-config card">
-          <h3>Toggle Widgets</h3>
+        <div class="widget-config">
+          <h3>Toggle widgets</h3>
           <div class="config-options">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 [checked]="widgets()['kpis']"
                 (change)="toggleWidget('kpis')"
               />
-              KPI Cards</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['orderChart']"
-                (change)="toggleWidget('orderChart')"
-              />
-              Orders by Status</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['productChart']"
-                (change)="toggleWidget('productChart')"
-              />
-              Top Products</label
-            >
-            <label
-              ><input
+              KPI cards
+            </label>
+            <label>
+              <input
                 type="checkbox"
                 [checked]="widgets()['revenueChart']"
                 (change)="toggleWidget('revenueChart')"
               />
-              Revenue Trend</label
-            >
-            <label
-              ><input
+              Revenue trend
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                [checked]="widgets()['orderChart']"
+                (change)="toggleWidget('orderChart')"
+              />
+              Orders by status
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                [checked]="widgets()['productChart']"
+                (change)="toggleWidget('productChart')"
+              />
+              Top products
+            </label>
+            <label>
+              <input
                 type="checkbox"
                 [checked]="widgets()['segmentation']"
                 (change)="toggleWidget('segmentation')"
               />
-              Customer Segmentation</label
-            >
-            <label
-              ><input
+              Customer segmentation
+            </label>
+            <label>
+              <input
                 type="checkbox"
                 [checked]="widgets()['quickLinks']"
                 (change)="toggleWidget('quickLinks')"
               />
-              Quick Links</label
-            >
+              Quick links
+            </label>
           </div>
         </div>
       }
@@ -97,46 +98,58 @@ Chart.register(...registerables);
       @if (data(); as d) {
         @if (widgets()['kpis']) {
           <div class="kpi-grid">
-            <div class="kpi-card">
-              <div class="kpi-icon-circle gold">💰</div>
+            <div class="kpi-card kpi-brand">
+              <div class="kpi-head">
+                <div class="kpi-icon" aria-hidden="true">💰</div>
+              </div>
               <div class="kpi-value">\${{ d.totalRevenue | number: '1.0-0' }}</div>
-              <div class="kpi-label">Total Revenue</div>
+              <div class="kpi-label">Total revenue</div>
+              <div class="kpi-sub">Lifetime across all orders</div>
             </div>
-            <div class="kpi-card">
-              <div class="kpi-icon-circle blue">🛒</div>
+            <div class="kpi-card kpi-info">
+              <div class="kpi-head">
+                <div class="kpi-icon" aria-hidden="true">🛒</div>
+              </div>
               <div class="kpi-value">{{ d.totalOrders | number }}</div>
-              <div class="kpi-label">Total Orders</div>
+              <div class="kpi-label">Orders</div>
+              <div class="kpi-sub">All-time order count</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-icon-circle teal">📦</div>
+              <div class="kpi-head">
+                <div class="kpi-icon" aria-hidden="true">📦</div>
+              </div>
               <div class="kpi-value">{{ d.totalProducts | number }}</div>
               <div class="kpi-label">Products</div>
+              <div class="kpi-sub">In your catalog</div>
             </div>
-            <div class="kpi-card">
-              <div class="kpi-icon-circle green">⭐</div>
+            <div class="kpi-card kpi-warn">
+              <div class="kpi-head">
+                <div class="kpi-icon" aria-hidden="true">⭐</div>
+              </div>
               <div class="kpi-value">{{ d.avgRating | number: '1.1-1' }}</div>
-              <div class="kpi-label">Avg Rating</div>
+              <div class="kpi-label">Avg rating</div>
+              <div class="kpi-sub">Across all reviews</div>
             </div>
           </div>
         }
 
-        @if (widgets()['revenueChart'] && d.revenueByMonth && hasMonthlyData(d)) {
-          <div class="chart-wide card">
-            <h3>Revenue Overview</h3>
-            <p class="drill-hint">Click a point on the chart to drill down into that month</p>
+        @if (widgets()['revenueChart'] && hasMonthlyData(d)) {
+          <div class="chart-wide">
+            <h3>Revenue overview</h3>
+            <p class="drill-hint">Click a point on the chart to drill down into that month.</p>
             <canvas data-chart="revenue"></canvas>
           </div>
         }
 
         @if (drillMonth(); as selectedMonth) {
-          <div class="drilldown card">
+          <div class="drilldown">
             <div class="drilldown-header">
-              <h3>Revenue Drill-Down: {{ selectedMonth }}</h3>
-              <button class="btn-clear" (click)="closeDrillDown()">Close</button>
+              <h3>Revenue drill-down: {{ selectedMonth }}</h3>
+              <button class="btn-clear" type="button" (click)="closeDrillDown()">Close</button>
             </div>
 
             @if (drillLoading()) {
-              <p>Loading drill-down…</p>
+              <p class="empty-drill">Loading drill-down…</p>
             } @else if (drillData(); as dd) {
               <div class="drill-kpis">
                 <div class="drill-kpi">
@@ -148,18 +161,18 @@ Chart.register(...registerables);
                   <span class="dk-value">{{ dd.orderCount }}</span>
                 </div>
                 <div class="drill-kpi">
-                  <span class="dk-label">Avg Order Value</span>
+                  <span class="dk-label">Avg order value</span>
                   <span class="dk-value">\${{ dd.avgOrderValue | number: '1.2-2' }}</span>
                 </div>
               </div>
 
               @if (dd.topProducts.length > 0) {
-                <h4 class="drill-section-title">Top Products in {{ selectedMonth }}</h4>
+                <h4>Top products</h4>
                 <table>
                   <thead>
                     <tr>
                       <th>Product</th>
-                      <th>Units Sold</th>
+                      <th>Units sold</th>
                       <th>Revenue</th>
                     </tr>
                   </thead>
@@ -176,11 +189,11 @@ Chart.register(...registerables);
               }
 
               @if (dd.orders.length > 0) {
-                <h4 class="drill-section-title">Orders in {{ selectedMonth }}</h4>
+                <h4>Orders</h4>
                 <table>
                   <thead>
                     <tr>
-                      <th>Order #</th>
+                      <th>Order</th>
                       <th>Date</th>
                       <th>Customer</th>
                       <th>Status</th>
@@ -191,12 +204,12 @@ Chart.register(...registerables);
                     @for (o of dd.orders; track o.orderId) {
                       <tr>
                         <td>#{{ o.orderId }}</td>
-                        <td>{{ o.orderDate.substring(0, 10) }}</td>
+                        <td>{{ o.orderDate | date: 'MMM d, y' }}</td>
                         <td>{{ o.customerName }}</td>
                         <td>
-                          <span class="status-badge" [class]="'s-' + o.status.toLowerCase()">{{
-                            o.status
-                          }}</span>
+                          <span class="status-pill" [class]="'s-' + o.status.toLowerCase()">
+                            {{ o.status }}
+                          </span>
                         </td>
                         <td>\${{ o.grandTotal | number: '1.2-2' }}</td>
                       </tr>
@@ -212,67 +225,75 @@ Chart.register(...registerables);
 
         <div class="charts-row">
           @if (widgets()['orderChart']) {
-            <div class="chart-card card">
-              <h3>Orders by Status</h3>
+            <div class="chart-card">
+              <h3>Orders by status</h3>
               <canvas data-chart="order"></canvas>
             </div>
           }
           @if (widgets()['productChart']) {
-            <div class="chart-card card">
-              <h3>Top Products by Revenue</h3>
+            <div class="chart-card">
+              <h3>Top products by revenue</h3>
               <canvas data-chart="product"></canvas>
             </div>
           }
         </div>
 
         @if (widgets()['segmentation'] && segmentation(); as seg) {
-          <div class="segmentation-section card">
-            <h3>Customer Segmentation & Behavior</h3>
+          <div class="segmentation-section">
+            <h3>Customer segmentation</h3>
             <div class="seg-grid">
               <div class="seg-card">
                 <div class="seg-value">{{ seg.totalCustomers }}</div>
-                <div class="seg-label">Total Customers</div>
+                <div class="seg-label">Total customers</div>
               </div>
               <div class="seg-card">
                 <div class="seg-value">\${{ seg.avgSpend | number: '1.2-2' }}</div>
-                <div class="seg-label">Avg Spend</div>
+                <div class="seg-label">Avg spend</div>
               </div>
             </div>
             <div class="seg-tables">
               <div class="seg-table">
-                <h4>By Membership</h4>
+                <h4>By membership</h4>
                 <table>
-                  <tr>
-                    <th>Type</th>
-                    <th>Count</th>
-                    <th>Spend</th>
-                  </tr>
-                  @for (item of seg.byMembership | keyvalue; track item.key) {
+                  <thead>
                     <tr>
-                      <td>
-                        <span class="badge" [class]="'badge-' + item.key.toLowerCase()">{{
-                          item.key
-                        }}</span>
-                      </td>
-                      <td>{{ item.value }}</td>
-                      <td>\${{ seg.spendByMembership[item.key] | number: '1.2-2' }}</td>
+                      <th>Tier</th>
+                      <th>Count</th>
+                      <th>Spend</th>
                     </tr>
-                  }
+                  </thead>
+                  <tbody>
+                    @for (item of seg.byMembership | keyvalue; track item.key) {
+                      <tr>
+                        <td>
+                          <span class="badge" [class]="'badge-' + item.key.toLowerCase()">
+                            {{ item.key }}
+                          </span>
+                        </td>
+                        <td>{{ item.value }}</td>
+                        <td>\${{ seg.spendByMembership[item.key] | number: '1.2-2' }}</td>
+                      </tr>
+                    }
+                  </tbody>
                 </table>
               </div>
               <div class="seg-table">
-                <h4>By City</h4>
+                <h4>By city</h4>
                 <table>
-                  <tr>
-                    <th>City</th>
-                    <th>Customers</th>
-                  </tr>
-                  @for (item of seg.byCity | keyvalue; track item.key) {
+                  <thead>
                     <tr>
-                      <td>{{ item.key }}</td>
-                      <td>{{ item.value }}</td>
+                      <th>City</th>
+                      <th>Customers</th>
                     </tr>
-                  }
+                  </thead>
+                  <tbody>
+                    @for (item of seg.byCity | keyvalue; track item.key) {
+                      <tr>
+                        <td>{{ item.key }}</td>
+                        <td>{{ item.value }}</td>
+                      </tr>
+                    }
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -281,432 +302,26 @@ Chart.register(...registerables);
 
         @if (widgets()['quickLinks']) {
           <div class="quick-links">
-            <a routerLink="/corporate/products" class="quick-card card">
-              <span class="quick-icon">📦</span>
-              <span>Manage Products</span>
+            <a routerLink="/corporate/products" class="quick-card">
+              <span class="quick-icon" aria-hidden="true">📦</span>
+              <span>Manage products</span>
             </a>
-            <a routerLink="/corporate/orders" class="quick-card card">
-              <span class="quick-icon">🛒</span>
-              <span>Manage Orders</span>
+            <a routerLink="/corporate/orders" class="quick-card">
+              <span class="quick-icon" aria-hidden="true">🛒</span>
+              <span>Manage orders</span>
             </a>
-            <a routerLink="/corporate/reviews" class="quick-card card">
-              <span class="quick-icon">⭐</span>
-              <span>View Reviews</span>
+            <a routerLink="/corporate/reviews" class="quick-card">
+              <span class="quick-icon" aria-hidden="true">⭐</span>
+              <span>View reviews</span>
             </a>
           </div>
         }
       } @else {
-        <div class="loading">Loading dashboard...</div>
+        <div class="loading">Loading dashboard…</div>
       }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        margin-bottom: 28px;
-      }
-      .header-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .page-header p {
-        color: #666;
-        font-size: 14px;
-        margin-top: 4px;
-      }
-
-      .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 28px;
-      }
-      .kpi-card {
-        background: #ffffeb;
-        border-radius: 16px;
-        padding: 20px;
-        border: 1px solid #d5d5c0;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-        transition: transform 0.15s;
-      }
-      .kpi-card:hover {
-        transform: translateY(-2px);
-      }
-      .kpi-icon-circle {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        margin-bottom: 12px;
-      }
-      .kpi-icon-circle.gold {
-        background: #fef3c7;
-      }
-      .kpi-icon-circle.blue {
-        background: #034f46;
-      }
-      .kpi-icon-circle.teal {
-        background: rgba(20, 184, 166, 0.12);
-      }
-      .kpi-icon-circle.green {
-        background: #dcfce7;
-      }
-      .kpi-value {
-        font-size: 26px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .kpi-label {
-        font-size: 12px;
-        color: #666;
-        margin-top: 4px;
-        font-weight: 500;
-      }
-
-      .charts-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
-      }
-      .chart-wide {
-        padding: 20px;
-        margin-bottom: 28px;
-      }
-      .chart-wide h3,
-      .chart-card h3 {
-        font-size: 15px;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #1a1a1a;
-      }
-      .chart-card {
-        padding: 20px;
-      }
-      .chart-wide canvas {
-        width: 100% !important;
-        height: 440px !important;
-        max-height: 440px;
-        display: block;
-      }
-      .chart-card canvas {
-        width: 100% !important;
-        height: 320px !important;
-        max-height: 320px;
-        display: block;
-      }
-
-      .quick-links {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-      }
-      .quick-card {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 20px;
-        text-decoration: none;
-        color: #1a1a1a;
-        font-weight: 600;
-        transition: all 0.15s;
-      }
-      .quick-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(3, 79, 70, 0.3);
-      }
-      .quick-icon {
-        font-size: 24px;
-      }
-
-      .date-filter {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .date-filter input {
-        padding: 6px 10px;
-        border-radius: 8px;
-        font-size: 13px;
-        width: auto;
-      }
-      .btn-clear {
-        padding: 6px 14px;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        background: #ffffeb;
-        font-size: 13px;
-        cursor: pointer;
-        color: #666;
-      }
-      .btn-clear:hover {
-        background: #f5f5e1;
-        color: #1a1a1a;
-      }
-
-      .segmentation-section {
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .segmentation-section h3 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #1a1a1a;
-      }
-      .seg-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 16px;
-      }
-      .seg-card {
-        background: #f5f5e1;
-        border-radius: 8px;
-        padding: 14px;
-        text-align: center;
-      }
-      .seg-value {
-        font-size: 22px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .seg-label {
-        font-size: 11px;
-        color: #666;
-        text-transform: uppercase;
-        margin-top: 4px;
-      }
-      .seg-tables {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-      }
-      .seg-table h4 {
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #666;
-      }
-      .seg-table table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      .seg-table th {
-        text-align: left;
-        padding: 6px 8px;
-        border-bottom: 1px solid #d5d5c0;
-        color: #666;
-        font-weight: 600;
-      }
-      .seg-table td {
-        padding: 6px 8px;
-        border-bottom: 1px solid #d5d5c0;
-        color: #1a1a1a;
-      }
-      .badge {
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 600;
-      }
-      .badge-gold {
-        background: #fef3c7;
-        color: #d97706;
-      }
-      .badge-silver {
-        background: #f1f5f9;
-        color: #64748b;
-      }
-      .badge-bronze {
-        background: #fff7ed;
-        color: #ea580c;
-      }
-
-      .drill-hint {
-        font-size: 11px;
-        color: #999;
-        margin-bottom: 8px;
-      }
-      .month-picker {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px solid #ebe6dc;
-      }
-      .month-chip {
-        background: #ffffeb;
-        border: 1.5px solid #d5d5c0;
-        color: #1a1a1a;
-        font-size: 12px;
-        font-weight: 500;
-        padding: 6px 12px;
-        border-radius: 999px;
-        cursor: pointer;
-        transition: all 0.15s;
-      }
-      .month-chip:hover {
-        border-color: #034f46;
-        color: #034f46;
-      }
-      .month-chip.active {
-        background: #034f46;
-        border-color: #034f46;
-        color: #ffffeb;
-      }
-      .drilldown {
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .drill-kpis {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 16px;
-      }
-      .drill-kpi {
-        background: #f5f5d8;
-        border: 1px solid #d5d5c0;
-        border-radius: 10px;
-        padding: 12px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .dk-label {
-        font-size: 11px;
-        text-transform: uppercase;
-        color: #6b6b58;
-        font-weight: 600;
-        letter-spacing: 0.4px;
-      }
-      .dk-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #034f46;
-      }
-      .drill-section-title {
-        margin: 16px 0 8px;
-        font-size: 13px;
-        font-weight: 700;
-        color: #1a1a1a;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-      }
-      .empty-drill {
-        color: #999;
-        font-size: 13px;
-        padding: 8px 0;
-      }
-      @media (max-width: 768px) {
-        .drill-kpis {
-          grid-template-columns: 1fr;
-        }
-      }
-      .drilldown-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-      .drilldown h3 {
-        font-size: 15px;
-        font-weight: 600;
-        color: #1a1a1a;
-      }
-      .drilldown table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      .drilldown th {
-        text-align: left;
-        padding: 8px;
-        border-bottom: 1px solid #d5d5c0;
-        color: #666;
-        font-weight: 600;
-      }
-      .drilldown td {
-        padding: 8px;
-        border-bottom: 1px solid #d5d5c0;
-        color: #1a1a1a;
-      }
-
-      .btn-configure {
-        padding: 6px 12px;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        background: #ffffeb;
-        font-size: 14px;
-        cursor: pointer;
-        font-family: inherit;
-        color: #666;
-      }
-      .btn-configure:hover {
-        background: #f5f5e1;
-        color: #1a1a1a;
-      }
-      .widget-config {
-        padding: 16px;
-        margin-bottom: 20px;
-      }
-      .widget-config h3 {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #1a1a1a;
-      }
-      .config-options {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-      }
-      .config-options label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        cursor: pointer;
-        color: #1a1a1a;
-      }
-      .loading {
-        text-align: center;
-        padding: 60px;
-        color: #666;
-      }
-
-      @media (max-width: 768px) {
-        .kpi-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-        .charts-row {
-          grid-template-columns: 1fr;
-        }
-        .header-top {
-          flex-direction: column;
-        }
-      }
-    `,
-  ],
+  styleUrls: ['./corporate-dashboard.scss'],
 })
 export class CorporateDashboardComponent implements OnInit {
   data = signal<CorporateDashboard | null>(null);
@@ -725,21 +340,21 @@ export class CorporateDashboardComponent implements OnInit {
   drillLoading = signal(false);
   startDate = '';
   endDate = '';
+  firstName = signal<string>('');
+
   private orderChart: Chart | null = null;
   private productChart: Chart | null = null;
   private revenueChart: Chart | null = null;
 
   constructor(
     private dashboardService: DashboardService,
+    private auth: AuthService,
     private zone: NgZone,
     private host: ElementRef<HTMLElement>,
   ) {
     const saved = localStorage.getItem('corporate_widgets');
     if (saved) this.widgets.set(JSON.parse(saved));
 
-    // Re-render charts whenever data() or widget visibility changes.
-    // Wait two animation frames so Angular finishes rendering and the browser
-    // finishes layout/paint before we hand canvases to Chart.js.
     effect(() => {
       const d = this.data();
       this.widgets();
@@ -749,7 +364,9 @@ export class CorporateDashboardComponent implements OnInit {
   }
 
   private getCanvas(name: string): HTMLCanvasElement | null {
-    return this.host.nativeElement.querySelector<HTMLCanvasElement>(`canvas[data-chart="${name}"]`);
+    return this.host.nativeElement.querySelector<HTMLCanvasElement>(
+      `canvas[data-chart="${name}"]`,
+    );
   }
 
   toggleWidget(key: string) {
@@ -757,10 +374,10 @@ export class CorporateDashboardComponent implements OnInit {
     const updated = { ...current, [key]: !current[key] };
     this.widgets.set(updated);
     localStorage.setItem('corporate_widgets', JSON.stringify(updated));
-    // chart re-render handled by effect()
   }
 
   ngOnInit() {
+    this.firstName.set(this.auth.currentFirstName() || '');
     this.loadDashboard();
     this.dashboardService
       .getCorporateCustomerSegmentation()
@@ -770,10 +387,7 @@ export class CorporateDashboardComponent implements OnInit {
   loadDashboard() {
     this.dashboardService
       .getCorporateDashboard(this.startDate || undefined, this.endDate || undefined)
-      .subscribe((d) => {
-        this.data.set(d);
-        // chart render is triggered by effect() reacting to data() change
-      });
+      .subscribe((d) => this.data.set(d));
   }
 
   private tryRenderCharts(d: CorporateDashboard, attempt: number) {
@@ -784,25 +398,14 @@ export class CorporateDashboardComponent implements OnInit {
       (!this.widgets()['orderChart'] || orderC) &&
       (!this.widgets()['productChart'] || productC) &&
       (!this.widgets()['revenueChart'] || !this.hasMonthlyData(d) || revenueC);
-    // eslint-disable-next-line no-console
-    console.log('[charts] attempt', attempt, {
-      orderC: !!orderC,
-      productC: !!productC,
-      revenueC: !!revenueC,
-      ready: !!ready,
-    });
     if (ready) {
       try {
         this.renderCharts(d);
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error('[charts] render failed', e);
       }
     } else if (attempt < 30) {
       setTimeout(() => this.tryRenderCharts(d, attempt + 1), 50);
-    } else {
-      // eslint-disable-next-line no-console
-      console.warn('[charts] gave up after 30 attempts');
     }
   }
 
@@ -817,7 +420,7 @@ export class CorporateDashboardComponent implements OnInit {
   }
 
   hasMonthlyData(d: CorporateDashboard): boolean {
-    return d.revenueByMonth && Object.keys(d.revenueByMonth).length > 0;
+    return !!d.revenueByMonth && Object.keys(d.revenueByMonth).length > 0;
   }
 
   loadDrillDown(month: string) {
@@ -828,19 +431,13 @@ export class CorporateDashboardComponent implements OnInit {
         this.drillData.set(res);
         this.drillLoading.set(false);
       },
-      error: () => {
-        this.drillLoading.set(false);
-      },
+      error: () => this.drillLoading.set(false),
     });
   }
 
   closeDrillDown() {
     this.drillMonth.set('');
     this.drillData.set(null);
-  }
-
-  monthKeys(d: CorporateDashboard): string[] {
-    return d.revenueByMonth ? Object.keys(d.revenueByMonth).sort() : [];
   }
 
   pickMonth(m: string) {
@@ -852,17 +449,19 @@ export class CorporateDashboardComponent implements OnInit {
     if (this.orderChart) this.orderChart.destroy();
     if (this.productChart) this.productChart.destroy();
     if (this.revenueChart) this.revenueChart.destroy();
-    const colors = ['#8b7cf6', '#f472b6', '#06b6d4', '#f59e0b', '#a78bfa'];
-    const chartTextColor = '#6b7280';
-    const gridColor = '#ebe6dc';
+
+    // DS §1.9 color palette
+    const donutPalette = ['#034f46', '#16a34a', '#ffa946', '#dfe9e5', '#7f1c34'];
+    const fathom = '#034f46';
+    const fathomFill = 'rgba(3, 79, 70, 0.10)';
+    const axisColor = '#8a8a7c';
+    const gridColor = '#d5d5c0';
+
     const statusLabels = Object.keys(d.ordersByStatus);
     const orderCanvas = this.getCanvas('order');
     const productCanvas = this.getCanvas('product');
     const revenueCanvas = this.getCanvas('revenue');
 
-    // Defensive cleanup: a stale Chart.js instance may still be tied to the canvas
-    // after a refresh/HMR. Destroy whatever Chart.js thinks is on it AND remove any
-    // native click/move handlers set by previous renders (they capture stale chart refs).
     [orderCanvas, productCanvas, revenueCanvas].forEach((c) => {
       if (!c) return;
       Chart.getChart(c)?.destroy();
@@ -876,13 +475,26 @@ export class CorporateDashboardComponent implements OnInit {
         data: {
           labels: statusLabels,
           datasets: [
-            { data: statusLabels.map((k) => d.ordersByStatus[k]), backgroundColor: colors },
+            {
+              data: statusLabels.map((k) => d.ordersByStatus[k]),
+              backgroundColor: statusLabels.map((k, i) =>
+                k.toUpperCase() === 'CANCELLED' ? '#7f1c34' : donutPalette[i % donutPalette.length],
+              ),
+              borderColor: '#faf8ea',
+              borderWidth: 2,
+            },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: axisColor, font: { size: 11 }, boxWidth: 10, padding: 12 },
+            },
+          },
+          cutout: '62%',
         },
       });
     }
@@ -896,7 +508,8 @@ export class CorporateDashboardComponent implements OnInit {
             {
               label: 'Revenue ($)',
               data: d.topProducts.map((p) => p.revenue),
-              backgroundColor: '#8b7cf6',
+              backgroundColor: fathom,
+              borderRadius: 4,
             },
           ],
         },
@@ -906,8 +519,14 @@ export class CorporateDashboardComponent implements OnInit {
           indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
-            y: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
+            x: {
+              ticks: { color: axisColor, font: { size: 11 } },
+              grid: { color: gridColor, tickBorderDash: [4, 4] },
+            },
+            y: {
+              ticks: { color: axisColor, font: { size: 11 } },
+              grid: { display: false },
+            },
           },
         },
       });
@@ -923,17 +542,17 @@ export class CorporateDashboardComponent implements OnInit {
             {
               label: 'Revenue ($)',
               data: months.map((m) => d.revenueByMonth[m]),
-              borderColor: '#034f46',
-              backgroundColor: 'rgba(3, 79, 70, 0.1)',
+              borderColor: fathom,
+              backgroundColor: fathomFill,
               fill: true,
-              tension: 0.4,
-              pointBackgroundColor: '#034f46',
-              pointBorderColor: '#ffffff',
+              tension: 0.35,
+              pointBackgroundColor: fathom,
+              pointBorderColor: '#fff',
               pointBorderWidth: 2,
-              pointRadius: 8,
-              pointHoverRadius: 11,
-              // Only the visible point should be interactive.
+              pointRadius: 6,
+              pointHoverRadius: 9,
               pointHitRadius: 0,
+              borderWidth: 2.5,
             },
           ],
         },
@@ -954,12 +573,9 @@ export class CorporateDashboardComponent implements OnInit {
                 { intersect: true },
                 true,
               ) ?? [];
-
             if (activePoints.length > 0) {
               const idx = activePoints[0].index;
-              this.zone.run(() => {
-                this.pickMonth(months[idx]);
-              });
+              this.zone.run(() => this.pickMonth(months[idx]));
             }
           },
           plugins: {
@@ -967,8 +583,15 @@ export class CorporateDashboardComponent implements OnInit {
             tooltip: { mode: 'nearest', intersect: true },
           },
           scales: {
-            x: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
-            y: { beginAtZero: true, ticks: { color: chartTextColor }, grid: { color: gridColor } },
+            x: {
+              ticks: { color: axisColor, font: { size: 11 } },
+              grid: { color: gridColor, tickBorderDash: [4, 4] },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: axisColor, font: { size: 11 } },
+              grid: { color: gridColor, tickBorderDash: [4, 4] },
+            },
           },
         },
       });

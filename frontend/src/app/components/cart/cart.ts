@@ -90,12 +90,7 @@ import { Cart, CartItem } from '../../models/product.model';
                 <span>💳 Credit / Debit card</span>
               </label>
               <label class="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="COD"
-                  [(ngModel)]="paymentMethod"
-                />
+                <input type="radio" name="paymentMethod" value="COD" [(ngModel)]="paymentMethod" />
                 <span>💵 Cash on delivery</span>
               </label>
             </div>

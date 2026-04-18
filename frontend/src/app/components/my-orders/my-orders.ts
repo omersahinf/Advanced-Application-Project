@@ -119,8 +119,11 @@ const FLOW_LABELS: Record<(typeof FLOW)[number], string> = {
               </div>
               <div class="timeline">
                 @for (step of steps(o); track step.key) {
-                  <div class="timeline-step" [class.done]="step.state === 'done'"
-                       [class.current]="step.state === 'current'">
+                  <div
+                    class="timeline-step"
+                    [class.done]="step.state === 'done'"
+                    [class.current]="step.state === 'current'"
+                  >
                     <span class="step-dot" aria-hidden="true"></span>
                     <span>{{ step.label }}</span>
                   </div>

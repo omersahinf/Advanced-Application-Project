@@ -218,9 +218,7 @@ export class IndividualDashboardComponent implements OnInit, OnDestroy {
             datasets: [
               {
                 data: statusLabels.map((k) => d.ordersByStatus[k]),
-                backgroundColor: statusLabels.map(
-                  (_, i) => donutPalette[i % donutPalette.length],
-                ),
+                backgroundColor: statusLabels.map((_, i) => donutPalette[i % donutPalette.length]),
                 borderColor: '#faf8ea',
                 borderWidth: 2,
               },

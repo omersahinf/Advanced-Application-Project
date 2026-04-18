@@ -1,0 +1,136 @@
+@use '../../../styles/responsive' as r;
+
+:host { display: block; }
+
+.page {
+  padding: 12px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tab pills —————————————————————————————————— */
+.tab-pills {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--hover);
+  border-radius: 10px;
+  width: fit-content;
+}
+.tab-pills .btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.tab-pills .btn.active {
+  background: var(--lumen);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Comparison grid ————————————————————————————— */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  @include r.lt-md { grid-template-columns: 1fr; }
+}
+.store-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.store-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.store-name {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text);
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  @include r.lt-sm { grid-template-columns: repeat(2, 1fr); }
+}
+.stat-k {
+  font-size: 10.5px;
+  color: var(--text-3);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.stat-v {
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 3px;
+  color: var(--text);
+}
+.rating-v {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rail {
+  margin-top: 4px;
+  height: 8px;
+  background: var(--hover);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rail-fill {
+  height: 100%;
+  background: #034f46;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.rail-caption {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* Two-column charts ————————————————————————— */
+.twocol-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  @include r.lt-md { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  padding: 20px;
+}
+.serif-h2 {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 14px 0;
+}
+.donut-wrap {
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bar-wrap {
+  height: 240px;
+}
+.bar-wrap.tall {
+  height: 320px;
+}
+
+.loading {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-2);
+}

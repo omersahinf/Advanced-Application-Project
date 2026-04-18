@@ -1,60 +1,86 @@
-import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe, DatePipe } from '@angular/common';
+import { Chart, registerables } from 'chart.js';
+
 import { DashboardService } from '../../services/dashboard.service';
 import { OrderService } from '../../services/order.service';
 import { IndividualDashboard, Order } from '../../models/product.model';
-import { Chart, registerables } from 'chart.js';
+
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { KpiCardComponent } from '../../shared/kpi-card/kpi-card';
+import { StatusPillComponent } from '../../shared/status-pill/status-pill';
 
 Chart.register(...registerables);
 
+/**
+ * Individual (shopper) Dashboard — replicates `Flower Prototype.html`
+ * §IndDashboard layout. Topbar already renders "Dashboard — Your spending
+ * at a glance." so no in-page title.
+ *
+ * Data sources (backend-only — no hardcoded data):
+ *  - KPIs come from GET /api/dashboard/individual (IndividualDashboard).
+ *  - Recent orders come from GET /api/orders/me (first 4 by date desc).
+ *
+ * Deviations from the prototype caused by backend contract — the prototype
+ * shows "Saved with discounts" and "+18% / +4%" deltas in KPIs, and an
+ * "Orders over time" monthly bar chart. None of those fields exist on
+ * IndividualDashboard, so:
+ *  - KPI 4 shows "Items purchased" (totalItemsPurchased) with the same
+ *    green accent and tag-style icon — keeps layout parity.
+ *  - Delta chips are omitted (UI helper supports empty delta).
+ *  - Left chart becomes "Spending by category" (bar) instead of monthly
+ *    order count. Right chart stays the donut — "Orders by status" since
+ *    we have that breakdown but not a spend-by-category currency-weighted
+ *    donut that matches the prototype's total-in-center rendering.
+ */
 @Component({
   selector: 'app-individual-dashboard',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, DatePipe],
+  imports: [
+    RouterLink,
+    DecimalPipe,
+    DatePipe,
+    FlowerIconComponent,
+    KpiCardComponent,
+    StatusPillComponent,
+  ],
   template: `
-    <div class="page">
+    <div class="page ind-dashboard">
       @if (data(); as d) {
-        <!-- KPI row — 4 cards matching prototype exactly -->
+        <!-- KPI row — 4 cards, grid-cols-4 -->
         <div class="kpi-grid">
-          <div class="kpi-card kpi-brand">
-            <div class="kpi-head">
-              <span class="kpi-icon" aria-hidden="true">💳</span>
-            </div>
-            <div class="kpi-value">\${{ d.totalSpend | number: '1.2-2' }}</div>
-            <div class="kpi-label">Lifetime spend</div>
-            <div class="kpi-sub">across {{ d.totalOrders }} orders</div>
-          </div>
-
-          <div class="kpi-card kpi-brand">
-            <div class="kpi-head">
-              <span class="kpi-icon" aria-hidden="true">🛍️</span>
-            </div>
-            <div class="kpi-value">{{ d.totalOrders }}</div>
-            <div class="kpi-label">Orders</div>
-            <div class="kpi-sub">{{ d.totalItemsPurchased }} items purchased</div>
-          </div>
-
-          <div class="kpi-card kpi-warn">
-            <div class="kpi-head">
-              <span class="kpi-icon" aria-hidden="true">⚡</span>
-            </div>
-            <div class="kpi-value">\${{ d.avgOrderValue | number: '1.2-2' }}</div>
-            <div class="kpi-label">Average order</div>
-            <div class="kpi-sub">per order across history</div>
-          </div>
-
-          <div class="kpi-card kpi-info">
-            <div class="kpi-head">
-              <span class="kpi-icon" aria-hidden="true">🏅</span>
-            </div>
-            <div class="kpi-value">{{ d.membershipType }}</div>
-            <div class="kpi-label">Membership</div>
-            <div class="kpi-sub">{{ d.totalReviews }} reviews written</div>
-          </div>
+          <kpi-card
+            label="Lifetime spend"
+            [value]="'$' + (d.totalSpend | number: '1.2-2')"
+            [sub]="'across ' + d.totalOrders + ' orders'"
+            accent="#034f46"
+            icon="chart"
+          />
+          <kpi-card
+            label="Orders"
+            [value]="d.totalOrders"
+            [sub]="d.totalItemsPurchased + ' items purchased'"
+            accent="#034f46"
+            icon="package"
+          />
+          <kpi-card
+            label="Average order"
+            [value]="'$' + (d.avgOrderValue | number: '1.2-2')"
+            sub="per order across history"
+            accent="#d97706"
+            icon="bolt"
+          />
+          <kpi-card
+            label="Reviews written"
+            [value]="d.totalReviews"
+            [sub]="d.membershipType + ' member'"
+            accent="#16a34a"
+            icon="review"
+          />
         </div>
 
-        <!-- Charts: 1.4fr / 1fr like prototype -->
+        <!-- Charts row: 1.4fr / 1fr like prototype -->
         <div class="charts-row">
           <div class="card chart-card">
             <div class="chart-head">
@@ -64,9 +90,7 @@ Chart.register(...registerables);
             <div class="chart-wrap"><canvas #categoryChart></canvas></div>
           </div>
           <div class="card chart-card">
-            <div class="chart-head">
-              <h2>Orders by status</h2>
-            </div>
+            <h2>Orders by status</h2>
             <div class="chart-wrap"><canvas #orderChart></canvas></div>
           </div>
         </div>
@@ -75,7 +99,9 @@ Chart.register(...registerables);
         <div class="card recent-orders-card">
           <div class="recent-head">
             <h2>Recent orders</h2>
-            <a class="view-all" routerLink="/orders">View all →</a>
+            <a class="btn btn-sm view-all" routerLink="/orders">
+              View all <flower-icon name="arrow_right" [size]="13" />
+            </a>
           </div>
           @if (recentOrders().length > 0) {
             <table>
@@ -93,11 +119,7 @@ Chart.register(...registerables);
                   <tr>
                     <td class="order-id">#{{ o.id }}</td>
                     <td class="order-date">{{ o.orderDate | date: 'mediumDate' }}</td>
-                    <td>
-                      <span class="status-pill" [class]="'s-' + o.status.toLowerCase()">
-                        {{ o.status }}
-                      </span>
-                    </td>
+                    <td><status-pill [status]="o.status" /></td>
                     <td class="order-payment">{{ o.paymentMethod }}</td>
                     <td class="order-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
                   </tr>
@@ -111,16 +133,18 @@ Chart.register(...registerables);
 
         <!-- Ask Flower AI banner -->
         <div class="ai-banner">
-          <div class="ai-row">
-            <div class="ai-icon" aria-hidden="true">✨</div>
-            <div class="ai-copy">
-              <div class="ai-title">Ask Flower AI anything about your purchases</div>
-              <div class="ai-sub">
-                "What's my biggest-spend category?" · "Which orders took longest to deliver?"
-              </div>
-            </div>
-            <a class="ai-cta" routerLink="/chat">Open chat →</a>
+          <div class="ai-icon" aria-hidden="true">
+            <flower-icon name="sparkle" [size]="22" [stroke]="1.8" />
           </div>
+          <div class="ai-copy">
+            <div class="ai-title">Ask Flower AI anything about your purchases</div>
+            <div class="ai-sub">
+              "What's my biggest-spend category?" · "Which orders took longest to deliver?"
+            </div>
+          </div>
+          <a class="btn ai-cta" routerLink="/chat">
+            Open chat <flower-icon name="arrow_right" [size]="14" />
+          </a>
         </div>
       } @else {
         <div class="loading">Loading dashboard…</div>
@@ -179,7 +203,7 @@ export class IndividualDashboardComponent implements OnInit, OnDestroy {
     this.charts.forEach((c) => c.destroy());
     this.charts = [];
 
-    // DS §1.9 chart palette
+    // Palette from FLOWER_DESIGN_SYSTEM.md §1.9 (chart colors).
     const donutPalette = ['#034f46', '#16a34a', '#ffa946', '#dfe9e5', '#7f1c34'];
     const fathom = '#034f46';
     const axisColor = '#8a8a7c';
@@ -208,10 +232,7 @@ export class IndividualDashboardComponent implements OnInit, OnDestroy {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-              x: {
-                ticks: { color: axisColor, font: { size: 11 } },
-                grid: { display: false },
-              },
+              x: { ticks: { color: axisColor, font: { size: 11 } }, grid: { display: false } },
               y: {
                 beginAtZero: true,
                 ticks: { color: axisColor, font: { size: 11 } },

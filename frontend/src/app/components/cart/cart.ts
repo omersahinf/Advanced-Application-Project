@@ -11,15 +11,17 @@ import { Cart, CartItem } from '../../models/product.model';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="cart-page">
-      <h2>Shopping Cart</h2>
-
+    <div class="page">
       @if (loading()) {
-        <p>Loading cart...</p>
+        <div class="loading">Loading cart…</div>
       } @else if (!cart() || cart()!.items.length === 0) {
-        <div class="empty-cart">
-          <p>Your cart is empty.</p>
-          <a routerLink="/products" class="btn-primary">Browse Products</a>
+        <div class="empty-state card">
+          <div class="empty-icon" aria-hidden="true">🛍️</div>
+          <div class="empty-title">Your cart is empty</div>
+          <p>Add items from the catalog to get started.</p>
+          <a routerLink="/products" class="btn btn-primary" style="margin-top: 12px">
+            Browse products
+          </a>
         </div>
       } @else {
         <div class="cart-layout">
@@ -31,44 +33,53 @@ import { Cart, CartItem } from '../../models/product.model';
                     <a [routerLink]="['/products', item.productId]">{{ item.productName }}</a>
                   </h4>
                   <p class="store">{{ item.storeName }}</p>
-                  <p class="sku">SKU: {{ item.productSku }}</p>
+                  <p class="sku">SKU {{ item.productSku }}</p>
                 </div>
                 <div class="item-price">\${{ item.unitPrice.toFixed(2) }}</div>
-                <div class="item-quantity">
+                <div class="item-quantity" role="group" aria-label="Quantity">
                   <button
+                    type="button"
                     (click)="updateQty(item, item.quantity - 1)"
                     [disabled]="item.quantity <= 1"
+                    aria-label="Decrease quantity"
                   >
-                    -
+                    −
                   </button>
                   <span>{{ item.quantity }}</span>
                   <button
+                    type="button"
                     (click)="updateQty(item, item.quantity + 1)"
                     [disabled]="item.quantity >= item.stock"
+                    aria-label="Increase quantity"
                   >
                     +
                   </button>
                 </div>
                 <div class="item-subtotal">\${{ item.subtotal.toFixed(2) }}</div>
-                <button class="btn-remove" (click)="remove(item.productId)">Remove</button>
+                <button class="btn-remove" type="button" (click)="remove(item.productId)">
+                  Remove
+                </button>
               </div>
             }
           </div>
 
           <div class="cart-summary">
-            <h3>Order Summary</h3>
+            <h3>Order summary</h3>
             <div class="summary-row">
               <span>Items ({{ cart()!.itemCount }})</span>
               <span>\${{ cart()!.total.toFixed(2) }}</span>
             </div>
-            <hr />
+            <div class="summary-row">
+              <span>Shipping</span>
+              <span>Free</span>
+            </div>
             <div class="summary-row total">
               <span>Total</span>
               <span>\${{ cart()!.total.toFixed(2) }}</span>
             </div>
 
             <div class="payment-method-section">
-              <h4>Payment Method</h4>
+              <h4>Payment method</h4>
               <label class="payment-option">
                 <input
                   type="radio"
@@ -76,33 +87,43 @@ import { Cart, CartItem } from '../../models/product.model';
                   value="STRIPE"
                   [(ngModel)]="paymentMethod"
                 />
-                <span>💳 Credit / Debit Card</span>
+                <span>💳 Credit / Debit card</span>
               </label>
               <label class="payment-option">
-                <input type="radio" name="paymentMethod" value="COD" [(ngModel)]="paymentMethod" />
-                <span>💵 Cash on Delivery</span>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="COD"
+                  [(ngModel)]="paymentMethod"
+                />
+                <span>💵 Cash on delivery</span>
               </label>
             </div>
 
             <div class="checkout-section">
-              <button class="btn-checkout" (click)="checkout()" [disabled]="placing()">
+              <button
+                class="btn-checkout"
+                type="button"
+                (click)="checkout()"
+                [disabled]="placing()"
+              >
                 {{
                   placing()
-                    ? 'Placing Order...'
+                    ? 'Placing order…'
                     : paymentMethod === 'COD'
-                      ? 'Place Order (Pay on Delivery)'
-                      : 'Proceed to Payment'
+                      ? 'Place order (Pay on delivery)'
+                      : 'Proceed to payment'
                 }}
               </button>
             </div>
 
-            <button class="btn-clear" (click)="clearCart()">Clear Cart</button>
+            <button class="btn-clear" type="button" (click)="clearCart()">Clear cart</button>
           </div>
         </div>
 
         @if (orderSuccess()) {
           <div class="success-msg">
-            Order placed successfully! <a routerLink="/orders">View Orders</a>
+            Order placed successfully! <a routerLink="/orders">View orders</a>
           </div>
         }
         @if (errorMsg()) {
@@ -111,221 +132,7 @@ import { Cart, CartItem } from '../../models/product.model';
       }
     </div>
   `,
-  styles: [
-    `
-      .cart-page {
-        max-width: 1000px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-      }
-      .empty-cart {
-        text-align: center;
-        padding: 4rem 2rem;
-      }
-      .empty-cart p {
-        font-size: 1.1rem;
-        color: #666;
-        margin-bottom: 1.5rem;
-      }
-      .btn-primary {
-        display: inline-block;
-        background: #034f46;
-        color: white;
-        padding: 0.7rem 1.8rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.95rem;
-      }
-      .cart-layout {
-        display: grid;
-        grid-template-columns: 1fr 320px;
-        gap: 2rem;
-      }
-      .cart-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: #ffffeb;
-        border: 1px solid #d5d5c0;
-        border-radius: 12px;
-        margin-bottom: 0.75rem;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-      }
-      .item-info {
-        flex: 1;
-      }
-      .item-info h4 a {
-        color: #034f46;
-        text-decoration: none;
-      }
-      .item-info .store {
-        color: #666;
-        font-size: 0.85rem;
-      }
-      .item-info .sku {
-        color: #999;
-        font-size: 0.8rem;
-      }
-      .item-price {
-        color: #16a34a;
-        font-weight: 600;
-        min-width: 80px;
-        text-align: right;
-      }
-      .item-quantity {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .item-quantity button {
-        background: #e4e4d0;
-        color: #1a1a1a;
-        border: 1px solid #c8c8b4;
-        width: 28px;
-        height: 28px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .item-quantity button:disabled {
-        opacity: 0.4;
-      }
-      .item-subtotal {
-        font-weight: 700;
-        color: #1a1a1a;
-        min-width: 90px;
-        text-align: right;
-      }
-      .btn-remove {
-        background: none;
-        border: 1px solid #dc2626;
-        color: #dc2626;
-        padding: 0.3rem 0.8rem;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.8rem;
-      }
-      .cart-summary {
-        background: #ffffeb;
-        border: 1px solid #d5d5c0;
-        border-radius: 16px;
-        padding: 1.5rem;
-        height: fit-content;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-      }
-      .cart-summary h3 {
-        margin-bottom: 1rem;
-        color: #1a1a1a;
-      }
-      .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem 0;
-        color: #1a1a1a;
-      }
-      .summary-row.total {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #16a34a;
-      }
-      hr {
-        border-color: #d5d5c0;
-        margin: 0.5rem 0;
-      }
-      .checkout-section {
-        margin-top: 1rem;
-      }
-      .checkout-section label {
-        display: block;
-        margin-bottom: 0.5rem;
-        color: #666;
-        font-size: 0.9rem;
-      }
-      .checkout-section select {
-        width: 100%;
-        padding: 0.5rem;
-        border-radius: 6px;
-        background: #ffffeb;
-        color: #1a1a1a;
-        border: 1px solid #c8c8b4;
-        margin-bottom: 1rem;
-      }
-      .btn-checkout {
-        width: 100%;
-        padding: 0.75rem;
-        background: #16a34a;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 1rem;
-      }
-      .btn-checkout:disabled {
-        opacity: 0.5;
-      }
-      .btn-clear {
-        width: 100%;
-        padding: 0.5rem;
-        background: none;
-        border: 1px solid #c8c8b4;
-        color: #666;
-        border-radius: 8px;
-        cursor: pointer;
-        margin-top: 0.75rem;
-      }
-      .payment-method-section {
-        margin: 1rem 0;
-        padding: 0.75rem 0;
-        border-top: 1px solid #d5d5c0;
-        border-bottom: 1px solid #d5d5c0;
-      }
-      .payment-method-section h4 {
-        margin: 0 0 0.6rem 0;
-        font-size: 0.95rem;
-        color: #1a1a1a;
-      }
-      .payment-option {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.45rem 0;
-        cursor: pointer;
-        font-size: 0.95rem;
-        color: #1a1a1a;
-      }
-      .payment-option input[type='radio'] {
-        accent-color: #034f46;
-        cursor: pointer;
-      }
-      .success-msg {
-        background: #dcfce7;
-        color: #16a34a;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: 1rem;
-        text-align: center;
-      }
-      .success-msg a {
-        color: #16a34a;
-        font-weight: 700;
-      }
-      .error-msg {
-        background: #fee2e2;
-        color: #dc2626;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: 1rem;
-        text-align: center;
-      }
-      @media (max-width: 768px) {
-        .cart-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+  styleUrls: ['./cart.scss'],
 })
 export class CartComponent implements OnInit {
   cart = signal<Cart | null>(null);
@@ -378,7 +185,7 @@ export class CartComponent implements OnInit {
     this.placing.set(true);
     this.errorMsg.set('');
 
-    // Group items by store
+    // Group items by store (existing server contract: one order per store).
     const byStore = new Map<number, { productId: number; quantity: number }[]>();
     for (const item of c.items) {
       if (!byStore.has(item.storeId)) byStore.set(item.storeId, []);
@@ -390,14 +197,12 @@ export class CartComponent implements OnInit {
     this.orderService.placeOrder({ storeId, paymentMethod: this.paymentMethod, items }).subscribe({
       next: (order) => {
         if (isCod) {
-          // COD: order is auto-confirmed server-side; clear cart and go to orders
           this.cartService.clearCart().subscribe(() => {
             this.cart.set({ items: [], total: 0, itemCount: 0 });
             this.placing.set(false);
             this.router.navigate(['/orders']);
           });
         } else {
-          // Stripe: redirect to checkout. Cart is cleared after successful payment.
           this.router.navigate(['/checkout', order.id]);
         }
       },

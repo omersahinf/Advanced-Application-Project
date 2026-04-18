@@ -147,10 +147,7 @@ export class NavbarComponent {
   });
 
   displayName = computed(
-    () =>
-      this.auth.currentFirstName() ||
-      this.auth.currentEmail()?.split('@')[0] ||
-      'Guest',
+    () => this.auth.currentFirstName() || this.auth.currentEmail()?.split('@')[0] || 'Guest',
   );
 
   initial = computed(() =>
@@ -178,9 +175,7 @@ export class NavbarComponent {
     },
     {
       title: 'AI',
-      items: [
-        { label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' },
-      ],
+      items: [{ label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' }],
     },
   ];
 
@@ -201,9 +196,7 @@ export class NavbarComponent {
     },
     {
       title: 'AI',
-      items: [
-        { label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' },
-      ],
+      items: [{ label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' }],
     },
   ];
 

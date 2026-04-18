@@ -5,23 +5,21 @@ import { DecimalPipe } from '@angular/common';
 import { ProductService } from '../../services/product.service';
 import { CategoryService } from '../../services/category.service';
 import { Product, Category } from '../../models/product.model';
+import { productEmoji } from '../../shared/product-emoji';
 
 @Component({
   selector: 'app-product-list',
+  standalone: true,
   imports: [RouterLink, FormsModule, DecimalPipe],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>Browse Products</h1>
-      </div>
-
       <div class="toolbar">
         <div class="search-wrapper">
           <svg
             class="search-icon"
             xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -36,7 +34,7 @@ import { Product, Category } from '../../models/product.model';
           <input
             class="search-input"
             type="text"
-            placeholder="Search products by name, description..."
+            placeholder="Search products by name, description…"
             [(ngModel)]="searchQuery"
             (input)="onSearch()"
           />
@@ -49,8 +47,8 @@ import { Product, Category } from '../../models/product.model';
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
+                width="11"
+                height="11"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -64,6 +62,7 @@ import { Product, Category } from '../../models/product.model';
             </button>
           }
         </div>
+
         <div class="icon-menu" [class.open]="filterOpen()">
           <button
             class="icon-btn"
@@ -75,8 +74,8 @@ import { Product, Category } from '../../models/product.model';
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -124,8 +123,8 @@ import { Product, Category } from '../../models/product.model';
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -151,7 +150,7 @@ import { Product, Category } from '../../models/product.model';
                 [class.selected]="sortOption === ''"
                 (click)="pickSort('')"
               >
-                Default
+                Relevance
               </button>
               <button
                 class="dropdown-item"
@@ -195,315 +194,34 @@ import { Product, Category } from '../../models/product.model';
 
       <div class="product-grid">
         @for (p of products(); track p.id) {
-          <a [routerLink]="['/products', p.id]" class="product-card card">
-            <div class="product-category">{{ p.category || 'Uncategorized' }}</div>
-            <h3>{{ p.name }}</h3>
-            <p class="product-desc">{{ p.description }}</p>
-            <div class="product-footer">
-              <span class="product-price">\${{ p.price | number: '1.2-2' }}</span>
-              <span class="product-store">{{ p.storeName }}</span>
-            </div>
-            <div class="product-stock" [class.low]="p.stock < 10">
-              {{ p.stock > 0 ? p.stock + ' in stock' : 'Out of stock' }}
+          <a [routerLink]="['/products', p.id]" class="product-card">
+            <div class="product-hero" aria-hidden="true">{{ heroFor(p) }}</div>
+            <div class="product-body">
+              <div class="product-category">{{ p.category || 'Uncategorized' }}</div>
+              <div class="product-name">{{ p.name }}</div>
+              <div class="product-desc">{{ p.description }}</div>
+              <div class="product-meta">
+                <span class="product-price">\${{ p.price | number: '1.2-2' }}</span>
+                <span class="product-stock" [class.low]="p.stock < 10">
+                  {{ p.stock > 0 ? p.stock + ' in stock' : 'Out of stock' }}
+                </span>
+              </div>
+              <div class="product-store">{{ p.storeName }}</div>
             </div>
           </a>
         }
       </div>
 
       @if (products().length === 0) {
-        <div class="empty card">No products found</div>
+        <div class="empty-state card">
+          <div class="empty-icon" aria-hidden="true">📦</div>
+          <div class="empty-title">No products found</div>
+          <div>Try a different search or category.</div>
+        </div>
       }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        margin-bottom: 20px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .toolbar {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 20px;
-        align-items: stretch;
-      }
-      .search-wrapper {
-        position: relative;
-        flex: 3;
-        display: flex;
-        align-items: center;
-        min-width: 0;
-      }
-      .search-icon {
-        position: absolute;
-        left: 18px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6b6b58;
-        pointer-events: none;
-        z-index: 1;
-      }
-      .search-input {
-        width: 100% !important;
-        height: 52px !important;
-        padding: 0 44px 0 46px !important;
-        font-family:
-          'Inter',
-          -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          sans-serif !important;
-        font-size: 15px !important;
-        font-weight: 500 !important;
-        line-height: 52px !important;
-        letter-spacing: -0.01em !important;
-        color: #1a1a1a !important;
-        background: #ffffeb !important;
-        border: 1.5px solid #c8c8b4 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-        transition:
-          border-color 0.15s,
-          box-shadow 0.15s;
-        outline: none;
-        -webkit-text-fill-color: #1a1a1a;
-        caret-color: #034f46;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      .search-input::placeholder {
-        color: #9a9a86 !important;
-        font-weight: 400;
-        letter-spacing: -0.01em;
-        opacity: 1;
-      }
-      .search-input:hover {
-        border-color: #b8b89e;
-      }
-      .search-input:focus {
-        border-color: #034f46;
-        box-shadow:
-          0 0 0 3px rgba(3, 79, 70, 0.15),
-          0 1px 3px rgba(0, 0, 0, 0.04);
-      }
-      .search-input::-webkit-search-cancel-button {
-        display: none;
-      }
-      .search-clear {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: none;
-        background: #e4e4d0;
-        color: #4a4a3a;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        transition:
-          background 0.15s,
-          color 0.15s;
-      }
-      .search-clear:hover {
-        background: #d5d5c0;
-        color: #1a1a1a;
-      }
-      .icon-menu {
-        position: relative;
-        flex: 0 0 auto;
-      }
-      .icon-btn {
-        position: relative;
-        width: 52px;
-        height: 52px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #ffffeb;
-        border: 1.5px solid #c8c8b4;
-        border-radius: 12px;
-        color: #4a4a3a;
-        cursor: pointer;
-        padding: 0;
-        transition:
-          border-color 0.15s,
-          color 0.15s,
-          background 0.15s,
-          box-shadow 0.15s;
-      }
-      .icon-btn:hover {
-        border-color: #034f46;
-        color: #034f46;
-      }
-      .icon-menu.open .icon-btn,
-      .icon-btn.active {
-        border-color: #034f46;
-        color: #034f46;
-        background: #f5f5d8;
-        box-shadow: 0 0 0 3px rgba(3, 79, 70, 0.12);
-      }
-      .icon-btn .dot {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #034f46;
-        border: 2px solid #ffffeb;
-      }
-      .dropdown {
-        position: absolute;
-        top: calc(100% + 8px);
-        right: 0;
-        min-width: 220px;
-        background: #ffffeb;
-        border: 1.5px solid #c8c8b4;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-        padding: 6px;
-        z-index: 100;
-        font-family:
-          'Inter',
-          -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          sans-serif;
-        animation: dropdownIn 0.12s ease-out;
-      }
-      @keyframes dropdownIn {
-        from {
-          opacity: 0;
-          transform: translateY(-4px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      .dropdown-header {
-        padding: 8px 12px 6px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        color: #6b6b58;
-      }
-      .dropdown-item {
-        display: block;
-        width: 100%;
-        text-align: left;
-        background: transparent;
-        border: none;
-        padding: 9px 12px;
-        font-size: 14px;
-        font-weight: 500;
-        color: #1a1a1a;
-        border-radius: 8px;
-        cursor: pointer;
-        transition:
-          background 0.1s,
-          color 0.1s;
-      }
-      .dropdown-item:hover {
-        background: #f0e9d0;
-      }
-      .dropdown-item.selected {
-        background: #034f46;
-        color: #ffffeb;
-      }
-      @media (max-width: 768px) {
-        .toolbar {
-          flex-direction: row;
-        }
-        .dropdown {
-          right: 0;
-          left: auto;
-        }
-      }
-      .product-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 16px;
-      }
-      .product-card {
-        padding: 20px;
-        text-decoration: none;
-        color: #1a1a1a;
-        transition: all 0.15s;
-        display: flex;
-        flex-direction: column;
-      }
-      .product-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(3, 79, 70, 0.3);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-      }
-      .product-category {
-        font-size: 11px;
-        font-weight: 600;
-        color: #034f46;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-      }
-      .product-card h3 {
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 8px;
-        color: #1a1a1a;
-      }
-      .product-desc {
-        font-size: 13px;
-        color: #666;
-        line-height: 1.4;
-        flex: 1;
-        margin-bottom: 12px;
-      }
-      .product-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-      .product-price {
-        font-size: 20px;
-        font-weight: 700;
-        color: #16a34a;
-      }
-      .product-store {
-        font-size: 12px;
-        color: #666;
-      }
-      .product-stock {
-        font-size: 12px;
-        color: #16a34a;
-        font-weight: 500;
-      }
-      .product-stock.low {
-        color: #dc2626;
-      }
-      .empty {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-      }
-    `,
-  ],
+  styleUrls: ['./product-list.scss'],
 })
 export class ProductListComponent implements OnInit {
   products = signal<Product[]>([]);
@@ -519,6 +237,10 @@ export class ProductListComponent implements OnInit {
     private categoryService: CategoryService,
     private host: ElementRef,
   ) {}
+
+  heroFor(p: Product) {
+    return productEmoji(p.name, p.category);
+  }
 
   toggleFilter(e: Event) {
     e.stopPropagation();

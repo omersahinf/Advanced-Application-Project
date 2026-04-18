@@ -220,3 +220,334 @@ a {
   font-size: 13px;
   margin-top: 4px;
 }
+
+/* --- Page layout helpers ----------------------------------- */
+/* Use `.page` as the outer container on every route. The shell’s
+   <main> sits behind this; `.page` owns padding so pages stay
+   identical across roles. DS §1.7.2 says 12px 32px 40px desktop. */
+
+.page {
+  padding: 12px 32px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1023px) {
+  .page { padding: 12px 24px 40px; }
+}
+
+@media (max-width: 767px) {
+  .page { padding: 12px 16px 32px; }
+}
+
+/* In-page header for sub-screens / dashboards that still want a
+   title + actions bar inside the main area (DS §1.6). Topbar already
+   renders the route title, so prefer using this ONLY when you need a
+   CTA row that sticks to the top of the content. */
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 20px;
+
+  .page-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.15;
+    letter-spacing: -0.4px;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .page-sub {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+
+  .page-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+}
+
+/* Filter row under a page header (DS §1.6). */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+
+  > input,
+  > select,
+  > .input,
+  > .select {
+    width: auto;
+    min-width: 180px;
+  }
+}
+
+/* --- KPI cards (DS §1.5 "KPI Card") ------------------------ */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1023px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 479px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
+.kpi-card {
+  position: relative;
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  .kpi-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .kpi-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--fathom-light);
+    color: var(--fathom);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .kpi-delta {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+
+    &.up   { background: var(--ok-tint);   color: var(--ok); }
+    &.down { background: var(--err-tint);  color: var(--err); }
+    &.flat { background: var(--bg-2);      color: var(--text-3); }
+  }
+
+  .kpi-value {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .kpi-label {
+    font-size: 13px;
+    color: var(--text-2);
+  }
+
+  .kpi-sub {
+    font-size: 11.5px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+
+  /* Accent variants — colored icon tint by role */
+  &.kpi-ok    .kpi-icon { background: var(--ok-tint);   color: var(--ok); }
+  &.kpi-warn  .kpi-icon { background: var(--warn-tint); color: var(--pending-text); }
+  &.kpi-err   .kpi-icon { background: var(--err-tint);  color: var(--err); }
+  &.kpi-info  .kpi-icon { background: var(--info-tint); color: var(--info); }
+  &.kpi-brand .kpi-icon { background: var(--fathom-light); color: var(--fathom); }
+}
+
+/* --- Dashboard chart card ---------------------------------- */
+
+.chart-card {
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+
+  .chart-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px;
+  }
+
+  .chart-sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin: 0 0 14px;
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+}
+
+/* --- Empty / loading states -------------------------------- */
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-3);
+
+  .empty-icon {
+    font-size: 32px;
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+
+  .empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 4px;
+  }
+}
+
+.loading {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+/* --- Product card (used on product-list + corporate products) */
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out,
+              border-color 0.15s ease-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -12px rgba(3, 79, 70, 0.18);
+    border-color: rgba(3, 79, 70, 0.25);
+  }
+
+  .product-hero {
+    aspect-ratio: 1.6;
+    background: var(--bg-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    line-height: 1;
+    color: var(--text-2);
+  }
+
+  .product-body {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .product-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .product-price {
+    color: var(--ok);
+    font-weight: 700;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .product-stock {
+    font-size: 11.5px;
+    color: var(--text-3);
+
+    &.low { color: var(--err); }
+  }
+
+  .product-rating {
+    font-size: 12px;
+    color: var(--text-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    .star { color: #f59e0b; }
+  }
+
+  .product-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+
+    > .btn { flex: 1; }
+  }
+}
+
+/* --- Colored avatar (user / customer rows) ----------------- */
+
+.avatar-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+  user-select: none;
+}

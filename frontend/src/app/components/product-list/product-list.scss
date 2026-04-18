@@ -1,0 +1,223 @@
+@use '../../../styles/responsive' as r;
+
+:host {
+  display: block;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Component-scoped overrides for the global input baseline. */
+input.search-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 40px 0 42px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctrl);
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &::placeholder {
+    color: var(--text-3);
+    font-weight: 400;
+  }
+
+  &:hover { border-color: var(--border-2); }
+
+  &:focus {
+    border-color: var(--fathom);
+    box-shadow: 0 0 0 3px var(--focus-ring-soft);
+    outline: none;
+  }
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+}
+
+/* ── Icon menu (filter / sort) ─────────────────────────────── */
+.icon-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.icon-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctrl);
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    border-color: var(--fathom);
+    color: var(--fathom);
+  }
+
+  .dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--fathom);
+    border: 2px solid var(--lumen);
+  }
+}
+
+.icon-menu.open .icon-btn,
+.icon-btn.active {
+  border-color: var(--fathom);
+  color: var(--fathom);
+  background: var(--fathom-light);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: var(--lumen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-modal);
+  padding: 6px;
+  z-index: 100;
+  font-family: var(--sans);
+  animation: dropdownIn 0.12s ease-out;
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+  padding: 8px 12px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-3);
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+
+  &:hover { background: var(--hover); }
+
+  &.selected {
+    background: var(--fathom);
+    color: #fff;
+  }
+}
+
+/* ── Toolbar responsive ────────────────────────────────────── */
+@include r.lt-sm {
+  .toolbar { flex-wrap: wrap; }
+  .search-wrapper { flex: 1 1 100%; }
+}
+
+/* ── Product card (scoped tweaks on global .product-card) ──── */
+.product-card {
+  text-decoration: none;
+  color: var(--text);
+
+  &:hover { color: var(--text); text-decoration: none; }
+
+  .product-category {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--fathom);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .product-desc {
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-store {
+    font-size: 11.5px;
+    color: var(--text-3);
+  }
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+.empty-card {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-3);
+}

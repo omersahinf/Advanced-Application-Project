@@ -1,10 +1,4 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  computed,
-  signal,
-} from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -20,8 +14,16 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
   { prefix: '/admin/categories', title: 'Categories', sub: 'Hierarchical taxonomy for products.' },
   { prefix: '/admin/analytics', title: 'Analytics', sub: 'Cross-store and customer segmentation.' },
   { prefix: '/admin/settings', title: 'Settings', sub: 'Platform-wide configuration.' },
-  { prefix: '/admin', title: 'Platform Overview', sub: 'All stores, users, and revenue across Flower.' },
-  { prefix: '/corporate/products', title: 'Products', sub: 'Manage your catalog — add, edit, discontinue.' },
+  {
+    prefix: '/admin',
+    title: 'Platform Overview',
+    sub: 'All stores, users, and revenue across Flower.',
+  },
+  {
+    prefix: '/corporate/products',
+    title: 'Products',
+    sub: 'Manage your catalog — add, edit, discontinue.',
+  },
   { prefix: '/corporate/orders', title: 'Orders', sub: 'Confirm, ship, and close fulfilment.' },
   { prefix: '/corporate/reviews', title: 'Reviews', sub: 'Reply to feedback from your shoppers.' },
   { prefix: '/corporate', title: 'Store Dashboard', sub: 'KPIs for your store, updated live.' },
@@ -32,7 +34,11 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
   { prefix: '/reviews', title: 'My Reviews', sub: `What you've shared with sellers and shoppers.` },
   { prefix: '/dashboard', title: 'Dashboard', sub: 'Your spending at a glance.' },
   { prefix: '/profile', title: 'Profile', sub: 'Your account details and preferences.' },
-  { prefix: '/chat', title: 'Analytics Chat', sub: 'Ask in natural language — a multi-agent pipeline answers.' },
+  {
+    prefix: '/chat',
+    title: 'Analytics Chat',
+    sub: 'Ask in natural language — a multi-agent pipeline answers.',
+  },
 ];
 
 /** Demo accounts used by the topbar role switcher. */
@@ -71,11 +77,7 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
         }
       </div>
 
-      <div
-        class="role-switcher"
-        role="tablist"
-        aria-label="Switch demo role"
-      >
+      <div class="role-switcher" role="tablist" aria-label="Switch demo role">
         @for (role of roles; track role) {
           <button
             type="button"
@@ -110,12 +112,7 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
         <span class="bell-dot" aria-hidden="true"></span>
       </button>
 
-      <button
-        class="ai-chip"
-        type="button"
-        (click)="openChat()"
-        title="Ask Flower AI (Text2SQL)"
-      >
+      <button class="ai-chip" type="button" (click)="openChat()" title="Ask Flower AI (Text2SQL)">
         <svg
           width="14"
           height="14"
@@ -127,7 +124,9 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
           stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path d="M12 2l2.09 5.26L20 9.27l-4.5 3.9L17 20l-5-3.5L7 20l1.5-6.83L4 9.27l5.91-2.01L12 2z" />
+          <path
+            d="M12 2l2.09 5.26L20 9.27l-4.5 3.9L17 20l-5-3.5L7 20l1.5-6.83L4 9.27l5.91-2.01L12 2z"
+          />
         </svg>
         Ask Flower AI
       </button>
@@ -226,12 +225,7 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
 
             <div class="menu-divider"></div>
 
-            <button
-              class="menu-item danger"
-              type="button"
-              role="menuitem"
-              (click)="logout()"
-            >
+            <button class="menu-item danger" type="button" role="menuitem" (click)="logout()">
               <span class="menu-icon" aria-hidden="true">🚪</span>
               <span>Log out</span>
             </button>
@@ -262,10 +256,7 @@ export class TopHeaderComponent implements OnInit, OnDestroy {
   });
 
   readonly displayName = computed(
-    () =>
-      this.auth.currentFirstName() ||
-      this.auth.currentEmail()?.split('@')[0] ||
-      'Guest',
+    () => this.auth.currentFirstName() || this.auth.currentEmail()?.split('@')[0] || 'Guest',
   );
 
   readonly initial = computed(() =>

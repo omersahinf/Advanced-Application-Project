@@ -4,20 +4,35 @@ import { RouterLink } from '@angular/router';
 import { OrderService } from '../../services/order.service';
 import { Order } from '../../models/product.model';
 
+type StepState = 'done' | 'current' | 'todo';
+const FLOW = ['PENDING', 'CONFIRMED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'] as const;
+const FLOW_LABELS: Record<(typeof FLOW)[number], string> = {
+  PENDING: 'Ordered',
+  CONFIRMED: 'Confirmed',
+  SHIPPED: 'Shipped',
+  OUT_FOR_DELIVERY: 'Out for delivery',
+  DELIVERED: 'Delivered',
+};
+
 @Component({
   selector: 'app-my-orders',
+  standalone: true,
   imports: [DatePipe, DecimalPipe, RouterLink],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>My Orders</h1>
-        <button class="btn btn-primary btn-sm" (click)="exportCSV()">Export CSV</button>
-        <div class="filter-bar">
-          <button class="filter-btn" [class.active]="filter() === ''" (click)="loadOrders('')">
+      <div class="toolbar">
+        <div class="filter-bar" role="tablist" aria-label="Filter orders">
+          <button
+            class="filter-btn"
+            role="tab"
+            [class.active]="filter() === ''"
+            (click)="loadOrders('')"
+          >
             All
           </button>
           <button
             class="filter-btn"
+            role="tab"
             [class.active]="filter() === 'PENDING'"
             (click)="loadOrders('PENDING')"
           >
@@ -25,6 +40,15 @@ import { Order } from '../../models/product.model';
           </button>
           <button
             class="filter-btn"
+            role="tab"
+            [class.active]="filter() === 'CONFIRMED'"
+            (click)="loadOrders('CONFIRMED')"
+          >
+            Confirmed
+          </button>
+          <button
+            class="filter-btn"
+            role="tab"
             [class.active]="filter() === 'SHIPPED'"
             (click)="loadOrders('SHIPPED')"
           >
@@ -32,12 +56,32 @@ import { Order } from '../../models/product.model';
           </button>
           <button
             class="filter-btn"
+            role="tab"
             [class.active]="filter() === 'DELIVERED'"
             (click)="loadOrders('DELIVERED')"
           >
             Delivered
           </button>
         </div>
+
+        <button class="btn btn-export btn-sm" type="button" (click)="exportCSV()">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export CSV
+        </button>
       </div>
 
       @for (o of orders(); track o.id) {
@@ -48,20 +92,20 @@ import { Order } from '../../models/product.model';
               <span class="order-date">{{ o.orderDate | date: 'medium' }}</span>
             </div>
             <div class="order-right">
-              <span class="status-badge" [class]="'s-' + o.status.toLowerCase()">{{
-                o.status
-              }}</span>
+              <span class="status-pill" [class]="'status-' + o.status">{{ o.status }}</span>
               <span class="order-total">\${{ o.grandTotal | number: '1.2-2' }}</span>
             </div>
           </div>
 
-          <div class="order-store">{{ o.storeName }} &middot; {{ o.paymentMethod }}</div>
+          <div class="order-store">
+            {{ o.storeName }}<span class="dot">·</span>{{ o.paymentMethod }}
+          </div>
 
           <div class="items-list">
             @for (item of o.items; track item.id) {
               <div class="item-row">
                 <span class="item-name">{{ item.productName }}</span>
-                <span class="item-qty">x{{ item.quantity }}</span>
+                <span class="item-qty">×{{ item.quantity }}</span>
                 <span class="item-price">\${{ item.price | number: '1.2-2' }}</span>
               </div>
             }
@@ -69,191 +113,45 @@ import { Order } from '../../models/product.model';
 
           @if (o.shipment) {
             <div class="shipment-info">
-              <span>📦 {{ o.shipment.carrier }} - {{ o.shipment.trackingNumber }}</span>
-              <span>{{ o.shipment.status }} via {{ o.shipment.mode }}</span>
+              <div class="shipment-head">
+                <span>{{ o.shipment.carrier }} · {{ o.shipment.mode }}</span>
+                <span class="shipment-track">#{{ o.shipment.trackingNumber }}</span>
+              </div>
+              <div class="timeline">
+                @for (step of steps(o); track step.key) {
+                  <div class="timeline-step" [class.done]="step.state === 'done'"
+                       [class.current]="step.state === 'current'">
+                    <span class="step-dot" aria-hidden="true"></span>
+                    <span>{{ step.label }}</span>
+                  </div>
+                }
+              </div>
             </div>
           }
 
           @if (o.status === 'PENDING') {
             <div class="order-actions">
-              <a [routerLink]="['/checkout', o.id]" class="btn btn-pay btn-sm">Pay with Stripe</a>
-              <button class="btn btn-danger btn-sm" (click)="cancel(o.id)">Cancel Order</button>
+              <a [routerLink]="['/checkout', o.id]" class="btn btn-primary btn-sm">
+                Pay with Stripe
+              </a>
+              <button class="btn btn-danger btn-sm" type="button" (click)="cancel(o.id)">
+                Cancel order
+              </button>
             </div>
           }
         </div>
       }
 
       @if (orders().length === 0) {
-        <div class="empty card">No orders found</div>
+        <div class="empty-state card">
+          <div class="empty-icon" aria-hidden="true">📦</div>
+          <div class="empty-title">No orders found</div>
+          <div>When you place an order, it'll appear here.</div>
+        </div>
       }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .filter-bar {
-        display: flex;
-        gap: 6px;
-      }
-      .filter-btn {
-        padding: 6px 14px;
-        border: 1px solid #c8c8b4;
-        border-radius: 6px;
-        background: #ffffeb;
-        font-size: 13px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.15s;
-        color: #666;
-      }
-      .filter-btn.active {
-        background: #034f46;
-        color: white;
-        border-color: #034f46;
-      }
-      .filter-btn:hover:not(.active) {
-        border-color: #034f46;
-        color: #1a1a1a;
-      }
-      .order-card {
-        padding: 20px;
-        margin-bottom: 12px;
-      }
-      .order-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 8px;
-      }
-      .order-header h3 {
-        font-size: 16px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .order-date {
-        font-size: 12px;
-        color: #666;
-      }
-      .order-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .order-total {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .status-badge {
-        font-size: 11px;
-        font-weight: 700;
-        padding: 3px 10px;
-        border-radius: 12px;
-        text-transform: uppercase;
-      }
-      .s-pending {
-        background: #fef3c7;
-        color: #d97706;
-      }
-      .s-confirmed {
-        background: #034f46;
-        color: #ffffeb;
-      }
-      .s-shipped {
-        background: #e0e7ff;
-        color: #4338ca;
-      }
-      .s-delivered {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .s-cancelled {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .order-store {
-        font-size: 13px;
-        color: #666;
-        margin-bottom: 12px;
-      }
-      .items-list {
-        border-top: 1px solid #d5d5c0;
-        padding-top: 12px;
-      }
-      .item-row {
-        display: flex;
-        align-items: center;
-        padding: 6px 0;
-        font-size: 13px;
-        color: #1a1a1a;
-      }
-      .item-name {
-        flex: 1;
-        font-weight: 500;
-      }
-      .item-qty {
-        width: 50px;
-        color: #666;
-        text-align: center;
-      }
-      .item-price {
-        width: 80px;
-        text-align: right;
-        font-weight: 600;
-      }
-      .shipment-info {
-        margin-top: 12px;
-        padding: 10px 14px;
-        background: rgba(3, 79, 70, 0.08);
-        border-radius: 8px;
-        font-size: 12px;
-        display: flex;
-        justify-content: space-between;
-        color: #034f46;
-      }
-      .order-actions {
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px solid #d5d5c0;
-        display: flex;
-        gap: 8px;
-      }
-      .btn-pay {
-        background: #034f46;
-        color: white;
-        border-radius: 6px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-      }
-      .btn-sm {
-        padding: 8px 16px;
-        font-size: 13px;
-      }
-      .empty {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-      }
-    `,
-  ],
+  styleUrls: ['./my-orders.scss'],
 })
 export class MyOrdersComponent implements OnInit {
   orders = signal<Order[]>([]);
@@ -274,6 +172,21 @@ export class MyOrdersComponent implements OnInit {
     if (confirm('Cancel this order?')) {
       this.orderService.cancelOrder(orderId).subscribe(() => this.loadOrders(this.filter()));
     }
+  }
+
+  /**
+   * Derive the 5-step shipment timeline state from the order status.
+   * Anything at or before the current flow index is `done`; the order's
+   * own status is `current`; everything after is `todo`.
+   * CANCELLED orders never reach shipment so we don't show this timeline.
+   */
+  steps(o: Order): { key: string; label: string; state: StepState }[] {
+    const idx = FLOW.indexOf(o.status as (typeof FLOW)[number]);
+    return FLOW.map((key, i) => ({
+      key,
+      label: FLOW_LABELS[key],
+      state: idx === -1 ? 'todo' : i < idx ? 'done' : i === idx ? 'current' : 'todo',
+    }));
   }
 
   exportCSV() {

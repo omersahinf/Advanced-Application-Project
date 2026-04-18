@@ -41,6 +41,14 @@
   --focus-ring:    rgba(3, 79, 70, 0.25);
   --focus-ring-soft: rgba(3, 79, 70, 0.12);
 
+  /* Prototype aliases — used by topbar, table hover, danger buttons.
+     `--dawn` is the warm fathom highlight used on active pills and the
+     "Ask Flower AI" chip. `--hover` is a row/button warm hover bg. */
+  --dawn:          #dfe9e5;
+  --dawn-hover:    #c9ded7;
+  --hover:         #f5f5e1;
+  --err-bg:        #fce5e5;
+
   /* Pending / amber text override (design system 1.5 Status Pills) */
   --pending-text:  #b45309;
 

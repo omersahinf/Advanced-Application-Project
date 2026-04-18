@@ -21,18 +21,16 @@ declare const Stripe: any;
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="checkout-page">
-      <h2>Checkout - Payment</h2>
-
+    <div class="page">
       @if (loading) {
         <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Loading order details...</p>
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Loading order details…</p>
         </div>
       } @else if (errorMsg && !order) {
         <div class="error-box">
           <p>{{ errorMsg }}</p>
-          <a routerLink="/orders" class="btn-back">Back to Orders</a>
+          <a routerLink="/orders" class="btn-back">Back to orders</a>
         </div>
       } @else if (order) {
         <div class="checkout-layout">
@@ -44,12 +42,12 @@ declare const Stripe: any;
             </div>
             <div class="detail-row">
               <span>Status</span>
-              <span class="badge">{{ order.status }}</span>
+              <span class="status-pill" [class]="'status-' + order.status">{{ order.status }}</span>
             </div>
             <hr />
             @for (item of order.items; track item.id) {
               <div class="line-item">
-                <span class="item-name">{{ item.productName }} x{{ item.quantity }}</span>
+                <span class="item-name">{{ item.productName }} × {{ item.quantity }}</span>
                 <span class="item-price">\${{ (item.price * item.quantity).toFixed(2) }}</span>
               </div>
             }
@@ -63,20 +61,22 @@ declare const Stripe: any;
           <div class="payment-section">
             @if (paymentSuccess) {
               <div class="success-box">
-                <div class="success-icon">&#10003;</div>
-                <h3>Payment Successful!</h3>
+                <div class="success-icon" aria-hidden="true">✓</div>
+                <h3>Payment successful</h3>
                 <p>Your order has been confirmed.</p>
-                <a routerLink="/orders" class="btn-primary">View Orders</a>
+                <a routerLink="/orders" class="btn btn-primary">View orders</a>
               </div>
             } @else {
-              <h3>Card Details</h3>
-              <p class="test-hint">Test card: 4242 4242 4242 4242 | Any future date | Any CVC</p>
+              <h3>Card details</h3>
+              <p class="test-hint">
+                Test card: 4242 4242 4242 4242 · any future date · any CVC
+              </p>
               <div #cardElement class="card-element"></div>
               @if (cardError) {
                 <p class="card-error">{{ cardError }}</p>
               }
-              <button class="btn-pay" (click)="pay()" [disabled]="processing">
-                {{ processing ? 'Processing...' : 'Pay $' + order.grandTotal.toFixed(2) }}
+              <button class="btn-pay" type="button" (click)="pay()" [disabled]="processing">
+                {{ processing ? 'Processing…' : 'Pay $' + order.grandTotal.toFixed(2) }}
               </button>
               @if (errorMsg) {
                 <p class="error-msg">{{ errorMsg }}</p>
@@ -87,191 +87,7 @@ declare const Stripe: any;
       }
     </div>
   `,
-  styles: [
-    `
-      .checkout-page {
-        max-width: 900px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-      }
-      .loading-state {
-        text-align: center;
-        padding: 3rem;
-      }
-      .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #d5d5c0;
-        border-top-color: #034f46;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin: 0 auto 1rem;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .checkout-layout {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-      }
-      @media (max-width: 768px) {
-        .checkout-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .order-details {
-        background: #ffffeb;
-        border: 1px solid #d5d5c0;
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-      }
-      .order-details h3 {
-        margin-bottom: 1rem;
-        color: #034f46;
-      }
-      .detail-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.4rem 0;
-        color: #1a1a1a;
-      }
-      .badge {
-        background: #034f46;
-        color: #ffffeb;
-        padding: 0.15rem 0.6rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-      }
-      hr {
-        border-color: #d5d5c0;
-        margin: 0.75rem 0;
-      }
-      .line-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.4rem 0;
-      }
-      .item-name {
-        color: #1a1a1a;
-      }
-      .item-price {
-        color: #16a34a;
-        font-weight: 600;
-      }
-      .total-row {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #16a34a;
-      }
-
-      .payment-section {
-        background: #ffffeb;
-        border: 1px solid #d5d5c0;
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-      }
-      .payment-section h3 {
-        margin-bottom: 0.5rem;
-        color: #1a1a1a;
-      }
-      .test-hint {
-        color: #999;
-        font-size: 0.8rem;
-        margin-bottom: 1rem;
-        font-style: italic;
-      }
-
-      .card-element {
-        background: #ffffeb;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        padding: 14px;
-        margin-bottom: 1rem;
-        min-height: 44px;
-      }
-
-      .card-error {
-        color: #dc2626;
-        font-size: 0.85rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .btn-pay {
-        width: 100%;
-        padding: 0.85rem;
-        background: linear-gradient(135deg, #034f46, #034f46);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 1.05rem;
-        cursor: pointer;
-        transition: opacity 0.2s;
-      }
-      .btn-pay:hover:not(:disabled) {
-        opacity: 0.9;
-      }
-      .btn-pay:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .error-msg {
-        color: #dc2626;
-        margin-top: 0.75rem;
-        text-align: center;
-      }
-      .error-box {
-        text-align: center;
-        background: #fee2e2;
-        color: #dc2626;
-        padding: 2rem;
-        border-radius: 16px;
-      }
-      .btn-back {
-        display: inline-block;
-        margin-top: 1rem;
-        color: #1a1a1a;
-        background: #e4e4d0;
-        border: 1px solid #c8c8b4;
-        padding: 0.5rem 1.5rem;
-        border-radius: 8px;
-        text-decoration: none;
-      }
-
-      .success-box {
-        text-align: center;
-        padding: 2rem 1rem;
-      }
-      .success-icon {
-        font-size: 3rem;
-        color: #16a34a;
-        margin-bottom: 0.5rem;
-      }
-      .success-box h3 {
-        color: #16a34a;
-        margin-bottom: 0.5rem;
-      }
-      .success-box p {
-        color: #666;
-        margin-bottom: 1.5rem;
-      }
-      .btn-primary {
-        background: #034f46;
-        color: white;
-        padding: 0.6rem 1.5rem;
-        border-radius: 8px;
-        text-decoration: none;
-      }
-    `,
-  ],
+  styleUrls: ['./checkout.scss'],
 })
 export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('cardElement') cardElementRef!: ElementRef;
@@ -350,12 +166,12 @@ export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
     this.card = this.elements.create('card', {
       style: {
         base: {
-          color: '#1a1a2e',
+          color: '#1a1a1a',
           fontFamily: 'Inter, sans-serif',
-          fontSize: '16px',
-          '::placeholder': { color: '#6b7280' },
+          fontSize: '15px',
+          '::placeholder': { color: '#8a8a7c' },
         },
-        invalid: { color: '#ef4444' },
+        invalid: { color: '#dc2626' },
       },
     });
 
@@ -386,14 +202,12 @@ export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
     if (paymentIntent && paymentIntent.status === 'succeeded') {
       this.paymentService.confirmPayment(paymentIntent.id).subscribe({
         next: () => {
-          // Clear cart only after successful payment
           this.cartService.clearCart().subscribe();
           this.paymentSuccess = true;
           this.processing = false;
           this.cdr.detectChanges();
         },
         error: () => {
-          // Payment went through on Stripe side, clear cart anyway
           this.cartService.clearCart().subscribe();
           this.paymentSuccess = true;
           this.processing = false;
@@ -404,8 +218,6 @@ export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.card) {
-      this.card.destroy();
-    }
+    if (this.card) this.card.destroy();
   }
 }

@@ -111,9 +111,7 @@ import { AuthService } from '../../services/auth.service';
         password: <code>password</code>
       </div>
 
-      <div class="course-footer">
-        CSE 214 · Advanced Application Development · Final Project
-      </div>
+      <div class="course-footer">CSE 214 · Advanced Application Development · Final Project</div>
     </div>
   `,
   styleUrls: ['./login.scss'],

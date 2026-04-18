@@ -8,45 +8,53 @@ import { AuthService } from '../../services/auth.service';
   imports: [FormsModule],
   template: `
     <div class="login-page">
-      <div class="brand">
-        <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
-          <rect x="2" y="16" width="5.5" height="11" rx="1.5" fill="#1a1a1a" />
-          <rect x="10" y="9" width="5.5" height="18" rx="1.5" fill="#1a1a1a" />
-          <rect x="18" y="4" width="5.5" height="23" rx="1.5" fill="#1a1a1a" />
-          <rect x="26" y="11" width="5.5" height="16" rx="1.5" fill="#1a1a1a" />
+      <div class="brand" aria-label="Flower">
+        <svg
+          class="brand-logo"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect x="2" y="14" width="3.5" height="8" rx="1" fill="var(--fathom)" />
+          <rect x="7" y="9" width="3.5" height="13" rx="1" fill="var(--fathom)" />
+          <rect x="12" y="11" width="3.5" height="11" rx="1" fill="var(--fathom)" />
+          <rect x="17" y="6" width="3.5" height="16" rx="1" fill="var(--fathom)" />
         </svg>
         <span class="brand-name">Flower</span>
       </div>
 
       <div class="login-card">
         <h1 class="card-title">Get started</h1>
+        <p class="card-subtitle">E-commerce analytics with a multi-agent AI assistant.</p>
 
         <div class="demo-grid">
           <button
             type="button"
             class="demo-btn"
-            aria-label="Fill demo credentials"
+            aria-label="Fill demo credentials for Admin"
             (click)="fillDemo('admin@example.com')"
           >
-            <span class="demo-icon">🔑</span>
+            <span class="demo-icon" aria-hidden="true">🔑</span>
             Continue as Admin
           </button>
           <button
             type="button"
             class="demo-btn"
-            aria-label="Fill demo credentials"
+            aria-label="Fill demo credentials for Corporate"
             (click)="fillDemo('corporate1@example.com')"
           >
-            <span class="demo-icon">🏢</span>
+            <span class="demo-icon" aria-hidden="true">💼</span>
             Continue as Corporate
           </button>
           <button
             type="button"
             class="demo-btn"
-            aria-label="Fill demo credentials"
+            aria-label="Fill demo credentials for Individual"
             (click)="fillDemo('user1@example.com')"
           >
-            <span class="demo-icon">👤</span>
+            <span class="demo-icon" aria-hidden="true">👤</span>
             Continue as Individual
           </button>
         </div>
@@ -95,160 +103,20 @@ import { AuthService } from '../../services/auth.service';
           </button>
         </form>
       </div>
+
+      <div class="demo-footer">
+        <span class="demo-footer-label">Demo accounts</span>
+        admin@example.com · corporate1@example.com · user1@example.com
+        <br />
+        password: <code>password</code>
+      </div>
+
+      <div class="course-footer">
+        CSE 214 · Advanced Application Development · Final Project
+      </div>
     </div>
   `,
-  styles: [
-    `
-      .login-page {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        padding: 2rem;
-        padding-top: 5rem;
-        padding-bottom: 4rem;
-        background: #e4e4d0;
-        gap: 2.5rem;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        position: relative;
-        top: -1.3rem;
-      }
-      .brand-name {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        letter-spacing: -0.5px;
-      }
-
-      .login-card {
-        max-width: 34rem;
-        width: 100%;
-        padding: 2rem;
-        background: #ffffeb;
-        border: none;
-        border-radius: 32px;
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
-      }
-
-      .card-title {
-        font-size: 2.5rem;
-        font-weight: 400;
-        color: #1a1a1a;
-        text-align: center;
-        margin-bottom: 1.875rem;
-        font-family: Georgia, 'Times New Roman', serif;
-      }
-
-      .demo-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-      }
-      .demo-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 1rem;
-        border: 2px solid #1a1a1a;
-        border-radius: 8px;
-        background: transparent;
-        cursor: pointer;
-        transition: opacity 0.2s;
-        font-size: 1rem;
-        font-weight: 600;
-        font-family: inherit;
-        color: #1a1a1a;
-      }
-      .demo-btn:hover {
-        opacity: 0.7;
-      }
-      .demo-icon {
-        font-size: 1.1rem;
-      }
-
-      .or-divider {
-        text-align: center;
-        color: #1a1a1a;
-        font-size: 0.9rem;
-        padding: 1.875rem 0;
-      }
-
-      .field {
-        margin-bottom: 0;
-      }
-      .field input {
-        width: 100%;
-        padding: 12px 0;
-        border: none;
-        border-bottom: 2px solid #1a1a1a;
-        border-radius: 0;
-        background: transparent;
-        font-size: 1rem;
-        font-family: inherit;
-        color: #1a1a1a;
-        outline: none;
-        transition: border-color 0.2s;
-      }
-      .field input::placeholder {
-        color: #999;
-      }
-      .field input:focus {
-        border-bottom-color: #034f46;
-        box-shadow: none;
-      }
-
-      .error-msg {
-        margin-top: 12px;
-        padding: 10px;
-        background: #fef2f2;
-        border-radius: 10px;
-        text-align: center;
-        color: #dc2626;
-        font-size: 14px;
-      }
-
-      .submit-btn {
-        width: 100%;
-        padding: 1rem;
-        font-size: 1rem;
-        font-weight: 600;
-        margin-top: 1.875rem;
-        border-radius: 8px;
-        border: none;
-        background: #034f46;
-        color: #ffffeb;
-        cursor: pointer;
-        font-family: inherit;
-        transition: background 0.2s;
-      }
-      .submit-btn:hover {
-        background: #e4c4f7;
-      }
-      .submit-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      @media (max-width: 640px) {
-        .login-page {
-          padding: 1rem;
-          padding-top: 2rem;
-          gap: 1.5rem;
-        }
-        .login-card {
-          padding: 1.5rem !important;
-          max-width: 100% !important;
-        }
-      }
-    `,
-  ],
+  styleUrls: ['./login.scss'],
 })
 export class LoginComponent {
   email = '';

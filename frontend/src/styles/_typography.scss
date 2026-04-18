@@ -82,3 +82,15 @@ code, pre, kbd, samp {
 
 .t-muted   { color: var(--text-2); }
 .t-muted-2 { color: var(--text-3); }
+
+/* --- Prototype-parity helpers ------------------------------
+   These class names match `Flower Prototype.html` so component
+   markup can stay close to the reference. */
+
+.section-label {
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 700;
+}

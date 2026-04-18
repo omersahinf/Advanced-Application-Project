@@ -2,23 +2,17 @@
 
 :host { display: block; }
 
-.reviews-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 16px;
-
-  @include r.lt-md { grid-template-columns: 1fr; }
-}
-
-.review-card {
-  background: var(--lumen);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: 18px 20px;
+.page {
+  /* Prototype §CorpReviews: padding "12px 32px 40px", flex column gap 14. */
+  padding: 12px 0 40px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
+}
+
+/* ── Review card ──────────────────────────────────────────────── */
+.review-card {
+  padding: 20px;
 }
 
 .review-head {
@@ -26,100 +20,137 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  margin-bottom: 6px;
+
+  @include r.lt-sm {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 
-.stars {
-  font-size: 16px;
-  color: var(--warn);
-  letter-spacing: 1px;
-  line-height: 1;
+.head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.sentiment {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 10px;
+.head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-
-  &.sent-positive { background: var(--ok-tint); color: var(--ok); }
-  &.sent-neutral  { background: var(--warn-tint); color: var(--pending-text); }
-  &.sent-negative { background: var(--err-tint); color: var(--err); }
+  /* Prototype: linear-gradient(135deg, #dfe9e5, #c9ded7) */
+  background: linear-gradient(135deg, #dfe9e5, #c9ded7);
+  color: #ffffeb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.4px;         /* size * 0.38 → 30 * 0.38 = 11.4 */
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
 }
 
-.review-product {
-  font-family: var(--serif);
-  font-size: 15.5px;
-  font-weight: 700;
+.head-text {
+  min-width: 0;
+}
+
+.reviewer-name {
+  font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.2px;
+  font-size: 14px;
+}
+
+.reviewer-meta {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
 }
 
 .review-body {
   color: var(--text-2);
-  font-size: 13px;
+  margin: 10px 0 0;
+  font-size: 13.5px;
   line-height: 1.55;
-  margin: 0;
+  white-space: pre-wrap;
 }
 
-.review-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+/* ── Corporate reply block ────────────────────────────────────── */
+.reply-block {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--hover);
+  border-left: 3px solid #034f46;
+  border-radius: 6px;
+}
+
+.reply-label {
+  font-family: var(--mono);
   font-size: 11.5px;
   color: var(--text-3);
+  margin-bottom: 4px;
+  text-transform: none;
 }
 
-.reply-section {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.reply-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-ctrl);
+.reply-body {
   font-size: 13px;
-  font-family: inherit;
-  background: var(--lumen);
   color: var(--text);
+  line-height: 1.5;
+}
 
-  &:focus {
-    outline: none;
-    border-color: var(--fathom);
-    box-shadow: 0 0 0 3px var(--focus-ring);
+.reply-btn {
+  margin-top: 10px;
+}
+
+/* ── Reply dialog preview block ───────────────────────────────── */
+.reply-preview {
+  padding: 12px;
+  background: var(--hover);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  b { font-weight: 700; color: var(--text); }
+
+  .reply-preview-body {
+    flex-basis: 100%;
+    margin-top: 6px;
+    color: var(--text-2);
   }
 }
 
-.btn-reply {
-  padding: 8px 14px;
-  border: none;
-  border-radius: var(--radius-ctrl);
-  background: var(--fathom);
-  color: #fff;
-  font-size: 13px;
+.label {
+  display: block;
+  font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-
-  &:hover:not(:disabled) { background: var(--fathom-dark); }
-  &:disabled { opacity: 0.45; cursor: not-allowed; }
+  color: var(--text-2);
+  margin-bottom: 6px;
 }
 
-.existing-reply {
-  margin-top: 4px;
-  padding: 10px 14px;
-  background: var(--ok-tint);
-  border-radius: var(--radius-ctrl);
-  font-size: 13px;
-  color: var(--ok);
-  border-left: 3px solid var(--ok);
-  line-height: 1.5;
+/* ── Empty state ──────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-2);
 
-  strong { font-weight: 700; }
+  .empty-icon { font-size: 40px; margin-bottom: 8px; }
+  .empty-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
 }

@@ -16,12 +16,9 @@ import { Component, Input, computed, signal } from '@angular/core';
 @Component({
   selector: 'status-pill',
   standalone: true,
-  template: `<span
-    class="pill"
-    [style.background]="style().bg"
-    [style.color]="style().fg"
-    >{{ label || status }}</span
-  >`,
+  template: `<span class="pill" [style.background]="style().bg" [style.color]="style().fg">{{
+    label || status
+  }}</span>`,
   styles: [
     `
       :host {

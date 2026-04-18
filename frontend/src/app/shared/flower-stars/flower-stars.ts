@@ -52,8 +52,7 @@ export class FlowerStarsComponent {
     const max = this.maxSig();
     const size = this.sizeSig();
     const filled = Math.round(n);
-    const star =
-      'M12 2l2.9 6 6.6.5-5 4.4 1.5 6.6L12 16l-6 3.5 1.5-6.6-5-4.4 6.6-.5z';
+    const star = 'M12 2l2.9 6 6.6.5-5 4.4 1.5 6.6L12 16l-6 3.5 1.5-6.6-5-4.4 6.6-.5z';
     let out = '';
     for (let i = 0; i < max; i += 1) {
       const isFilled = i < filled;

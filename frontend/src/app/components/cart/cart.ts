@@ -50,7 +50,9 @@ import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
           <!-- Line items -->
           <div class="card items-card">
             <div class="items-head">
-              <h2>Cart · {{ cart()!.itemCount }} {{ cart()!.itemCount === 1 ? 'item' : 'items' }}</h2>
+              <h2>
+                Cart · {{ cart()!.itemCount }} {{ cart()!.itemCount === 1 ? 'item' : 'items' }}
+              </h2>
             </div>
             @for (item of cart()!.items; track item.id) {
               <div class="cart-row">
@@ -59,7 +61,9 @@ import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
                 </div>
                 <div class="item-body">
                   <div class="sku">{{ item.productSku }}</div>
-                  <a class="name" [routerLink]="['/products', item.productId]">{{ item.productName }}</a>
+                  <a class="name" [routerLink]="['/products', item.productId]">{{
+                    item.productName
+                  }}</a>
                   <div class="store">{{ item.storeName }}</div>
                   <div class="controls">
                     <div class="qty-pill">
@@ -112,7 +116,7 @@ import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
             </div>
             <div class="row">
               <span>Shipping</span>
-              <span>{{ shipping() === 0 ? 'Free' : ('$' + (shipping() | number: '1.2-2')) }}</span>
+              <span>{{ shipping() === 0 ? 'Free' : '$' + (shipping() | number: '1.2-2') }}</span>
             </div>
             <hr class="divider" />
             <div class="row total-row">

@@ -83,9 +83,7 @@ declare const Stripe: any;
           <div class="mock-api">
             <div>POST /api/payments/confirm → 200 OK</div>
             <div>payment_intent_id = {{ paymentIntentId || 'pi_—' }}</div>
-            <div>
-              status = succeeded · amount = {{ amountCents() }} (USD cents)
-            </div>
+            <div>status = succeeded · amount = {{ amountCents() }} (USD cents)</div>
           </div>
           <div class="done-actions">
             <button type="button" class="btn" (click)="goToOrders()">View orders</button>

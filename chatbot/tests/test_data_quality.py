@@ -4,6 +4,7 @@ needed for the demo. Complements test_schema_supports_demo_queries.py
 """
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from database import engine
 
@@ -13,9 +14,16 @@ def _count(sql: str) -> int:
         return conn.execute(text(sql)).scalar() or 0
 
 
+def _seeded_db_available() -> bool:
+    try:
+        return _count("SELECT COUNT(*) FROM users") > 0
+    except SQLAlchemyError:
+        return False
+
+
 @pytest.mark.skipif(
-    _count("SELECT COUNT(*) FROM users") == 0,
-    reason="Database not seeded — skipping data quality checks.",
+    not _seeded_db_available(),
+    reason="Database unavailable or not seeded — skipping data quality checks.",
 )
 class TestSeededData:
     def test_has_reviews_for_products(self):

@@ -179,6 +179,9 @@ textarea {
 .badge-err   { background: var(--err-tint); color: var(--err); }
 .badge-info  { background: var(--info-tint); color: var(--info); }
 .badge-brand { background: var(--fathom-light); color: var(--fathom); }
+/* Prototype RoleBadge variants (Flower Prototype.html §RoleBadge). */
+.badge-corp  { background: var(--corp-bg);  color: var(--corp-text); }
+.badge-ind   { background: var(--ok-bg);    color: var(--ok); }
 
 /* --- Tables ------------------------------------------------ */
 

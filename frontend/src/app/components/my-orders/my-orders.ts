@@ -93,7 +93,10 @@ const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CAN
                 <td class="c-payment">{{ o.paymentMethod }}</td>
                 <td class="c-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
                 <td class="c-chev">
-                  <flower-icon [name]="openId() === o.id ? 'chevron_up' : 'chevron_down'" [size]="14" />
+                  <flower-icon
+                    [name]="openId() === o.id ? 'chevron_up' : 'chevron_down'"
+                    [size]="14"
+                  />
                 </td>
               </tr>
               @if (openId() === o.id) {
@@ -105,11 +108,7 @@ const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CAN
                         @for (it of o.items; track it.id) {
                           <div class="item-line">
                             <div class="item-thumb">
-                              <product-hero
-                                [name]="it.productName"
-                                [ratio]="1"
-                                [size]="24"
-                              />
+                              <product-hero [name]="it.productName" [ratio]="1" [size]="24" />
                             </div>
                             <div class="item-info">
                               <div class="item-name">{{ it.productName }}</div>
@@ -141,8 +140,7 @@ const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CAN
                             </div>
                             @if (o.shipment.destination) {
                               <div class="meta-row">
-                                <span>Destination</span
-                                ><span>{{ o.shipment.destination }}</span>
+                                <span>Destination</span><span>{{ o.shipment.destination }}</span>
                               </div>
                             }
                             <div class="meta-row">

@@ -175,7 +175,6 @@ import { AuthService } from '../../services/auth.service';
             }
           </a>
         }
-
       </nav>
 
       <div class="sidebar-footer">
@@ -402,6 +401,36 @@ import { AuthService } from '../../services/auth.service';
       }
       .sidebar.collapsed .sidebar-footer {
         padding: 8px;
+      }
+
+      /* Mobile: auto-collapse sidebar to save space */
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 68px;
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 50;
+        }
+        .sidebar.collapsed {
+          width: 68px;
+        }
+        .sidebar:not(.collapsed) {
+          width: 220px;
+          box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar .logo-text,
+        .sidebar .nav-item span:not(.nav-icon),
+        .sidebar .nav-section-label,
+        .sidebar .badge-new {
+          display: var(--mobile-text-display, none);
+        }
+        .sidebar:not(.collapsed) .logo-text,
+        .sidebar:not(.collapsed) .nav-item span:not(.nav-icon),
+        .sidebar:not(.collapsed) .nav-section-label,
+        .sidebar:not(.collapsed) .badge-new {
+          display: initial;
+        }
       }
     `,
   ],

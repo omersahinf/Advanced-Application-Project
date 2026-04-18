@@ -1,13 +1,16 @@
 @if (auth.isLoggedIn()) {
+  <a href="#main-content" class="sr-only">Skip to main content</a>
   <div class="app-layout">
     <app-navbar></app-navbar>
     <div class="main-wrapper">
       <app-top-header></app-top-header>
-      <main class="main-content">
+      <main id="main-content" class="main-content" role="main" tabindex="-1">
         <router-outlet />
       </main>
     </div>
   </div>
 } @else {
-  <router-outlet />
+  <main role="main">
+    <router-outlet />
+  </main>
 }

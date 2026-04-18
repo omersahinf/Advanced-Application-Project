@@ -22,15 +22,30 @@ import { AuthService } from '../../services/auth.service';
         <h1 class="card-title">Get started</h1>
 
         <div class="demo-grid">
-          <button class="demo-btn" (click)="fillDemo('admin@example.com')">
+          <button
+            type="button"
+            class="demo-btn"
+            aria-label="Fill demo credentials"
+            (click)="fillDemo('admin@example.com')"
+          >
             <span class="demo-icon">🔑</span>
             Continue as Admin
           </button>
-          <button class="demo-btn" (click)="fillDemo('corporate1@example.com')">
+          <button
+            type="button"
+            class="demo-btn"
+            aria-label="Fill demo credentials"
+            (click)="fillDemo('corporate1@example.com')"
+          >
             <span class="demo-icon">🏢</span>
             Continue as Corporate
           </button>
-          <button class="demo-btn" (click)="fillDemo('user1@example.com')">
+          <button
+            type="button"
+            class="demo-btn"
+            aria-label="Fill demo credentials"
+            (click)="fillDemo('user1@example.com')"
+          >
             <span class="demo-icon">👤</span>
             Continue as Individual
           </button>
@@ -38,31 +53,44 @@ import { AuthService } from '../../services/auth.service';
 
         <div class="or-divider">or</div>
 
-        <form (ngSubmit)="onLogin()">
+        <form (ngSubmit)="onLogin()" aria-label="Login form">
           <div class="field">
+            <label for="login-email" class="sr-only">Email</label>
             <input
+              id="login-email"
               type="email"
               [(ngModel)]="email"
               name="email"
               placeholder="Enter your email"
+              autocomplete="email"
               required
+              aria-required="true"
             />
           </div>
           <div class="field">
+            <label for="login-password" class="sr-only">Password</label>
             <input
+              id="login-password"
               type="password"
               [(ngModel)]="password"
               name="password"
               placeholder="Enter your password"
+              autocomplete="current-password"
               required
+              aria-required="true"
             />
           </div>
 
           @if (error()) {
-            <div class="error-msg">{{ error() }}</div>
+            <div class="error-msg" role="alert">{{ error() }}</div>
           }
 
-          <button type="submit" class="submit-btn" [disabled]="loading()">
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="loading()"
+            [attr.aria-busy]="loading()"
+          >
             {{ loading() ? 'Signing in...' : 'Continue' }}
           </button>
         </form>
@@ -206,6 +234,18 @@ import { AuthService } from '../../services/auth.service';
       .submit-btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+      }
+
+      @media (max-width: 640px) {
+        .login-page {
+          padding: 1rem;
+          padding-top: 2rem;
+          gap: 1.5rem;
+        }
+        .login-card {
+          padding: 1.5rem !important;
+          max-width: 100% !important;
+        }
       }
     `,
   ],

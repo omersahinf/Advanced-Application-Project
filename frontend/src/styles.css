@@ -79,3 +79,111 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #c8c8b4; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #b0b09c; }
+
+/* ============================================================
+   Responsive breakpoints (mobile-first)
+   ------------------------------------------------------------
+   - base   (0 – 640px): single-column mobile
+   - sm     (640px):     large phone / small tablet
+   - md     (768px):     tablet
+   - lg     (1024px):    laptop
+   - xl     (1280px+):   desktop
+   ============================================================ */
+
+/* Responsive container */
+@media (max-width: 768px) {
+  .container { padding: 0 14px; }
+  .card { padding: 16px; border-radius: 12px; }
+  .btn { padding: 10px 16px; font-size: 13px; }
+}
+@media (max-width: 480px) {
+  .container { padding: 0 10px; }
+  .card { padding: 12px; }
+}
+
+/* Hide/show helpers */
+.hide-mobile { display: initial; }
+.show-mobile { display: none; }
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: initial; }
+}
+
+/* Responsive grid helpers */
+.grid-responsive {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+@media (max-width: 480px) {
+  .grid-responsive { gap: 12px; grid-template-columns: 1fr; }
+}
+
+/* Responsive table (horizontal scroll on mobile) */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-responsive table { min-width: 520px; }
+
+/* Touch-friendly inputs on small screens */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px; } /* prevents iOS zoom */
+}
+
+/* Accessibility: prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Global mobile-safe overrides for common layout classes.
+   These catch components that don't define their own media queries. */
+@media (max-width: 768px) {
+  /* Prevent horizontal overflow on the main layout */
+  body, #main-content, .main-content { overflow-x: hidden; }
+
+  /* Tables — horizontal scroll instead of breaking layout */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Two-column and three-column grids collapse to single column */
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns: repeat(2"],
+  [style*="grid-template-columns: repeat(3"],
+  [style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Flex rows with multiple items wrap */
+  [style*="display: flex"][style*="flex-direction: row"],
+  [style*="display:flex"][style*="flex-direction:row"] {
+    flex-wrap: wrap;
+  }
+
+  /* Typography scale down */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.1rem !important; }
+
+  /* Common inline gaps reduced */
+  [style*="gap: 32px"] { gap: 16px !important; }
+  [style*="gap: 24px"] { gap: 12px !important; }
+  [style*="padding: 40px"] { padding: 20px !important; }
+  [style*="padding: 32px"] { padding: 16px !important; }
+
+  /* Main content left padding for fixed sidebar on mobile */
+  .main-wrapper { margin-left: 68px; }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.25rem !important; }
+  .main-wrapper { margin-left: 68px; }
+}

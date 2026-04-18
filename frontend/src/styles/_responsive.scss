@@ -19,3 +19,5 @@ $bp-xl: 1280px;  // desktop
 @mixin tablet-only { @media (min-width: #{$bp-md}) and (max-width: #{$bp-lg - 1px}) { @content; } }
 @mixin lt-md       { @media (max-width: #{$bp-md - 1px}) { @content; } }
 @mixin lt-sm       { @media (max-width: #{$bp-sm}) { @content; } }
+@mixin lt-lg       { @media (max-width: #{$bp-lg - 1px}) { @content; } }
+@mixin lt-xl       { @media (max-width: #{$bp-xl - 1px}) { @content; } }

@@ -4,12 +4,12 @@ import { DecimalPipe } from '@angular/common';
 import { StoreService } from '../../services/store.service';
 import { CategoryService } from '../../services/category.service';
 import { Product, Category } from '../../models/product.model';
-import { productEmoji } from '../../shared/product-emoji';
+import { ProductHeroComponent } from '../../shared/product-hero/product-hero';
 
 @Component({
   selector: 'app-corporate-products',
   standalone: true,
-  imports: [FormsModule, DecimalPipe],
+  imports: [FormsModule, DecimalPipe, ProductHeroComponent],
   template: `
     <div class="page">
       <div class="toolbar">
@@ -90,7 +90,7 @@ import { productEmoji } from '../../shared/product-emoji';
       <div class="catalog-grid">
         @for (p of visibleProducts(); track p.id) {
           <div class="catalog-card">
-            <div class="card-hero" aria-hidden="true">{{ heroFor(p) }}</div>
+            <product-hero [name]="p.name" [category]="p.category" />
             <div class="card-body">
               <div class="card-category">{{ p.category || 'Uncategorized' }}</div>
               <div class="card-name">{{ p.name }}</div>
@@ -205,9 +205,5 @@ export class CorporateProductsComponent implements OnInit {
     if (confirm('Delete this product?')) {
       this.storeService.deleteProduct(id).subscribe(() => this.load());
     }
-  }
-
-  heroFor(p: Product) {
-    return productEmoji(p.name, p.category);
   }
 }

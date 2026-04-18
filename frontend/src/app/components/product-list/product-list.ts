@@ -9,6 +9,7 @@ import { CartService } from '../../services/cart.service';
 import { Product, Category } from '../../models/product.model';
 
 import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { ProductHeroComponent } from '../../shared/product-hero/product-hero';
 
 /**
  * Individual — catalog browse page. Replicates `Flower Prototype.html`
@@ -24,7 +25,7 @@ import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [RouterLink, FormsModule, DecimalPipe, FlowerIconComponent],
+  imports: [RouterLink, FormsModule, DecimalPipe, FlowerIconComponent, ProductHeroComponent],
   template: `
     <div class="page ind-products">
       <!-- Toolbar: search + Category + Store + Sort -->
@@ -79,43 +80,43 @@ import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
       <div class="product-grid">
         @for (p of displayProducts(); track p.id) {
           <div class="card product-card">
-            <a class="thumb-link" [routerLink]="['/products', p.id]" [attr.aria-label]="p.name">
-              <div class="thumb" [style.background]="thumbGradient(p.id)">
-                <flower-icon name="package" [size]="42" [stroke]="1.5" />
-              </div>
+            <a class="hero-link" [routerLink]="['/products', p.id]" [attr.aria-label]="p.name">
+              <product-hero [name]="p.name" [category]="p.category" />
             </a>
 
-            <div class="product-head">
-              <div class="product-info">
-                <div class="product-meta">{{ p.storeName }} · {{ p.sku }}</div>
-                <a class="product-name" [routerLink]="['/products', p.id]">{{ p.name }}</a>
+            <div class="product-body">
+              <div class="product-head">
+                <div class="product-info">
+                  <div class="product-meta">{{ p.storeName }} · {{ p.sku }}</div>
+                  <a class="product-name" [routerLink]="['/products', p.id]">{{ p.name }}</a>
+                </div>
+                <div class="product-price">\${{ p.price | number: '1.2-2' }}</div>
               </div>
-              <div class="product-price">\${{ p.price | number: '1.2-2' }}</div>
-            </div>
 
-            <div class="product-sub">
-              @if (p.stock > 0) {
-                <span class="stock" [class.stock-low]="p.stock < 10">
-                  {{ p.stock }} in stock
-                </span>
-              } @else {
-                <span class="stock stock-out">Out of stock</span>
-              }
-              @if (p.category) {
-                <span class="dot">·</span>
-                <span>{{ p.category }}</span>
-              }
-            </div>
+              <div class="product-sub">
+                @if (p.stock > 0) {
+                  <span class="stock" [class.stock-low]="p.stock < 10">
+                    {{ p.stock }} in stock
+                  </span>
+                } @else {
+                  <span class="stock stock-out">Out of stock</span>
+                }
+                @if (p.category) {
+                  <span class="dot">·</span>
+                  <span>{{ p.category }}</span>
+                }
+              </div>
 
-            <button
-              type="button"
-              class="btn btn-primary add-btn"
-              [disabled]="p.stock === 0 || addingId() === p.id"
-              (click)="addToCart(p)"
-            >
-              <flower-icon name="plus" [size]="13" />
-              {{ addingId() === p.id ? 'Adding…' : 'Add to cart' }}
-            </button>
+              <button
+                type="button"
+                class="btn btn-primary add-btn"
+                [disabled]="p.stock === 0 || addingId() === p.id"
+                (click)="addToCart(p)"
+              >
+                <flower-icon name="plus" [size]="13" />
+                {{ addingId() === p.id ? 'Adding…' : 'Add to cart' }}
+              </button>
+            </div>
           </div>
         }
       </div>
@@ -182,26 +183,6 @@ export class ProductListComponent implements OnInit {
     };
     return [...r].sort(cmp);
   });
-
-  /**
-   * Deterministic card thumb gradient — mirrors the prototype's
-   * ProductThumbLg palette lookup by id % 8.
-   */
-  private static readonly PALETTES: [string, string][] = [
-    ['#c9ded7', '#dfe9e5'],
-    ['#c8e6c9', '#dcfce7'],
-    ['#ffe0b2', '#fef3c7'],
-    ['#b2dfdb', '#e0f2f1'],
-    ['#f8bbd0', '#fce4ec'],
-    ['#c5cae9', '#e8eaf6'],
-    ['#d7ccc8', '#efebe9'],
-    ['#b3e5fc', '#e1f5fe'],
-  ];
-
-  thumbGradient(id: number): string {
-    const [a, b] = ProductListComponent.PALETTES[id % ProductListComponent.PALETTES.length];
-    return `linear-gradient(135deg, ${a}, ${b})`;
-  }
 
   ngOnInit() {
     this.loadProducts();

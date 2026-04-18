@@ -1,266 +1,219 @@
-import { Component, OnInit, signal } from '@angular/core';
+/**
+ * Corporate Products — pixel-parity replica of Flower Prototype.html §CorpProducts.
+ *
+ * Inventory (verbatim from prototype):
+ *   Page title:   "Products Catalog 📦"   (serif, 32px)
+ *   Subtitle:     "Manage your inventory"
+ *   Primary CTA:  [+ Add Product]          (top-right, btn-primary)
+ *   Filters row:  [All Categories ▾ 160w] [🔍 Search products…  280w]
+ *   Card grid:    repeat(auto-fill, minmax(240px, 1fr)), gap 16
+ *                 → emoji hero (aspect-ratio 1.6, bg-2, border-bottom)
+ *                 → body: name (14/600) · price (16/700 green) · stock
+ *                   (11px, red if <40) · actions row (border-top):
+ *                   [ ✎ Edit  (flex 1) ]  [ 🗑 btn-danger ]
+ *   Edit dialog:  <Dialog title="Edit product" | "New product" width=520>
+ *                 footer: [Cancel]  [Save]
+ *                 fields: Name; {SKU | Category}; {Price (USD) | Stock}; Description
+ *
+ * Prototype elements NOT wired because the backend DTO (Product) has no
+ * stock aging, rating, or review count on this endpoint:
+ *   — per-card Stars row ("4.6 · 234")
+ * Category options in the prototype are a hard-coded trio. Our backend
+ * ships a real /api/categories endpoint so we render its real names.
+ */
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { StoreService } from '../../services/store.service';
 import { CategoryService } from '../../services/category.service';
 import { Product, Category } from '../../models/product.model';
+import { ProductHeroComponent } from '../../shared/product-hero/product-hero';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog';
 
 @Component({
   selector: 'app-corporate-products',
-  imports: [FormsModule, DecimalPipe],
+  standalone: true,
+  imports: [
+    FormsModule,
+    DecimalPipe,
+    ProductHeroComponent,
+    FlowerIconComponent,
+    FlowerDialogComponent,
+  ],
   template: `
     <div class="page">
+      <!-- Page header ————————————————————————————————— -->
       <div class="page-header">
-        <h1>Product Management</h1>
-        <button class="btn btn-primary" (click)="showForm.set(!showForm())">
-          {{ showForm() ? 'Cancel' : '+ Add Product' }}
+        <div class="page-title-block">
+          <h1 class="page-title">
+            Products Catalog <span class="title-emoji" aria-hidden="true">📦</span>
+          </h1>
+          <div class="page-sub">Manage your inventory</div>
+        </div>
+        <button type="button" class="btn btn-primary" (click)="openCreate()">
+          <flower-icon name="plus" [size]="13" />
+          Add Product
         </button>
       </div>
 
-      @if (showForm()) {
-        <div class="form-card card">
-          <h3>{{ editProduct() ? 'Edit Product' : 'New Product' }}</h3>
-          <form (ngSubmit)="save()">
-            <div class="form-grid">
-              <div class="field">
-                <label>Name</label>
-                <input [(ngModel)]="form.name" name="name" required />
+      <!-- Filters ———————————————————————————————————— -->
+      <div class="filters">
+        <select
+          class="select cat-select"
+          [(ngModel)]="categoryFilter"
+          [ngModelOptions]="{ standalone: true }"
+        >
+          <option value="">All Categories</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.name">{{ c.name }}</option>
+          }
+        </select>
+        <div class="search-wrap">
+          <span class="search-ico" aria-hidden="true">🔍</span>
+          <input
+            class="input"
+            placeholder="Search products…"
+            [(ngModel)]="searchQuery"
+            (input)="onSearch()"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </div>
+      </div>
+
+      <!-- Card grid ———————————————————————————————— -->
+      <div class="catalog-grid">
+        @for (p of visibleProducts(); track p.id) {
+          <div class="catalog-card card">
+            <product-hero [name]="p.name" [category]="p.category" />
+            <div class="card-body">
+              <div class="card-name">{{ p.name }}</div>
+              <div class="card-meta">
+                <span class="card-price">\${{ p.price | number: '1.2-2' }}</span>
+                <span class="card-stock" [class.low]="p.stock < 40"> {{ p.stock }} in stock </span>
               </div>
-              <div class="field">
-                <label>SKU</label>
-                <input [(ngModel)]="form.sku" name="sku" />
+              <div class="card-actions">
+                <button type="button" class="btn btn-sm btn-ghost edit-btn" (click)="openEdit(p)">
+                  <flower-icon name="edit" [size]="12" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost btn-danger trash-btn"
+                  (click)="remove(p)"
+                  aria-label="Delete product"
+                >
+                  <flower-icon name="trash" [size]="12" />
+                </button>
               </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (visibleProducts().length === 0) {
+        <div class="empty-state card">
+          <div class="empty-icon" aria-hidden="true">📦</div>
+          <div class="empty-title">No products found</div>
+          <div>Try clearing your filters or add your first product.</div>
+        </div>
+      }
+
+      <!-- Edit / New dialog —————————————————————————— -->
+      @if (dialogOpen()) {
+        <flower-dialog
+          [title]="editProduct() ? 'Edit product' : 'New product'"
+          [width]="520"
+          (closed)="closeDialog()"
+        >
+          <div class="dlg-form">
+            <div class="field">
+              <label class="label">Name</label>
+              <input
+                class="input"
+                [(ngModel)]="form.name"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </div>
+            <div class="dlg-row">
               <div class="field">
-                <label>Price</label>
+                <label class="label">SKU</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  [(ngModel)]="form.unitPrice"
-                  name="unitPrice"
-                  required
+                  class="input"
+                  [(ngModel)]="form.sku"
+                  [ngModelOptions]="{ standalone: true }"
                 />
               </div>
               <div class="field">
-                <label>Stock</label>
-                <input type="number" [(ngModel)]="form.stock" name="stock" required />
-              </div>
-              <div class="field">
-                <label>Category</label>
-                <select [(ngModel)]="form.categoryId" name="categoryId">
+                <label class="label">Category</label>
+                <select
+                  class="select"
+                  [(ngModel)]="form.categoryId"
+                  [ngModelOptions]="{ standalone: true }"
+                >
                   <option [ngValue]="null">Select category</option>
                   @for (c of categories(); track c.id) {
                     <option [ngValue]="c.id">{{ c.name }}</option>
                   }
                 </select>
               </div>
-              <div class="field full">
-                <label>Description</label>
-                <textarea [(ngModel)]="form.description" name="description" rows="2"></textarea>
+            </div>
+            <div class="dlg-row">
+              <div class="field">
+                <label class="label">Price (USD)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  class="input"
+                  [(ngModel)]="form.unitPrice"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </div>
+              <div class="field">
+                <label class="label">Stock</label>
+                <input
+                  type="number"
+                  class="input"
+                  [(ngModel)]="form.stock"
+                  [ngModelOptions]="{ standalone: true }"
+                />
               </div>
             </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">
-                {{ editProduct() ? 'Update' : 'Create' }}
-              </button>
+            <div class="field">
+              <label class="label">Description</label>
+              <textarea
+                class="textarea"
+                rows="3"
+                [(ngModel)]="form.description"
+                [ngModelOptions]="{ standalone: true }"
+              ></textarea>
             </div>
-          </form>
-        </div>
+          </div>
+          <div footer>
+            <button type="button" class="btn" (click)="closeDialog()">Cancel</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!form.name.trim()"
+              (click)="save()"
+            >
+              Save
+            </button>
+          </div>
+        </flower-dialog>
       }
-
-      <div class="search-bar">
-        <input
-          placeholder="Search products..."
-          [(ngModel)]="searchQuery"
-          (input)="onSearch()"
-          [ngModelOptions]="{ standalone: true }"
-        />
-      </div>
-
-      <div class="table-card card">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>SKU</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of products(); track p.id) {
-              <tr [class.low-stock]="p.stock < 10">
-                <td class="product-name">{{ p.name }}</td>
-                <td>
-                  <code>{{ p.sku || '-' }}</code>
-                </td>
-                <td>{{ p.category || '-' }}</td>
-                <td>\${{ p.price | number: '1.2-2' }}</td>
-                <td>
-                  <span [class.stock-warn]="p.stock < 10">{{ p.stock }}</span>
-                  @if (p.stock < 10) {
-                    <span class="stock-alert">Low</span>
-                  }
-                </td>
-                <td>
-                  <button class="btn-xs" (click)="startEdit(p)">Edit</button>
-                  <button class="btn-xs danger" (click)="remove(p.id)">Delete</button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        @if (products().length === 0) {
-          <div class="empty">No products found</div>
-        }
-      </div>
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .form-card {
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .form-card h3 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #1a1a1a;
-      }
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
-      .form-grid .full {
-        grid-column: span 2;
-      }
-      .field label {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #666;
-      }
-      select {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        font-size: 14px;
-        font-family: inherit;
-        background: #ffffeb;
-        color: #1a1a1a;
-      }
-      textarea {
-        resize: vertical;
-      }
-      .form-actions {
-        margin-top: 14px;
-      }
-      .search-bar {
-        margin-bottom: 16px;
-      }
-      .table-card {
-        padding: 0;
-        overflow-x: auto;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      th {
-        background: #f5f5e1;
-        padding: 12px 16px;
-        text-align: left;
-        font-weight: 600;
-        color: #666;
-        font-size: 11px;
-        text-transform: uppercase;
-      }
-      td {
-        padding: 12px 16px;
-        border-top: 1px solid #d5d5c0;
-      }
-      tr:hover td {
-        background: #f5f5e1;
-      }
-      tr.low-stock td {
-        background: #fef3c7;
-      }
-      .product-name {
-        font-weight: 600;
-        color: #1a1a1a;
-      }
-      code {
-        background: #f5f5e1;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 12px;
-        color: #666;
-      }
-      .stock-warn {
-        color: #dc2626;
-        font-weight: 700;
-      }
-      .stock-alert {
-        font-size: 10px;
-        background: #fee2e2;
-        color: #dc2626;
-        padding: 1px 6px;
-        border-radius: 4px;
-        margin-left: 4px;
-      }
-      .btn-xs {
-        padding: 4px 10px;
-        border: 1px solid #c8c8b4;
-        border-radius: 4px;
-        background: #ffffeb;
-        font-size: 11px;
-        cursor: pointer;
-        margin-right: 4px;
-        color: #1a1a1a;
-      }
-      .btn-xs.danger {
-        border-color: rgba(220, 38, 38, 0.3);
-        color: #dc2626;
-      }
-      .btn-xs:hover {
-        background: #f5f5e1;
-      }
-      .empty {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-      }
-    `,
-  ],
+  styleUrls: ['./corporate-products.scss'],
 })
 export class CorporateProductsComponent implements OnInit {
   products = signal<Product[]>([]);
   categories = signal<Category[]>([]);
-  showForm = signal(false);
+  dialogOpen = signal(false);
   editProduct = signal<Product | null>(null);
   searchQuery = '';
+  categoryFilter = '';
+
   form = {
     name: '',
     description: '',
@@ -269,6 +222,12 @@ export class CorporateProductsComponent implements OnInit {
     sku: '',
     categoryId: null as number | null,
   };
+
+  visibleProducts = computed(() => {
+    const cat = this.categoryFilter;
+    const list = this.products();
+    return cat ? list.filter((p) => p.category === cat) : list;
+  });
 
   constructor(
     private storeService: StoreService,
@@ -290,39 +249,56 @@ export class CorporateProductsComponent implements OnInit {
       .subscribe((p) => this.products.set(p));
   }
 
-  save() {
-    const data = { ...this.form };
-    const obs = this.editProduct()
-      ? this.storeService.updateProduct(this.editProduct()!.id, data)
-      : this.storeService.createProduct(data);
-    obs.subscribe(() => {
-      this.resetForm();
-      this.load();
-    });
+  openCreate() {
+    this.editProduct.set(null);
+    this.resetForm();
+    this.dialogOpen.set(true);
   }
 
-  startEdit(p: Product) {
+  openEdit(p: Product) {
     this.editProduct.set(p);
-    this.showForm.set(true);
     this.form = {
       name: p.name,
       description: p.description,
       unitPrice: p.price,
       stock: p.stock,
       sku: p.sku,
+      categoryId: this.categories().find((c) => c.name === p.category)?.id ?? null,
+    };
+    this.dialogOpen.set(true);
+  }
+
+  closeDialog() {
+    this.dialogOpen.set(false);
+    this.editProduct.set(null);
+    this.resetForm();
+  }
+
+  save() {
+    const data = { ...this.form };
+    const obs = this.editProduct()
+      ? this.storeService.updateProduct(this.editProduct()!.id, data)
+      : this.storeService.createProduct(data);
+    obs.subscribe(() => {
+      this.closeDialog();
+      this.load();
+    });
+  }
+
+  remove(p: Product) {
+    if (confirm(`Delete "${p.name}"?`)) {
+      this.storeService.deleteProduct(p.id).subscribe(() => this.load());
+    }
+  }
+
+  private resetForm() {
+    this.form = {
+      name: '',
+      description: '',
+      unitPrice: 0,
+      stock: 0,
+      sku: '',
       categoryId: null,
     };
-  }
-
-  resetForm() {
-    this.showForm.set(false);
-    this.editProduct.set(null);
-    this.form = { name: '', description: '', unitPrice: 0, stock: 0, sku: '', categoryId: null };
-  }
-
-  remove(id: number) {
-    if (confirm('Delete this product?')) {
-      this.storeService.deleteProduct(id).subscribe(() => this.load());
-    }
   }
 }

@@ -2,6 +2,7 @@
 import json
 import os
 import time
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -12,7 +13,17 @@ from graph import run_query, run_query_stream
 from seed_data import seed
 import config
 
-app = FastAPI(title="E-Commerce Analytics Chatbot", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if not config.USE_SHARED_DB:
+        seed()
+    else:
+        print("=== Using shared database, skipping seed ===")
+    yield
+
+
+app = FastAPI(title="E-Commerce Analytics Chatbot", version="1.0.0", lifespan=lifespan)
 
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS", "http://localhost:4200,http://localhost:8080"
@@ -55,16 +66,6 @@ class ChatResponse(BaseModel):
     is_in_scope: Optional[bool] = None
     is_greeting: Optional[bool] = None
     iteration_count: Optional[int] = None
-
-
-@app.on_event("startup")
-def startup():
-    import config
-    if not config.USE_SHARED_DB:
-        seed()
-    else:
-        print("=== Using shared database, skipping seed ===")
-
 
 def _cleanup_expired_sessions():
     """Remove sessions that have been inactive for longer than SESSION_TIMEOUT_SECS."""

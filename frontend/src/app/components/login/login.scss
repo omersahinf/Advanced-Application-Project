@@ -1,0 +1,193 @@
+@use '../../../styles/responsive' as r;
+
+/* Flower Prototype.html §LoginPage — pixel-parity port. */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--bg); /* #e4e4d0 */
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 5rem 2rem 4rem; /* 80 / 32 / 64 */
+  gap: 2.5rem;              /* 40 */
+}
+
+/* Brand row — serif wordmark nudged above the card. */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  top: -1.3rem;
+}
+
+.brand-name {
+  font: 700 30px/1 var(--serif);
+  color: var(--text);
+  letter-spacing: -0.6px;
+}
+
+/* Card — warm cream paper, 32px radius, very soft shadow. */
+.login-card {
+  width: 100%;
+  max-width: 34rem; /* 544px */
+  background: #ffffeb;
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 2rem; /* 32 */
+}
+
+.card-title {
+  font: 500 2.5rem/1.1 var(--serif);
+  color: var(--text);
+  text-align: center;
+  letter-spacing: -1px;
+  margin: 0 0 8px;
+}
+
+.card-subtitle {
+  font: 400 14px/1.45 var(--sans);
+  color: var(--text-2);
+  text-align: center;
+  margin: 0 0 28px;
+}
+
+.demo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.demo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #1a1a1a;
+  border-radius: 8px;
+  background: transparent;
+  color: #1a1a1a;
+  font: 600 14px/1 var(--sans);
+  cursor: pointer;
+  transition: opacity 0.2s ease-out;
+
+  &:hover:not(:disabled) { opacity: 0.7; }
+  &:active:not(:disabled) { transform: scale(0.99); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.demo-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.or-divider {
+  text-align: center;
+  color: var(--text-2);
+  font: 400 13px/1 var(--sans);
+  padding: 20px 0;
+}
+
+/* Fields — bottom-border-only inputs. Overrides the global
+   .input/.select rule which normally adds a full border and radius. */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.flat-input {
+  width: 100%;
+  border: none !important;
+  border-bottom: 2px solid #1a1a1a !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 10px 2px !important;
+  font: 400 15px/1.4 var(--sans);
+  color: var(--text);
+  outline: none !important;
+  box-shadow: none !important;
+
+  &::placeholder { color: var(--text-3); }
+
+  &:focus {
+    border-bottom-color: var(--fathom) !important;
+    box-shadow: none !important;
+  }
+}
+
+.error-msg {
+  margin-top: 18px;
+  padding: 10px 14px;
+  background: var(--err-bg);
+  border-radius: 10px;
+  color: var(--err);
+  font: 500 13px/1.4 var(--sans);
+}
+
+.submit-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 1rem;
+  background: var(--fathom);
+  color: #ffffeb;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font: 600 15px/1 var(--sans);
+  box-shadow: 0 1px 2px rgba(3, 79, 70, 0.2);
+  transition: background 0.15s ease-out, opacity 0.15s ease-out;
+
+  &:hover:not(:disabled) { background: #1c6056; }
+  &:disabled { cursor: wait; opacity: 0.7; }
+}
+
+.demo-footer {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-3);
+  font: 400 11.5px/1.5 var(--mono);
+  letter-spacing: 0.2px;
+
+  b { color: var(--text-2); font-weight: 700; }
+
+  .demo-emails {
+    margin-top: 8px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
+
+.course-footer {
+  margin-top: -10px;
+  text-align: center;
+  color: var(--text-3);
+  font: 400 12px/1.4 var(--sans);
+}
+
+@include r.lt-sm {
+  .login-page {
+    padding: 3rem 1rem 2rem;
+    gap: 2rem;
+  }
+
+  .login-card {
+    padding: 1.5rem;
+    border-radius: 24px;
+  }
+
+  .card-title { font-size: 2rem; }
+}

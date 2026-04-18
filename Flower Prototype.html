@@ -1,0 +1,3083 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Flower · E-Commerce Analytics Platform</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* Wispr Flow tokens (from PROJECT.md) */
+    --lumen-dark: #e4e4d0;
+    --lumen:      #ffffeb;
+    --dawn:       #dfe9e5;
+    --dawn-hover: #c9ded7;
+    --fathom:     #034f46;
+    --fathom-2:   #1c6056;
+    --vast:       #1a1a1a;
+    --glow:       #ffa946;
+    --pulse:      #7f1c34;
+
+    /* Derived */
+    --border:     #d5d5c0;
+    --border-in:  #c8c8b4;
+    --text:       #1a1a1a;
+    --text-2:     #666666;
+    --text-3:     #999999;
+    --hover:      #f5f5e1;
+    --hover-nav:  #e4e4d0;
+    --active-bg:  rgba(3, 79, 70, 0.08);
+    --focus-ring: rgba(3, 79, 70, 0.12);
+
+    /* Semantic */
+    --ok:         #16a34a;
+    --ok-bg:      #dcfce7;
+    --err:        #dc2626;
+    --err-bg:     #fce5e5;
+    --warn:       #d97706;
+    --warn-bg:    #fef3c7;
+    --corp-text:  #034f46;
+    --corp-bg:    #dfe9e5;
+
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --serif: 'Georgia', 'Times New Roman', serif;
+    --display: 'Georgia', 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--lumen-dark); color: var(--text);
+               font-family: var(--sans); font-size: 14px; line-height: 1.45;
+               -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: inherit; }
+  a { color: var(--fathom); text-decoration: none; }
+  a:hover { color: var(--fathom-2); }
+  code, pre { font-family: var(--mono); }
+  h1, h2, h3, h4 { text-wrap: pretty; margin: 0; color: var(--text); font-weight: 700; }
+  h1 { font-size: 28px; letter-spacing: -0.5px; }
+  h2 { font-size: 20px; letter-spacing: -0.2px; }
+  h3 { font-size: 16px; }
+  p  { margin: 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-in); border-radius: 999px; border: 2px solid var(--lumen-dark); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  /* 3-dot loader */
+  .dots { display: inline-flex; gap: 4px; }
+  .dots span { width: 6px; height: 6px; border-radius: 999px; background: var(--text-2);
+               animation: dot 1.2s infinite ease-in-out; }
+  .dots span:nth-child(2) { animation-delay: 0.15s; }
+  .dots span:nth-child(3) { animation-delay: 0.30s; }
+  @keyframes dot {
+    0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  /* Shared primitives */
+  .card { background: var(--lumen); border: 1px solid var(--border); border-radius: 16px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border);
+         background: var(--lumen); color: var(--text); padding: 8px 14px; border-radius: 10px;
+         font-weight: 500; font-size: 13px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .btn:hover { background: var(--hover); }
+  .btn-primary { background: var(--dawn); border-color: transparent; color: var(--text); font-weight: 600; }
+  .btn-primary:hover { background: var(--dawn-hover); }
+  .btn-dark { background: var(--vast); border-color: var(--vast); color: var(--lumen); }
+  .btn-dark:hover { background: #333; }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: var(--hover); color: var(--text); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+  .btn-danger { color: var(--err); }
+  .btn-danger:hover { background: var(--err-bg); }
+
+  .input, .select, .textarea {
+    width: 100%; border: 1px solid var(--border-in); background: var(--lumen);
+    padding: 9px 12px; border-radius: 10px; font-size: 13.5px; color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input:focus, .select:focus, .textarea:focus {
+    outline: none; border-color: var(--fathom); box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  .input::placeholder { color: var(--text-3); }
+
+  .label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-bottom: 6px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px;
+           font-size: 11px; font-weight: 600; letter-spacing: 0.2px; }
+  .badge-ok  { background: var(--ok-bg);  color: var(--ok); }
+  .badge-err { background: var(--err-bg); color: var(--err); }
+  .badge-corp{ background: var(--corp-bg);color: var(--corp-text); }
+  .badge-warn{ background: var(--warn-bg);color: var(--warn); }
+  .badge-ind { background: var(--ok-bg);  color: var(--ok); }
+  .badge-muted{background: var(--hover); color: var(--text-2); border: 1px solid var(--border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--hover); text-align: left; font-weight: 600; color: #444;
+             padding: 10px 14px; border-bottom: 1px solid var(--border);
+             font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
+  tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tbody tr:hover td { background: var(--hover); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .section-label { font-size: 10px; color: var(--text-3); letter-spacing: 1.2px;
+                   text-transform: uppercase; font-weight: 700; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+          border-radius: 999px; background: var(--hover); color: var(--text-2);
+          font-size: 12px; font-weight: 500; border: 1px solid var(--border); }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; border: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- flower/seed.js -->
+<script type="text/babel" data-presets="react">
+// Flower seed data — mirrors backend DataSeeder.java
+window.SEED = (() => {
+  const demoAccounts = [
+    { email: "admin@example.com",      pwd: "password", role: "ADMIN",      name: "Ada Kaya",   first: "Ada",    last: "Kaya" },
+    { email: "corporate1@example.com", pwd: "password", role: "CORPORATE",  name: "Deniz Arslan", first: "Deniz", last: "Arslan", storeId: 1 },
+    { email: "user1@example.com",      pwd: "password", role: "INDIVIDUAL", name: "Selin Demir", first: "Selin", last: "Demir",  userId: 12 },
+  ];
+
+  const stores = [
+    { id: 1, name: "TechCorp",       desc: "Electronics & computing",  owner: "Deniz Arslan",  status: "ACTIVE", rating: 4.6, products: 12, revenue: 284910, orders: 1284 },
+    { id: 2, name: "GreenMarket",    desc: "Organic food & lifestyle", owner: "Merve Şahin",   status: "ACTIVE", rating: 4.8, products: 10, revenue: 142300, orders: 892 },
+    { id: 3, name: "FashionHub",     desc: "Apparel & accessories",    owner: "Kaan Öztürk",   status: "ACTIVE", rating: 4.4, products:  8, revenue: 198700, orders: 1047 },
+    { id: 4, name: "HomeEssentials", desc: "Home & kitchen goods",     owner: "Ece Yılmaz",    status: "CLOSED", rating: 4.5, products: 10, revenue:  92400, orders:  510 },
+  ];
+
+  const categories = [
+    { id:  1, name: "Electronics",   parent: null, count: 28 },
+    { id:  2, name: "Computers",     parent: 1,    count: 14 },
+    { id:  3, name: "Audio",         parent: 1,    count:  7 },
+    { id:  4, name: "Wearables",     parent: 1,    count:  5 },
+    { id:  5, name: "Home & Garden", parent: null, count: 22 },
+    { id:  6, name: "Kitchen",       parent: 5,    count: 11 },
+    { id:  7, name: "Furniture",     parent: 5,    count:  4 },
+    { id:  8, name: "Fashion",       parent: null, count: 18 },
+    { id:  9, name: "Shoes",         parent: 8,    count:  6 },
+    { id: 10, name: "Beauty",        parent: null, count:  9 },
+    { id: 11, name: "Organic",       parent: null, count: 15 },
+    { id: 12, name: "Fitness",       parent: null, count:  7 },
+  ];
+
+  const products = [
+    { id: 101, sku: "TC-001", name: "Wireless Keyboard Pro", desc: "Ergonomic wireless keyboard with backlight and rechargeable battery.", price: 79.99,  stock: 150, storeId: 1, cat: "Computers", rating: 4.5, reviews: 124 },
+    { id: 102, sku: "TC-002", name: "Gaming Mouse X500",     desc: "High-precision 16000 DPI gaming mouse with RGB lighting.",            price: 49.99,  stock:  85, storeId: 1, cat: "Computers", rating: 4.3, reviews:  88 },
+    { id: 103, sku: "TC-009", name: "Wireless Earbuds Pro",  desc: "Active noise cancellation, 30-hour battery life.",                    price: 149.99, stock:  90, storeId: 1, cat: "Audio",     rating: 4.7, reviews: 312 },
+    { id: 104, sku: "TC-010", name: "Smart Watch Series X",  desc: "Health tracking, GPS, water resistant to 50m.",                        price: 299.99, stock:  40, storeId: 1, cat: "Wearables", rating: 4.6, reviews: 201 },
+    { id: 105, sku: "TC-012", name: "External SSD 1TB",      desc: "USB 3.2 Gen2 portable SSD, up to 1050 MB/s.",                          price:  89.99, stock:  75, storeId: 1, cat: "Computers", rating: 4.8, reviews:  76 },
+    { id: 106, sku: "TC-007", name: "Mechanical Keyboard MX",desc: "Cherry MX Blue switches with per-key RGB.",                            price: 129.99, stock:  35, storeId: 1, cat: "Computers", rating: 4.4, reviews:  45 },
+    { id: 201, sku: "GM-001", name: "Organic Green Tea",     desc: "Premium Japanese matcha green tea, 100g.",                            price:  24.99, stock: 300, storeId: 2, cat: "Organic",   rating: 4.9, reviews: 182 },
+    { id: 202, sku: "GM-003", name: "Reusable Water Bottle", desc: "Stainless steel 750ml insulated bottle.",                              price:  19.99, stock: 180, storeId: 2, cat: "Home & Garden", rating: 4.6, reviews:  97 },
+    { id: 203, sku: "GM-006", name: "Soy Candle Set",        desc: "Lavender scented soy wax candles, set of three.",                      price:  22.99, stock: 140, storeId: 2, cat: "Home & Garden", rating: 4.7, reviews:  64 },
+    { id: 204, sku: "GM-005", name: "Hemp Backpack",         desc: "Eco-friendly hemp fiber backpack, 22L.",                               price:  59.99, stock:  65, storeId: 2, cat: "Fashion",   rating: 4.4, reviews:  38 },
+    { id: 205, sku: "GM-010", name: "Argan Oil Shampoo",     desc: "Sulfate-free argan oil shampoo, 300ml.",                              price:  15.99, stock: 170, storeId: 2, cat: "Beauty",    rating: 4.5, reviews: 112 },
+    { id: 301, sku: "FH-002", name: "Merino Wool Sweater",   desc: "100% merino wool, machine washable.",                                  price:  89.00, stock:  45, storeId: 3, cat: "Fashion",   rating: 4.6, reviews:  54 },
+    { id: 302, sku: "FH-005", name: "Leather Sneakers",      desc: "Full-grain leather, rubber outsole.",                                  price: 129.00, stock:  60, storeId: 3, cat: "Shoes",     rating: 4.3, reviews:  72 },
+    { id: 303, sku: "FH-007", name: "Linen Shirt",           desc: "Breathable European linen, relaxed fit.",                              price:  64.00, stock:  80, storeId: 3, cat: "Fashion",   rating: 4.5, reviews:  41 },
+    { id: 304, sku: "FH-009", name: "Canvas Tote Bag",       desc: "Heavy-duty 16oz canvas tote with inner pocket.",                       price:  28.00, stock: 120, storeId: 3, cat: "Fashion",   rating: 4.8, reviews:  96 },
+    { id: 401, sku: "HE-001", name: "Ceramic Dinner Set",    desc: "16-piece ceramic dinnerware, service for 4.",                          price:  79.00, stock:  55, storeId: 4, cat: "Kitchen",   rating: 4.5, reviews:  58 },
+    { id: 402, sku: "HE-004", name: "Cast Iron Skillet 12\"", desc: "Pre-seasoned 12-inch cast iron skillet.",                              price:  39.00, stock:  90, storeId: 4, cat: "Kitchen",   rating: 4.9, reviews: 204 },
+    { id: 403, sku: "HE-008", name: "Bamboo Cutting Board",  desc: "Organic bamboo cutting board with juice groove.",                      price:  18.00, stock: 130, storeId: 4, cat: "Kitchen",   rating: 4.6, reviews:  83 },
+  ];
+
+  // Orders (for Selin Demir, userId=12)
+  const myOrders = [
+    { id: 10472, date: "2026-02-14", status: "DELIVERED", paymentMethod: "Stripe · Visa •• 4242", total: 179.97, items: [
+        { pid: 103, qty: 1, price: 149.99 }, { pid: 202, qty: 1, price: 19.99 }, { pid: 203, qty: 1, price: 22.99 - 12.99 /* gift */ } ],
+      ship: { mode: "Air", warehouse: "WH-IST-03", carrier: "Flowlink", tracking: "FLW8821-3341-7702", destination: "İstanbul", status: "DELIVERED" } },
+    { id: 10498, date: "2026-03-02", status: "SHIPPED",   paymentMethod: "Stripe · Visa •• 4242", total:  89.99, items: [{ pid: 105, qty: 1, price: 89.99 }],
+      ship: { mode: "Road", warehouse: "WH-IZM-01", carrier: "Flowlink", tracking: "FLW9004-0042-1188", destination: "İzmir", status: "IN_TRANSIT" } },
+    { id: 10521, date: "2026-03-11", status: "CONFIRMED", paymentMethod: "Stripe · Visa •• 4242", total:  47.00, items: [{ pid: 304, qty: 1, price: 28.00 }, { pid: 203, qty: 1, price: 19.00 }],
+      ship: { mode: "Air", warehouse: "WH-IST-03", carrier: "Flowlink", tracking: "—", destination: "Ankara", status: "PENDING" } },
+    { id: 10537, date: "2026-03-16", status: "PENDING",   paymentMethod: "Awaiting payment",       total: 299.99, items: [{ pid: 104, qty: 1, price: 299.99 }],
+      ship: null },
+    { id: 10405, date: "2026-01-22", status: "CANCELLED", paymentMethod: "Refunded",               total:  64.00, items: [{ pid: 303, qty: 1, price: 64.00 }],
+      ship: null },
+  ];
+
+  const myReviews = [
+    { id: 501, productId: 103, stars: 5, body: "Battery is outstanding — 30 hours is not marketing fluff. ANC handles the metro commute.", date: "2026-02-20", sentiment: "POSITIVE", corporateReply: { from: "TechCorp", body: "Thank you, Selin — enjoy the commute!", date: "2026-02-22" }, helpful: 14, total: 17 },
+    { id: 502, productId: 202, stars: 4, body: "Holds cold for a full workday. Lid threading could be tighter.",                         date: "2026-02-21", sentiment: "POSITIVE", corporateReply: null, helpful: 3, total: 4 },
+  ];
+
+  // Corporate (TechCorp) data
+  const corpOrders = [
+    { id: 10498, user: "Selin Demir",    date: "2026-03-02", status: "SHIPPED",   total:  89.99, items: 1 },
+    { id: 10537, user: "Selin Demir",    date: "2026-03-16", status: "PENDING",   total: 299.99, items: 1 },
+    { id: 10461, user: "Mert Yıldız",    date: "2026-03-01", status: "CONFIRMED", total: 229.98, items: 2 },
+    { id: 10412, user: "Ayşe Korkmaz",   date: "2026-02-18", status: "DELIVERED", total:  79.99, items: 1 },
+    { id: 10388, user: "Okan Polat",     date: "2026-02-12", status: "DELIVERED", total: 129.99, items: 1 },
+    { id: 10355, user: "Burcu Ergin",    date: "2026-02-04", status: "DELIVERED", total:  49.99, items: 1 },
+    { id: 10340, user: "Hakan Bulut",    date: "2026-02-01", status: "CANCELLED", total: 149.99, items: 1 },
+  ];
+
+  const corpReviews = [
+    { id: 501, user: "Selin Demir",   product: "Wireless Earbuds Pro",  stars: 5, body: "Battery is outstanding — 30 hours is not marketing fluff.", date: "2026-02-20", sentiment: "POSITIVE", reply: { body: "Thank you, Selin — enjoy the commute!" } },
+    { id: 601, user: "Mert Yıldız",   product: "Gaming Mouse X500",     stars: 2, body: "Scroll wheel started squeaking after a week of use. Disappointed.", date: "2026-03-05", sentiment: "NEGATIVE", reply: null },
+    { id: 602, user: "Okan Polat",    product: "Wireless Keyboard Pro", stars: 4, body: "Layout took a day to learn, backlight is crisp.", date: "2026-02-14", sentiment: "POSITIVE", reply: { body: "Appreciate the honest feedback!" } },
+    { id: 603, user: "Zeynep Ak",     product: "Mechanical Keyboard MX",stars: 5, body: "Blue switches are loud but satisfying. RGB config app is great.", date: "2026-03-09", sentiment: "POSITIVE", reply: null },
+  ];
+
+  // Admin data
+  const allUsers = [
+    { id:  1, name: "Ada Kaya",        email: "admin@example.com",      role: "ADMIN",      suspended: false, createdAt: "2025-11-02" },
+    { id:  2, name: "Deniz Arslan",    email: "corporate1@example.com", role: "CORPORATE",  suspended: false, createdAt: "2025-11-05" },
+    { id:  3, name: "Merve Şahin",     email: "corporate2@example.com", role: "CORPORATE",  suspended: false, createdAt: "2025-11-05" },
+    { id:  4, name: "Kaan Öztürk",     email: "corporate3@example.com", role: "CORPORATE",  suspended: false, createdAt: "2025-11-06" },
+    { id:  5, name: "Ece Yılmaz",      email: "corporate4@example.com", role: "CORPORATE",  suspended: true,  createdAt: "2025-11-06" },
+    { id: 12, name: "Selin Demir",     email: "user1@example.com",      role: "INDIVIDUAL", suspended: false, createdAt: "2025-12-14" },
+    { id: 13, name: "Mert Yıldız",     email: "user2@example.com",      role: "INDIVIDUAL", suspended: false, createdAt: "2025-12-18" },
+    { id: 14, name: "Ayşe Korkmaz",    email: "user3@example.com",      role: "INDIVIDUAL", suspended: false, createdAt: "2026-01-04" },
+    { id: 15, name: "Okan Polat",      email: "user4@example.com",      role: "INDIVIDUAL", suspended: false, createdAt: "2026-01-07" },
+    { id: 16, name: "Burcu Ergin",     email: "user5@example.com",      role: "INDIVIDUAL", suspended: false, createdAt: "2026-01-11" },
+    { id: 17, name: "Hakan Bulut",     email: "user6@example.com",      role: "INDIVIDUAL", suspended: true,  createdAt: "2026-01-22" },
+    { id: 18, name: "Zeynep Ak",       email: "user7@example.com",      role: "INDIVIDUAL", suspended: false, createdAt: "2026-02-03" },
+  ];
+
+  const auditLogs = [
+    { id: 9102, ts: "2026-03-16 14:22", user: "admin@example.com",      action: "USER_SUSPEND",  entity: "User #17",  details: "Flagged by risk review · fraud pattern",   ip: "10.44.12.5" },
+    { id: 9101, ts: "2026-03-16 13:05", user: "corporate1@example.com", action: "PRODUCT_UPDATE",entity: "Product #103", details: "Price 139.99 → 149.99",              ip: "10.44.5.82" },
+    { id: 9100, ts: "2026-03-16 11:47", user: "admin@example.com",      action: "SETTINGS_UPDATE",entity: "Settings",   details: "Tax rate 18% (unchanged)",              ip: "10.44.12.5" },
+    { id: 9099, ts: "2026-03-16 09:33", user: "user1@example.com",      action: "ORDER_PLACE",   entity: "Order #10537", details: "Total 299.99 USD",                    ip: "94.54.18.203" },
+    { id: 9098, ts: "2026-03-16 09:02", user: "user6@example.com",      action: "LOGIN_FAIL",    entity: "—",          details: "5 consecutive failed logins",            ip: "185.22.8.14" },
+    { id: 9097, ts: "2026-03-15 21:11", user: "corporate1@example.com", action: "ORDER_SHIP",    entity: "Order #10498", details: "Marked SHIPPED",                       ip: "10.44.5.82" },
+    { id: 9096, ts: "2026-03-15 19:44", user: "admin@example.com",      action: "STORE_CLOSE",   entity: "Store #4",    details: "HomeEssentials — policy violation",     ip: "10.44.12.5" },
+    { id: 9095, ts: "2026-03-15 16:20", user: "user1@example.com",      action: "REVIEW_POST",   entity: "Review #502", details: "Reusable Water Bottle · 4★",            ip: "94.54.18.203" },
+  ];
+
+  // KPI series
+  const revenueByMonth = [
+    { m: "Oct",  total: 42100,  tc: 18200, gm: 9400,  fh: 10100, he: 4400 },
+    { m: "Nov",  total: 51800,  tc: 23700, gm: 11200, fh: 12500, he: 4400 },
+    { m: "Dec",  total: 68900,  tc: 31000, gm: 15800, fh: 15100, he: 7000 },
+    { m: "Jan",  total: 72400,  tc: 34200, gm: 15900, fh: 15300, he: 7000 },
+    { m: "Feb",  total: 81200,  tc: 38900, gm: 17200, fh: 17800, he: 7300 },
+    { m: "Mar",  total: 92910,  tc: 45200, gm: 19800, fh: 20100, he: 7810 },
+  ];
+
+  const ordersByStatus = [
+    { s: "DELIVERED", n: 1842, color: "#16a34a" },
+    { s: "SHIPPED",   n:  284, color: "#034f46" },
+    { s: "CONFIRMED", n:  196, color: "#dfe9e5" },
+    { s: "PENDING",   n:   84, color: "#ffa946" },
+    { s: "CANCELLED", n:   61, color: "#7f1c34" },
+  ];
+
+  const myDashboard = {
+    lifetime: 1247.42,
+    orders: 9,
+    avgOrder: 138.60,
+    savedFromDiscounts: 62.18,
+    recent: [
+      { m: "Oct", n: 1 }, { m: "Nov", n: 2 }, { m: "Dec", n: 1 }, { m: "Jan", n: 2 }, { m: "Feb", n: 2 }, { m: "Mar", n: 1 },
+    ],
+    byCategory: [
+      { c: "Audio",     v: 449.97, color: "#034f46" },
+      { c: "Computers", v: 299.97, color: "#1c6056" },
+      { c: "Home & Garden", v: 199.97, color: "#dfe9e5" },
+      { c: "Wearables", v: 149.99, color: "#ffa946" },
+      { c: "Fashion",   v: 147.52, color: "#7f1c34" },
+    ],
+  };
+
+  // Chatbot suggested prompts (from PROJECT.md §5.7)
+  const suggestedPrompts = {
+    ADMIN: [
+      "Show me sales by category for last month",
+      "Compare this month vs last month",
+      "What's the trend in order cancellations?",
+      "Which stores have the most orders?",
+    ],
+    CORPORATE: [
+      "What are my top 5 customers by revenue?",
+      "Which products have the lowest ratings?",
+      "How many orders were shipped by air?",
+      "What's my revenue trend over the last 6 months?",
+    ],
+    INDIVIDUAL: [
+      "How much have I spent this year?",
+      "What categories do I buy from the most?",
+      "Show my order history with delivery status",
+      "Which of my reviews got the most helpful votes?",
+    ],
+  };
+
+  return {
+    demoAccounts, stores, categories, products, myOrders, myReviews,
+    corpOrders, corpReviews, allUsers, auditLogs,
+    revenueByMonth, ordersByStatus, myDashboard, suggestedPrompts,
+  };
+})();
+
+window.productById = (id) => window.SEED.products.find(p => p.id === id);
+window.fmtUSD = (n) => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+window.fmtDate = (s) => {
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+</script>
+
+<!-- flower/ui.jsx -->
+<script type="text/babel" data-presets="react">
+// Shared UI primitives for Flower
+
+const Icon = ({ name, size = 16, stroke = 1.75 }) => {
+  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+                   stroke: "currentColor", strokeWidth: stroke, strokeLinecap: "round", strokeLinejoin: "round" };
+  const paths = {
+    logo: <g fill="currentColor" stroke="none">
+      <rect x="3"  y="9"  width="3.5" height="12" rx="1"/>
+      <rect x="8.25" y="4"  width="3.5" height="17" rx="1"/>
+      <rect x="13.5" y="11" width="3.5" height="10" rx="1"/>
+      <rect x="18.75" y="7"  width="3.5" height="14" rx="1"/>
+    </g>,
+    dashboard: <><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></>,
+    cart: <><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M3 3h2l2.4 11.5a2 2 0 0 0 2 1.5h7.2a2 2 0 0 0 2-1.5L20.5 7H6"/></>,
+    package: <><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></>,
+    users: <><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15 14a5 5 0 0 1 7 4.6"/></>,
+    store: <><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9v11h18V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></>,
+    tag: <><path d="M20.6 11.4 12 20 3 11V3h8z"/><circle cx="7" cy="7" r="1.3"/></>,
+    chart: <><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></>,
+    chat: <path d="M21 11.5a8 8 0 0 1-11.9 7L3 20l1.6-5.3A8 8 0 1 1 21 11.5z"/>,
+    review: <path d="M12 2l2.9 6 6.6.5-5 4.4 1.5 6.6L12 16l-6 3.5 1.5-6.6-5-4.4 6.6-.5z"/>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></>,
+    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
+    minus: <path d="M5 12h14"/>,
+    close: <><path d="M6 6l12 12"/><path d="M18 6L6 18"/></>,
+    check: <path d="M4 12l5 5L20 6"/>,
+    chevron_right: <path d="m9 6 6 6-6 6"/>,
+    chevron_down: <path d="m6 9 6 6 6-6"/>,
+    chevron_up: <path d="m6 15 6-6 6 6"/>,
+    arrow_right: <><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></>,
+    arrow_up: <><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></>,
+    arrow_down: <><path d="M12 5v14"/><path d="m5 12 7 7 7-7"/></>,
+    trash: <><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/></>,
+    edit: <><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2.1 2.1 0 1 1 3 3L12 15l-4 1 1-4z"/></>,
+    eye: <><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></>,
+    eye_off: <><path d="m3 3 18 18"/><path d="M10.6 6.1A10.9 10.9 0 0 1 12 6c7 0 11 7 11 7a17.9 17.9 0 0 1-3.8 4.6"/><path d="M6.6 6.6A17.8 17.8 0 0 0 1 12s4 7 11 7a10.8 10.8 0 0 0 4-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></>,
+    logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></>,
+    shield: <><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></>,
+    sparkle: <><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.5 5.5l2.8 2.8M15.7 15.7l2.8 2.8M5.5 18.5l2.8-2.8M15.7 8.3l2.8-2.8"/></>,
+    database: <><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></>,
+    send: <><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></>,
+    filter: <path d="M22 3H2l8 9.5V19l4 2v-8.5z"/>,
+    download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4"/></>,
+    refresh: <><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></>,
+    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></>,
+    home: <><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></>,
+    book: <><path d="M4 4h10a4 4 0 0 1 4 4v13H8a4 4 0 0 1-4-4z"/><path d="M4 4v13"/><path d="M8 21V8"/></>,
+    layers: <><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/></>,
+    truck: <><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/></>,
+    bolt: <path d="M13 2 3 14h7l-1 8 10-12h-7z"/>,
+    star: <path d="M12 2l2.9 6 6.6.5-5 4.4 1.5 6.6L12 16l-6 3.5 1.5-6.6-5-4.4 6.6-.5z"/>,
+    menu: <><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></>,
+  };
+  return <svg {...common}>{paths[name]}</svg>;
+};
+
+// Flower logo — four vertical bars (Wispr-style)
+const FlowerLogo = ({ size = 24, color = "#1a1a1a" }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    <rect x="4"  y="12" width="4" height="14" rx="1.5" fill={color}/>
+    <rect x="10" y="6"  width="4" height="20" rx="1.5" fill={color}/>
+    <rect x="16" y="14" width="4" height="12" rx="1.5" fill={color}/>
+    <rect x="22" y="9"  width="4" height="17" rx="1.5" fill={color}/>
+  </svg>
+);
+
+// Star rating display
+const Stars = ({ n = 5, max = 5, size = 13 }) => (
+  <span style={{ display: "inline-flex", gap: 1, color: "#ffa946" }}>
+    {[...Array(max)].map((_, i) => (
+      <svg key={i} width={size} height={size} viewBox="0 0 24 24"
+        fill={i < Math.round(n) ? "#ffa946" : "transparent"}
+        stroke={i < Math.round(n) ? "#ffa946" : "#d5d5c0"} strokeWidth="1.5">
+        <path d="M12 2l2.9 6 6.6.5-5 4.4 1.5 6.6L12 16l-6 3.5 1.5-6.6-5-4.4 6.6-.5z"/>
+      </svg>
+    ))}
+  </span>
+);
+
+// Role badge
+const RoleBadge = ({ role }) => {
+  const cls = role === "ADMIN" ? "badge-err" : role === "CORPORATE" ? "badge-corp" : "badge-ind";
+  return <span className={`badge ${cls}`}>{role}</span>;
+};
+
+// Status pill
+const StatusPill = ({ status }) => {
+  const map = {
+    DELIVERED: { bg: "#dcfce7", fg: "#16a34a" },
+    SHIPPED:   { bg: "rgba(3,79,70,0.10)", fg: "#034f46" },
+    IN_TRANSIT:{ bg: "rgba(3,79,70,0.10)", fg: "#034f46" },
+    CONFIRMED: { bg: "#dfe9e5", fg: "#034f46" },
+    PENDING:   { bg: "#fef3c7", fg: "#d97706" },
+    CANCELLED: { bg: "#fce5e5", fg: "#dc2626" },
+    ACTIVE:    { bg: "#dcfce7", fg: "#16a34a" },
+    CLOSED:    { bg: "#fce5e5", fg: "#dc2626" },
+    POSITIVE:  { bg: "#dcfce7", fg: "#16a34a" },
+    NEGATIVE:  { bg: "#fce5e5", fg: "#dc2626" },
+    NEUTRAL:   { bg: "#f5f5e1", fg: "#666" },
+  };
+  const s = map[status] || { bg: "#f5f5e1", fg: "#666" };
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 999,
+    fontSize: 11, fontWeight: 600, letterSpacing: 0.3, background: s.bg, color: s.fg }}>
+    {status}
+  </span>;
+};
+
+// KPI card
+const KpiCard = ({ label, value, sub, accent = "#034f46", icon, delta }) => (
+  <div className="card" style={{ padding: 18 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+      <div className="section-label">{label}</div>
+      {icon && <div style={{ width: 28, height: 28, borderRadius: 8, background: accent + "15",
+                             color: accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon name={icon} size={15}/>
+      </div>}
+    </div>
+    <div style={{ font: "700 28px/1 var(--serif)", letterSpacing: -0.4 }}>{value}</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 12, color: "var(--text-2)" }}>
+      {delta && <span style={{ color: delta.startsWith("+") ? "var(--ok)" : "var(--err)", fontWeight: 600 }}>{delta}</span>}
+      <span>{sub}</span>
+    </div>
+  </div>
+);
+
+// Simple bar chart (SVG)
+const BarChart = ({ data, height = 160, valueKey = "total", labelKey = "m", barColor = "#034f46" }) => {
+  const max = Math.max(...data.map(d => d[valueKey]));
+  const W = 100 / data.length;
+  return (
+    <div style={{ width: "100%" }}>
+      <svg width="100%" height={height} viewBox={`0 0 100 ${height}`} preserveAspectRatio="none">
+        {data.map((d, i) => {
+          const h = (d[valueKey] / max) * (height - 30);
+          return (
+            <g key={i}>
+              <rect x={i * W + W * 0.2} y={height - 22 - h}
+                    width={W * 0.6} height={h} rx="1.5" fill={barColor} opacity={0.9}/>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ display: "flex", marginTop: 4 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 10.5, color: "var(--text-3)", fontWeight: 500 }}>
+            {d[labelKey]}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Stacked area / line chart
+const LineChart = ({ data, height = 180, valueKey = "total", labelKey = "m", color = "#034f46", fill = "rgba(3,79,70,0.08)" }) => {
+  const W = 100, H = height;
+  const max = Math.max(...data.map(d => d[valueKey])) * 1.1;
+  const min = 0;
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * W;
+    const y = H - 25 - ((d[valueKey] - min) / (max - min)) * (H - 40);
+    return [x, y];
+  });
+  const pathD = points.map((p, i) => (i === 0 ? "M" : "L") + p[0] + " " + p[1]).join(" ");
+  const areaD = pathD + ` L ${W} ${H-25} L 0 ${H-25} Z`;
+  return (
+    <div>
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <path d={areaD} fill={fill}/>
+        <path d={pathD} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
+        {points.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="1.5" fill={color} vectorEffect="non-scaling-stroke"/>
+        ))}
+      </svg>
+      <div style={{ display: "flex", marginTop: 2 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 10.5, color: "var(--text-3)", fontWeight: 500 }}>
+            {d[labelKey]}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Donut / ring breakdown
+const Donut = ({ data, size = 160, valueKey = "v", labelKey = "c" }) => {
+  const total = data.reduce((s, d) => s + d[valueKey], 0);
+  let angle = -Math.PI / 2;
+  const cx = size / 2, cy = size / 2, r = size / 2 - 8, rIn = r - 18;
+  const arcs = data.map(d => {
+    const a2 = angle + (d[valueKey] / total) * Math.PI * 2;
+    const large = a2 - angle > Math.PI ? 1 : 0;
+    const p1 = [cx + r * Math.cos(angle),  cy + r * Math.sin(angle)];
+    const p2 = [cx + r * Math.cos(a2),     cy + r * Math.sin(a2)];
+    const p3 = [cx + rIn * Math.cos(a2),   cy + rIn * Math.sin(a2)];
+    const p4 = [cx + rIn * Math.cos(angle),cy + rIn * Math.sin(angle)];
+    const d_ = `M${p1} A${r},${r} 0 ${large} 1 ${p2} L${p3} A${rIn},${rIn} 0 ${large} 0 ${p4} Z`;
+    angle = a2;
+    return { d: d_, color: d.color, label: d[labelKey], value: d[valueKey] };
+  });
+  return (
+    <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+      <svg width={size} height={size} style={{ flexShrink: 0 }}>
+        {arcs.map((a, i) => <path key={i} d={a.d} fill={a.color}/>)}
+        <text x={cx} y={cy - 4} textAnchor="middle" style={{ font: "700 15px var(--serif)" }}>{window.fmtUSD ? window.fmtUSD(total).replace(".00", "") : total}</text>
+        <text x={cx} y={cy + 14} textAnchor="middle" style={{ font: "500 10px var(--sans)", fill: "#999" }}>Total</text>
+      </svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, flex: 1 }}>
+        {arcs.map((a, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: a.color, flexShrink: 0 }}/>
+            <div style={{ flex: 1, color: "var(--text)" }}>{a.label}</div>
+            <div style={{ color: "var(--text-2)", fontFamily: "var(--mono)", fontSize: 11.5 }}>
+              {window.fmtUSD ? window.fmtUSD(a.value) : a.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Avatar
+const Avatar = ({ name, size = 32, bg = "linear-gradient(135deg, #034f46, #1c6056)" }) => {
+  const initials = (name || "??").split(" ").map(w => w[0] || "").join("").slice(0, 2).toUpperCase();
+  return (
+    <div style={{ width: size, height: size, borderRadius: 999, background: bg, color: "#ffffeb",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: size * 0.38, fontWeight: 600, flexShrink: 0, letterSpacing: 0.3 }}>
+      {initials}
+    </div>
+  );
+};
+
+// Product thumb (CSS-generated, no real images)
+const ProductThumb = ({ id, size = 72, rounded = 10 }) => {
+  const palettes = [
+    ["#c9ded7", "#dfe9e5"], ["#c8e6c9", "#dcfce7"], ["#ffe0b2", "#fef3c7"],
+    ["#b2dfdb", "#e0f2f1"], ["#f8bbd0", "#fce4ec"], ["#c5cae9", "#e8eaf6"],
+    ["#d7ccc8", "#efebe9"], ["#b3e5fc", "#e1f5fe"],
+  ];
+  const [a, b] = palettes[id % palettes.length];
+  return (
+    <div style={{ width: size, height: size, borderRadius: rounded,
+                  background: `linear-gradient(135deg, ${a}, ${b})`,
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  border: "1px solid var(--border)" }}>
+      <svg width={size * 0.35} height={size * 0.35} viewBox="0 0 24 24" fill="none"
+           stroke="#1a1a1a" strokeOpacity="0.5" strokeWidth="1.5">
+        <path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/>
+      </svg>
+    </div>
+  );
+};
+
+// Empty state
+const EmptyState = ({ icon = "package", title, subtitle, action }) => (
+  <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--text-2)" }}>
+    <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--hover)",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  color: "var(--text-3)", marginBottom: 12 }}>
+      <Icon name={icon} size={22}/>
+    </div>
+    <div style={{ font: "700 16px/1.3 var(--serif)", color: "var(--text)" }}>{title}</div>
+    {subtitle && <div style={{ marginTop: 6, fontSize: 13 }}>{subtitle}</div>}
+    {action && <div style={{ marginTop: 16 }}>{action}</div>}
+  </div>
+);
+
+// Dialog shell
+const Dialog = ({ title, onClose, children, footer, width = 480 }) => (
+  <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(26,26,26,0.4)",
+                display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+       onClick={onClose}>
+    <div onClick={e => e.stopPropagation()} className="card"
+         style={{ width, maxWidth: "100%", maxHeight: "85vh", overflow: "auto", padding: 0,
+                  boxShadow: "0 30px 80px -30px rgba(0,0,0,0.4)" }}>
+      <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h2 style={{ fontFamily: "var(--serif)", fontSize: 18 }}>{title}</h2>
+        <button onClick={onClose} className="btn btn-ghost" style={{ padding: 6 }}>
+          <Icon name="close" size={16}/>
+        </button>
+      </div>
+      <div style={{ padding: 22 }}>{children}</div>
+      {footer && <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)",
+                               display: "flex", gap: 10, justifyContent: "flex-end", background: "var(--hover)" }}>
+        {footer}
+      </div>}
+    </div>
+  </div>
+);
+
+Object.assign(window, { Icon, FlowerLogo, Stars, RoleBadge, StatusPill, KpiCard,
+  BarChart, LineChart, Donut, Avatar, ProductThumb, EmptyState, Dialog });
+
+</script>
+
+<!-- flower/login.jsx -->
+<script type="text/babel" data-presets="react">
+// Login page — Wispr Flow get-started style, Flower brand
+
+const { useState: useStateLogin } = React;
+
+function LoginPage({ onLogin }) {
+  const [email, setEmail] = useStateLogin("");
+  const [password, setPassword] = useStateLogin("");
+  const [loading, setLoading] = useStateLogin(false);
+  const [error, setError] = useStateLogin(null);
+
+  function quickLogin(role) {
+    const acc = window.SEED.demoAccounts.find(a => a.role === role);
+    if (acc) { setEmail(acc.email); setPassword(acc.pwd); submit(acc); }
+  }
+
+  function submit(maybeAcc) {
+    setError(null); setLoading(true);
+    setTimeout(() => {
+      const acc = maybeAcc || window.SEED.demoAccounts.find(
+        a => a.email === email && a.pwd === password
+      );
+      if (!acc) { setError("Invalid email or password."); setLoading(false); return; }
+      onLogin(acc);
+      setLoading(false);
+    }, 450);
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#e4e4d0",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "flex-start",
+      padding: "5rem 2rem 4rem", gap: "2.5rem",
+    }}>
+      {/* Brand row */}
+      <div className="brand" style={{ display: "flex", alignItems: "center", gap: 12, position: "relative", top: "-1.3rem" }}>
+        <FlowerLogo size={40}/>
+        <span style={{ font: "700 30px/1 var(--serif)", letterSpacing: -0.6 }}>Flower</span>
+      </div>
+
+      {/* Card */}
+      <div style={{
+        width: "100%", maxWidth: "34rem", background: "#ffffeb",
+        borderRadius: 32, padding: "2rem",
+        border: "1px solid var(--border)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+      }}>
+        <h1 style={{
+          font: "500 2.5rem/1.1 var(--serif)", textAlign: "center",
+          letterSpacing: -1, marginBottom: 8,
+        }}>Get started</h1>
+        <p style={{ textAlign: "center", color: "var(--text-2)", fontSize: 14, marginBottom: 28 }}>
+          E-commerce analytics with a multi-agent AI assistant.
+        </p>
+
+        {/* Quick login buttons — Wispr chrome */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[
+            ["ADMIN", "🔑"],
+            ["CORPORATE", "💼"],
+            ["INDIVIDUAL", "👤"],
+          ].map(([r, emoji]) => (
+            <button key={r} onClick={() => quickLogin(r)} disabled={loading}
+              style={{
+                width: "100%", padding: "1rem",
+                border: "2px solid #1a1a1a", borderRadius: 8,
+                background: "transparent", color: "#1a1a1a",
+                font: "600 14px/1 var(--sans)", cursor: "pointer",
+                transition: "opacity 0.2s",
+                display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity = "0.7"}
+              onMouseOut={e => e.currentTarget.style.opacity = "1"}>
+              <span style={{ fontSize: 16 }}>{emoji}</span>
+              Continue as {r.charAt(0) + r.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-2)", fontSize: 13 }}>or</div>
+
+        {/* Email / Password — bottom-border only */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+          <input type="email" placeholder="Enter your email" value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={{ border: "none", borderBottom: "2px solid #1a1a1a", borderRadius: 0,
+                     background: "transparent", padding: "10px 2px", fontSize: 15, outline: "none" }}/>
+          <input type="password" placeholder="Enter your password" value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && submit()}
+            style={{ border: "none", borderBottom: "2px solid #1a1a1a", borderRadius: 0,
+                     background: "transparent", padding: "10px 2px", fontSize: 15, outline: "none" }}/>
+        </div>
+
+        {error && (
+          <div style={{ marginTop: 18, padding: "10px 14px", borderRadius: 10,
+                        background: "var(--err-bg)", color: "var(--err)",
+                        fontSize: 13, fontWeight: 500 }}>{error}</div>
+        )}
+
+        <button onClick={() => submit()} disabled={loading}
+          style={{
+            width: "100%", marginTop: 24, padding: "1rem",
+            background: "#034f46", border: "none", borderRadius: 8,
+            color: "#ffffeb", font: "600 15px/1 var(--sans)",
+            cursor: loading ? "wait" : "pointer",
+            transition: "background 0.15s",
+            boxShadow: "0 1px 2px rgba(3,79,70,0.2)",
+          }}
+          onMouseOver={e => !loading && (e.currentTarget.style.background = "#1c6056")}
+          onMouseOut={e => e.currentTarget.style.background = "#034f46"}>
+          {loading ? "Signing in…" : "Continue"}
+        </button>
+
+        <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid var(--border)",
+                      fontSize: 11.5, color: "var(--text-3)", textAlign: "center",
+                      fontFamily: "var(--mono)", letterSpacing: 0.2 }}>
+          Demo accounts · password is <b style={{ color: "var(--text-2)" }}>password</b>
+          <div style={{ marginTop: 8, display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            {window.SEED.demoAccounts.map(a => (
+              <span key={a.email}>{a.email}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: -10 }}>
+        CSE 214 · Advanced Application Development · Final Project
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { LoginPage });
+
+</script>
+
+<!-- flower/shell.jsx -->
+<script type="text/babel" data-presets="react">
+// App shell — sidebar nav + main content, role-aware
+
+const { useState: useStateShell, useEffect: useEffectShell } = React;
+
+function MenuItem({ icon, label, onClick, danger }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 10, width: "100%",
+      padding: "9px 12px", border: "none", background: "transparent",
+      borderRadius: 8, cursor: "pointer", textAlign: "left",
+      color: danger ? "var(--err)" : "var(--text)", fontSize: 13, fontWeight: 500,
+    }}
+    onMouseOver={e => e.currentTarget.style.background = danger ? "var(--err-bg)" : "var(--hover)"}
+    onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+      <Icon name={icon} size={15}/>
+      {label}
+    </button>
+  );
+}
+
+function Sidebar({ me, route, nav, collapsed, setCollapsed, onLogout, cartCount = 0 }) {
+  const navByRole = {
+    INDIVIDUAL: [
+      { section: "Shop" },
+      { k: "ind-dashboard", t: "Dashboard",  icon: "dashboard" },
+      { k: "ind-products",  t: "Products",   icon: "store" },
+      { section: "AI" },
+      { k: "chat",          t: "Analytics Chat", icon: "sparkle", badge: "Text2SQL" },
+    ],
+    CORPORATE: [
+      { section: "Store" },
+      { k: "corp-dashboard", t: "Dashboard",  icon: "dashboard" },
+      { k: "corp-products",  t: "Products",   icon: "store" },
+      { k: "corp-orders",    t: "Orders",     icon: "package" },
+      { k: "corp-reviews",   t: "Reviews",    icon: "review" },
+      { section: "AI" },
+      { k: "chat",           t: "Analytics Chat", icon: "sparkle", badge: "Text2SQL" },
+    ],
+    ADMIN: [
+      { section: "Platform" },
+      { k: "adm-dashboard", t: "Dashboard",  icon: "dashboard" },
+      { k: "adm-users",     t: "Users",      icon: "users" },
+      { k: "adm-stores",    t: "Stores",     icon: "store" },
+      { k: "adm-categories",t: "Categories", icon: "tag" },
+      { section: "Insight" },
+      { k: "adm-analytics", t: "Analytics",  icon: "chart" },
+      { k: "chat",          t: "Analytics Chat", icon: "sparkle", badge: "Text2SQL" },
+      { k: "adm-audit",     t: "Audit Logs", icon: "shield" },
+      { section: "System" },
+      { k: "adm-settings",  t: "Settings",   icon: "settings" },
+    ],
+  };
+  const items = navByRole[me.role] || [];
+  const W = collapsed ? 68 : 250;
+
+  return (
+    <aside style={{
+      width: W, flexShrink: 0, background: "#ffffeb",
+      borderRight: "1px solid var(--border)",
+      display: "flex", flexDirection: "column",
+      position: "sticky", top: 0, height: "100vh", transition: "width .2s",
+    }}>
+      {/* Brand */}
+      <div style={{ padding: "20px 16px 14px", display: "flex", alignItems: "center", gap: 10, height: 64 }}>
+        <FlowerLogo size={24}/>
+        {!collapsed && <div style={{ font: "700 18px/1 var(--serif)", letterSpacing: -0.4 }}>Flower</div>}
+        <div style={{ flex: 1 }}/>
+        {!collapsed && (
+          <button onClick={() => setCollapsed(true)} className="btn btn-ghost" style={{ padding: 4 }}>
+            <Icon name="chevron_right" size={15}/>
+          </button>
+        )}
+      </div>
+
+      {collapsed && (
+        <button onClick={() => setCollapsed(false)} className="btn btn-ghost"
+          style={{ margin: "0 auto 6px", padding: 4 }}>
+          <Icon name="menu" size={16}/>
+        </button>
+      )}
+
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: "auto", padding: "6px 10px 16px" }}>
+        {items.map((it, i) => {
+          if (it.section) {
+            if (collapsed) return <div key={i} style={{ height: 10 }}/>;
+            return <div key={i} className="section-label" style={{ padding: "14px 12px 6px" }}>{it.section}</div>;
+          }
+          const active = route === it.k;
+          return (
+            <button key={it.k} onClick={() => nav(it.k)} title={it.t}
+              style={{
+                width: "100%", display: "flex", alignItems: "center",
+                gap: 12, padding: collapsed ? "9px 10px" : "9px 12px",
+                borderRadius: 10, border: "none", cursor: "pointer",
+                background: active ? "rgba(3,79,70,0.08)" : "transparent",
+                color: active ? "#034f46" : "#666",
+                fontSize: 14, fontWeight: active ? 600 : 500, textAlign: "left",
+                marginBottom: 2, transition: "background .1s",
+                justifyContent: collapsed ? "center" : "flex-start",
+              }}
+              onMouseOver={e => !active && (e.currentTarget.style.background = "#e4e4d0", e.currentTarget.style.color = "#1a1a1a")}
+              onMouseOut={e => !active && (e.currentTarget.style.background = "transparent", e.currentTarget.style.color = "#666")}>
+              <Icon name={it.icon} size={17} stroke={active ? 2 : 1.75}/>
+              {!collapsed && <span style={{ flex: 1 }}>{it.t}</span>}
+              {!collapsed && it.badge && <span className="badge badge-corp" style={{ fontSize: 9.5 }}>{it.badge}</span>}
+              {it.badgeKey === "cart" && cartCount > 0 && (
+                <span style={{
+                  minWidth: 20, height: 20, padding: "0 6px", borderRadius: 999,
+                  background: "var(--fathom)", color: "var(--lumen)", fontSize: 11, fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  position: collapsed ? "absolute" : "relative",
+                  marginLeft: collapsed ? 0 : "auto",
+                  top: collapsed ? 4 : undefined, right: collapsed ? 8 : undefined,
+                }}>{cartCount}</span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* User card */}
+      <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8,
+                      borderRadius: 10, background: "var(--hover)" }}>
+          <Avatar name={me.name} size={32}/>
+          {!collapsed && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{me.name}</div>
+              <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--mono)" }}>{me.email}</div>
+            </div>
+          )}
+          {!collapsed && (
+            <button onClick={onLogout} className="btn btn-ghost" title="Log out" style={{ padding: 6 }}>
+              <Icon name="logout" size={15}/>
+            </button>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function Topbar({ me, route, nav, showRoleSwitcher = false, switchRole, cartCount = 0, onLogout }) {
+  const [menuOpen, setMenuOpen] = useStateShell(false);
+  useEffectShell(() => {
+    if (!menuOpen) return;
+    const h = () => setMenuOpen(false);
+    setTimeout(() => document.addEventListener("click", h, { once: true }), 0);
+    return () => document.removeEventListener("click", h);
+  }, [menuOpen]);
+
+  const titles = {
+    "ind-dashboard": ["Dashboard", "Your spending at a glance."],
+    "ind-products":  ["Products", "Browse and buy from active Flower stores."],
+    "ind-cart":      ["Cart", "Review items, update quantities, check out."],
+    "ind-orders":    ["My Orders", "Track shipments and revisit past purchases."],
+    "ind-reviews":   ["My Reviews", "What you've shared with sellers and shoppers."],
+    "corp-dashboard":["Store Dashboard", "KPIs for your store, updated live."],
+    "corp-products": ["Products", "Manage your catalog — add, edit, discontinue."],
+    "corp-orders":   ["Orders", "Confirm, ship, and close fulfilment."],
+    "corp-reviews":  ["Reviews", "Reply to feedback from your shoppers."],
+    "adm-dashboard": ["Platform Overview", "All stores, users, and revenue across Flower."],
+    "adm-users":     ["Users", "List, suspend, and invite corporate accounts."],
+    "adm-stores":    ["Stores", "Activate, close, and audit every store."],
+    "adm-categories":["Categories", "Hierarchical taxonomy for products."],
+    "adm-analytics": ["Analytics", "Cross-store and customer segmentation."],
+    "adm-audit":     ["Audit Logs", "Every sensitive action, who did it, from where."],
+    "adm-settings":  ["Settings", "Platform-wide configuration."],
+    "chat":          ["Analytics Chat", "Ask in natural language — a 5-agent pipeline answers."],
+  };
+  const [title, sub] = titles[route] || ["Flower", ""];
+  // Pages that render their OWN in-page header (hoca-style) — hide topbar title on these
+  const hideTopbarTitle = ["corp-orders", "corp-products"].includes(route);
+  return (
+    <header style={{
+      position: "sticky", top: 0, zIndex: 20,
+      background: "color-mix(in oklch, #e4e4d0 92%, transparent)",
+      backdropFilter: "blur(10px)",
+      padding: "18px 28px 14px",
+      borderBottom: "1px solid rgba(213,213,192,0.6)",
+      display: "flex", alignItems: "center", gap: 14, flexWrap: "nowrap",
+    }}>
+      <div style={{ flex: "1 1 auto", minWidth: 0, marginRight: 8 }}>
+        {!hideTopbarTitle && <>
+          <h1 style={{ font: "700 24px/1.15 var(--serif)", letterSpacing: -0.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</h1>
+          <p style={{ color: "var(--text-2)", marginTop: 3, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</p>
+        </>}
+      </div>
+      {showRoleSwitcher && switchRole && (
+        <div style={{ display: "inline-flex", background: "var(--lumen)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
+          {["INDIVIDUAL","CORPORATE","ADMIN"].map(r => {
+            const active = me.role === r;
+            return (
+              <button key={r} onClick={() => !active && switchRole(r)}
+                style={{
+                  padding: "5px 10px", border: "none", background: active ? "var(--dawn)" : "transparent",
+                  borderRadius: 7, fontSize: 11.5, fontWeight: 600, letterSpacing: 0.3,
+                  color: active ? "var(--text)" : "var(--text-2)", cursor: active ? "default" : "pointer",
+                }}>{r === "INDIVIDUAL" ? "IND" : r === "CORPORATE" ? "CORP" : "ADM"}</button>
+            );
+          })}
+        </div>
+      )}
+      <button className="btn btn-ghost" title="Notifications" style={{ padding: 9, position: "relative" }}>
+        <Icon name="bell" size={17}/>
+        <span style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: 999, background: "#ffa946" }}/>
+      </button>
+      <div className="chip" onClick={() => nav("chat")}
+           style={{ cursor: "pointer", background: "var(--dawn)", color: "#1a1a1a", border: "none", padding: "8px 14px", fontSize: 12.5, fontWeight: 600 }}>
+        <Icon name="sparkle" size={14}/> Ask Flower AI
+      </div>
+
+      {/* Cart icon — Individual only */}
+      {me.role === "INDIVIDUAL" && (
+        <button onClick={() => nav("ind-cart")} className="btn btn-ghost"
+          style={{ padding: 9, position: "relative" }} title="Cart">
+          <Icon name="cart" size={17}/>
+          {cartCount > 0 && (
+            <span style={{
+              position: "absolute", top: 2, right: 2,
+              minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999,
+              background: "var(--fathom)", color: "var(--lumen)",
+              fontSize: 10.5, fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              border: "2px solid var(--lumen-dark)",
+            }}>{cartCount}</span>
+          )}
+        </button>
+      )}
+
+      {/* Avatar + dropdown */}
+      <div style={{ position: "relative" }}>
+        <button onClick={e => { e.stopPropagation(); setMenuOpen(o => !o); }}
+          style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 10 }}>
+          <Avatar name={me.name} size={36}/>
+          <div style={{ textAlign: "left", lineHeight: 1.15 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>{me.name}</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-3)", letterSpacing: 0.4, fontWeight: 600 }}>{me.role}</div>
+          </div>
+          <Icon name="chevron_down" size={14} stroke={2}/>
+        </button>
+        {menuOpen && (
+          <div onClick={e => e.stopPropagation()} style={{
+            position: "absolute", top: "calc(100% + 8px)", right: 0, minWidth: 220,
+            background: "var(--lumen)", border: "1px solid var(--border)", borderRadius: 12,
+            boxShadow: "0 20px 50px -20px rgba(0,0,0,0.25)", padding: 6, zIndex: 50,
+          }}>
+            <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid var(--border)", marginBottom: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{me.name}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{me.email}</div>
+            </div>
+            {me.role === "INDIVIDUAL" && (
+              <>
+                <MenuItem icon="package" label="My Orders" onClick={() => { setMenuOpen(false); nav("ind-orders"); }}/>
+                <MenuItem icon="review"  label="My Reviews" onClick={() => { setMenuOpen(false); nav("ind-reviews"); }}/>
+                <MenuItem icon="cart"    label={`Cart${cartCount ? ` (${cartCount})` : ""}`} onClick={() => { setMenuOpen(false); nav("ind-cart"); }}/>
+                <div style={{ height: 1, background: "var(--border)", margin: "6px 4px" }}/>
+              </>
+            )}
+            <MenuItem icon="settings" label="Account settings" onClick={() => setMenuOpen(false)}/>
+            <MenuItem icon="logout"   label="Log out" onClick={() => { setMenuOpen(false); onLogout && onLogout(); }} danger/>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
+
+Object.assign(window, { Sidebar, Topbar });
+
+</script>
+
+<!-- flower/individual.jsx -->
+<script type="text/babel" data-presets="react">
+// Individual (shopper) views
+
+const { useState: useStateInd, useMemo: useMemoInd } = React;
+
+function IndDashboard({ me, nav }) {
+  const d = window.SEED.myDashboard;
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <KpiCard label="Lifetime spend"  value={window.fmtUSD(d.lifetime)} sub="across 9 orders"   accent="#034f46" icon="chart" delta="+18%"/>
+        <KpiCard label="Orders"          value={d.orders}                   sub="since Nov 2025"   accent="#034f46" icon="package"/>
+        <KpiCard label="Average order"   value={window.fmtUSD(d.avgOrder)} sub="last 6 months"     accent="#d97706" icon="bolt" delta="+4%"/>
+        <KpiCard label="Saved with discounts" value={window.fmtUSD(d.savedFromDiscounts)} sub="promos & loyalty" accent="#16a34a" icon="tag"/>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+            <h2 style={{ fontFamily: "var(--serif)" }}>Orders over time</h2>
+            <span className="chip">Last 6 months</span>
+          </div>
+          <BarChart data={d.recent} valueKey="n" labelKey="m" barColor="#034f46" height={180}/>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <h2 style={{ fontFamily: "var(--serif)", marginBottom: 16 }}>Spending by category</h2>
+          <Donut data={d.byCategory} size={140}/>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ fontFamily: "var(--serif)" }}>Recent orders</h2>
+          <button className="btn btn-sm" onClick={() => nav("ind-orders")}>View all <Icon name="arrow_right" size={13}/></button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Order</th><th>Date</th><th>Status</th><th>Payment</th><th style={{ textAlign: "right" }}>Total</th>
+          </tr></thead>
+          <tbody>
+            {window.SEED.myOrders.slice(0, 4).map(o => (
+              <tr key={o.id}>
+                <td style={{ fontFamily: "var(--mono)", fontWeight: 500 }}>#{o.id}</td>
+                <td style={{ color: "var(--text-2)" }}>{window.fmtDate(o.date)}</td>
+                <td><StatusPill status={o.status}/></td>
+                <td style={{ color: "var(--text-2)", fontSize: 12.5 }}>{o.paymentMethod}</td>
+                <td style={{ textAlign: "right", fontWeight: 600 }}>{window.fmtUSD(o.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ padding: 20, background: "linear-gradient(135deg, #034f46, #1c6056)", border: "none", color: "#ffffeb" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(255,255,235,0.12)",
+                        display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon name="sparkle" size={22}/>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: "700 18px/1.2 var(--serif)" }}>Ask Flower AI anything about your purchases</div>
+            <div style={{ fontSize: 13.5, opacity: 0.8, marginTop: 4 }}>
+              "What's my biggest-spend category?" · "Which orders took longest to deliver?"
+            </div>
+          </div>
+          <button onClick={() => nav("chat")} className="btn"
+                  style={{ background: "#dfe9e5", color: "#1a1a1a", border: "none", fontWeight: 600 }}>
+            Open chat <Icon name="arrow_right" size={14}/>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IndProducts({ nav, addToCart }) {
+  const [q, setQ] = useStateInd("");
+  const [catFilter, setCatFilter] = useStateInd("All");
+  const [storeFilter, setStoreFilter] = useStateInd("All");
+  const [sort, setSort] = useStateInd("relevance");
+
+  const list = useMemoInd(() => {
+    let r = window.SEED.products.filter(p =>
+      (catFilter === "All" || p.cat === catFilter) &&
+      (storeFilter === "All" || p.storeId === Number(storeFilter)) &&
+      (!q || (p.name + p.desc + p.sku).toLowerCase().includes(q.toLowerCase()))
+    );
+    if (sort === "price-asc") r = [...r].sort((a, b) => a.price - b.price);
+    if (sort === "price-desc") r = [...r].sort((a, b) => b.price - a.price);
+    if (sort === "rating") r = [...r].sort((a, b) => b.rating - a.rating);
+    return r;
+  }, [q, catFilter, storeFilter, sort]);
+
+  const cats = ["All", ...new Set(window.SEED.products.map(p => p.cat))];
+
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div className="card" style={{ padding: 14, display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, padding: "0 10px",
+                      background: "var(--hover)", borderRadius: 10, border: "1px solid var(--border)" }}>
+          <Icon name="search" size={15}/>
+          <input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Search products, SKUs…"
+                 style={{ background: "transparent", border: "none", padding: "10px 0", flex: 1 }}/>
+        </div>
+        <select className="select" style={{ width: 180 }} value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+          {cats.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select className="select" style={{ width: 170 }} value={storeFilter} onChange={e => setStoreFilter(e.target.value)}>
+          <option value="All">All stores</option>
+          {window.SEED.stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <select className="select" style={{ width: 150 }} value={sort} onChange={e => setSort(e.target.value)}>
+          <option value="relevance">Relevance</option>
+          <option value="rating">Top rated</option>
+          <option value="price-asc">Price: low → high</option>
+          <option value="price-desc">Price: high → low</option>
+        </select>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+        {list.map(p => {
+          const store = window.SEED.stores.find(s => s.id === p.storeId);
+          return (
+            <div key={p.id} className="card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+              <ProductThumb id={p.id} size={"100%"} rounded={12}/>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, color: "var(--text-3)", fontFamily: "var(--mono)", letterSpacing: 0.2 }}>
+                    {store?.name} · {p.sku}
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginTop: 3 }}>{p.name}</div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontFamily: "var(--serif)", fontWeight: 700, fontSize: 17 }}>{window.fmtUSD(p.price)}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-2)" }}>
+                <Stars n={p.rating} size={12}/>
+                <span>{p.rating.toFixed(1)}</span>
+                <span>·</span>
+                <span>{p.reviews} reviews</span>
+              </div>
+              <button onClick={() => addToCart(p.id)} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+                <Icon name="plus" size={13}/> Add to cart
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProductThumbLg({ id }) {
+  const palettes = [
+    ["#c9ded7", "#dfe9e5"], ["#c8e6c9", "#dcfce7"], ["#ffe0b2", "#fef3c7"],
+    ["#b2dfdb", "#e0f2f1"], ["#f8bbd0", "#fce4ec"], ["#c5cae9", "#e8eaf6"],
+    ["#d7ccc8", "#efebe9"], ["#b3e5fc", "#e1f5fe"],
+  ];
+  const [a, b] = palettes[id % palettes.length];
+  return (
+    <div style={{ width: "100%", aspectRatio: "1/1", borderRadius: 12,
+                  background: `linear-gradient(135deg, ${a}, ${b})`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: "1px solid var(--border)" }}>
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none"
+           stroke="#1a1a1a" strokeOpacity="0.45" strokeWidth="1.5">
+        <path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/>
+      </svg>
+    </div>
+  );
+}
+
+function IndCart({ cart, setCart, nav }) {
+  const items = cart.map(c => ({ ...c, p: window.productById(c.id) })).filter(c => c.p);
+  const subtotal = items.reduce((s, i) => s + i.p.price * i.qty, 0);
+  const tax = subtotal * 0.08;
+  const shipping = subtotal > 100 ? 0 : 8.99;
+  const total = subtotal + tax + shipping;
+
+  function updateQty(id, delta) {
+    setCart(c => c.map(i => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i));
+  }
+  function removeItem(id) { setCart(c => c.filter(i => i.id !== id)); }
+
+  if (!items.length) return (
+    <div style={{ padding: "40px 32px" }}>
+      <div className="card" style={{ padding: 40 }}>
+        <EmptyState icon="cart" title="Your cart is empty"
+          subtitle="Browse Flower's stores to find something you love."
+          action={<button className="btn btn-primary" onClick={() => nav("ind-products")}>Browse products <Icon name="arrow_right" size={13}/></button>}/>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 20 }}>
+      <div className="card" style={{ padding: 0 }}>
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+          <h2 style={{ fontFamily: "var(--serif)" }}>Cart · {items.length} item{items.length !== 1 ? "s" : ""}</h2>
+        </div>
+        {items.map(({ p, qty, id }) => (
+          <div key={id} style={{ display: "flex", gap: 14, padding: 18, borderBottom: "1px solid var(--border)" }}>
+            <ProductThumb id={p.id} size={80}/>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{p.sku}</div>
+              <div style={{ fontWeight: 600, marginTop: 2 }}>{p.name}</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-2)", marginTop: 4 }}>{p.desc}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+                <div style={{ display: "inline-flex", border: "1px solid var(--border)", borderRadius: 10, background: "var(--lumen)" }}>
+                  <button className="btn-ghost" onClick={() => updateQty(id, -1)} style={{ border: "none", background: "none", padding: "6px 10px", cursor: "pointer" }}><Icon name="minus" size={12}/></button>
+                  <span style={{ padding: "6px 14px", fontWeight: 600, fontSize: 13 }}>{qty}</span>
+                  <button className="btn-ghost" onClick={() => updateQty(id, 1)} style={{ border: "none", background: "none", padding: "6px 10px", cursor: "pointer" }}><Icon name="plus" size={12}/></button>
+                </div>
+                <button onClick={() => removeItem(id)} className="btn btn-ghost btn-danger btn-sm"><Icon name="trash" size={13}/> Remove</button>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ font: "700 18px/1.1 var(--serif)" }}>{window.fmtUSD(p.price * qty)}</div>
+              <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>{window.fmtUSD(p.price)} each</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{ padding: 20, alignSelf: "start", position: "sticky", top: 100 }}>
+        <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Order summary</h3>
+        <Row label="Subtotal" value={window.fmtUSD(subtotal)}/>
+        <Row label="Tax (8%)" value={window.fmtUSD(tax)}/>
+        <Row label="Shipping" value={shipping === 0 ? "Free" : window.fmtUSD(shipping)}/>
+        <hr className="divider"/>
+        <Row label={<b>Total</b>} value={<b style={{ fontFamily: "var(--serif)", fontSize: 18 }}>{window.fmtUSD(total)}</b>}/>
+        <button className="btn btn-primary" style={{ width: "100%", marginTop: 18, justifyContent: "center", padding: "12px" }}
+                onClick={() => nav("ind-checkout")}>
+          Proceed to checkout <Icon name="arrow_right" size={14}/>
+        </button>
+        <div style={{ marginTop: 12, padding: 10, background: "var(--hover)", borderRadius: 10, fontSize: 11.5, color: "var(--text-2)", display: "flex", gap: 8 }}>
+          <Icon name="shield" size={14}/>
+          <div>Payments secured by Stripe. Test card <b style={{ fontFamily: "var(--mono)" }}>4242 4242 4242 4242</b>.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13.5, color: "var(--text-2)" }}>
+    <span>{label}</span><span style={{ color: "var(--text)" }}>{value}</span>
+  </div>;
+}
+
+function IndCheckout({ cart, setCart, nav }) {
+  const [step, setStep] = useStateInd("pay");
+  const [cardNumber, setCardNumber] = useStateInd("4242 4242 4242 4242");
+  const [cardExp, setCardExp] = useStateInd("12/28");
+  const [cardCvc, setCardCvc] = useStateInd("123");
+  const [processing, setProcessing] = useStateInd(false);
+
+  const items = cart.map(c => ({ ...c, p: window.productById(c.id) })).filter(c => c.p);
+  const subtotal = items.reduce((s, i) => s + i.p.price * i.qty, 0);
+  const tax = subtotal * 0.08;
+  const shipping = subtotal > 100 ? 0 : 8.99;
+  const total = subtotal + tax + shipping;
+
+  function pay() {
+    setProcessing(true);
+    setTimeout(() => { setStep("done"); setProcessing(false); }, 1400);
+  }
+
+  if (step === "done") {
+    return (
+      <div style={{ padding: "40px 32px", display: "flex", justifyContent: "center" }}>
+        <div className="card" style={{ padding: 40, maxWidth: 520, textAlign: "center" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 999, background: "var(--ok-bg)", color: "var(--ok)",
+                        display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <Icon name="check" size={26}/>
+          </div>
+          <h1 style={{ fontFamily: "var(--serif)" }}>Payment confirmed</h1>
+          <p style={{ marginTop: 10, color: "var(--text-2)" }}>
+            Order <b style={{ fontFamily: "var(--mono)" }}>#10538</b> is now <b>CONFIRMED</b>. You'll get a
+            tracking number once TechCorp ships.
+          </p>
+          <div style={{ marginTop: 22, padding: 14, background: "var(--hover)", borderRadius: 12, textAlign: "left",
+                        fontSize: 12.5, color: "var(--text-2)", fontFamily: "var(--mono)", letterSpacing: 0.2 }}>
+            <div>POST /api/payments/confirm → 200 OK</div>
+            <div>payment_intent_id = pi_3Qz8aB2eZvKYlo2C1sN9qkXp</div>
+            <div>status = succeeded · amount = {Math.round(total * 100)} (USD cents)</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "center" }}>
+            <button className="btn" onClick={() => { setCart([]); nav("ind-orders"); }}>View orders</button>
+            <button className="btn btn-primary" onClick={() => { setCart([]); nav("ind-products"); }}>Continue shopping</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 20 }}>
+      <div className="card" style={{ padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 999, background: "#dfe9e5", color: "#1a1a1a",
+                        display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>1</div>
+          <h2 style={{ fontFamily: "var(--serif)" }}>Payment · Stripe</h2>
+          <div style={{ flex: 1 }}/>
+          <span className="chip" style={{ background: "#dfe9e5", color: "#1a1a1a", border: "none", fontWeight: 600 }}>
+            <Icon name="shield" size={12}/> PCI-safe · hosted by Stripe Elements
+          </span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label className="label">Card number</label>
+            <input className="input" value={cardNumber} onChange={e => setCardNumber(e.target.value)} style={{ fontFamily: "var(--mono)" }}/>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div><label className="label">Expiry</label><input className="input" value={cardExp} onChange={e => setCardExp(e.target.value)} style={{ fontFamily: "var(--mono)" }}/></div>
+            <div><label className="label">CVC</label><input className="input" value={cardCvc} onChange={e => setCardCvc(e.target.value)} style={{ fontFamily: "var(--mono)" }}/></div>
+          </div>
+          <div>
+            <label className="label">Cardholder name</label>
+            <input className="input" defaultValue="Selin Demir"/>
+          </div>
+
+          <div style={{ padding: 14, background: "var(--hover)", borderRadius: 12, fontSize: 12, color: "var(--text-2)", fontFamily: "var(--mono)", letterSpacing: 0.2 }}>
+            <div>POST /api/payments/create-intent  {"{"} orderId: 10538 {"}"}</div>
+            <div>← client_secret = pi_3Qz8aB…_secret_xD9uHk (4242-test-card ready)</div>
+          </div>
+
+          <button className="btn btn-primary" style={{ marginTop: 6, padding: 14, justifyContent: "center" }}
+                  disabled={processing} onClick={pay}>
+            {processing ? (<><span className="dots"><span/><span/><span/></span> Confirming payment…</>)
+                        : (<>Pay {window.fmtUSD(total)} <Icon name="arrow_right" size={14}/></>)}
+          </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 20, alignSelf: "start" }}>
+        <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Your order</h3>
+        {items.map(({ p, qty, id }) => (
+          <div key={id} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+            <ProductThumb id={p.id} size={40}/>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600 }}>{p.name}</div>
+              <div style={{ color: "var(--text-3)", fontSize: 11, marginTop: 2 }}>Qty {qty}</div>
+            </div>
+            <div style={{ fontWeight: 600 }}>{window.fmtUSD(p.price * qty)}</div>
+          </div>
+        ))}
+        <div style={{ marginTop: 14 }}>
+          <Row label="Subtotal" value={window.fmtUSD(subtotal)}/>
+          <Row label="Tax" value={window.fmtUSD(tax)}/>
+          <Row label="Shipping" value={shipping === 0 ? "Free" : window.fmtUSD(shipping)}/>
+        </div>
+        <hr className="divider"/>
+        <Row label={<b>Total</b>} value={<b style={{ fontFamily: "var(--serif)", fontSize: 17 }}>{window.fmtUSD(total)}</b>}/>
+      </div>
+    </div>
+  );
+}
+
+function IndOrders() {
+  const [filter, setFilter] = useStateInd("ALL");
+  const list = filter === "ALL" ? window.SEED.myOrders : window.SEED.myOrders.filter(o => o.status === filter);
+  const [open, setOpen] = useStateInd(null);
+
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {["ALL", "PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"].map(s => (
+          <button key={s} onClick={() => setFilter(s)}
+            className={"btn btn-sm" + (filter === s ? " btn-dark" : "")}>
+            {s}
+          </button>
+        ))}
+        <div style={{ flex: 1 }}/>
+        <button className="btn btn-sm"><Icon name="download" size={13}/> CSV export</button>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead><tr><th>Order</th><th>Date</th><th>Items</th><th>Status</th><th>Payment</th><th style={{ textAlign: "right" }}>Total</th><th></th></tr></thead>
+          <tbody>
+            {list.map(o => (
+              <React.Fragment key={o.id}>
+                <tr onClick={() => setOpen(open === o.id ? null : o.id)} style={{ cursor: "pointer" }}>
+                  <td style={{ fontFamily: "var(--mono)", fontWeight: 500 }}>#{o.id}</td>
+                  <td style={{ color: "var(--text-2)" }}>{window.fmtDate(o.date)}</td>
+                  <td style={{ color: "var(--text-2)" }}>{o.items.length} item{o.items.length !== 1 ? "s" : ""}</td>
+                  <td><StatusPill status={o.status}/></td>
+                  <td style={{ color: "var(--text-2)", fontSize: 12.5 }}>{o.paymentMethod}</td>
+                  <td style={{ textAlign: "right", fontWeight: 600 }}>{window.fmtUSD(o.total)}</td>
+                  <td style={{ color: "var(--text-3)" }}><Icon name={open === o.id ? "chevron_up" : "chevron_down"} size={14}/></td>
+                </tr>
+                {open === o.id && (
+                  <tr><td colSpan={7} style={{ background: "var(--hover)", padding: 20 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20 }}>
+                      <div>
+                        <div className="section-label" style={{ marginBottom: 10 }}>Items</div>
+                        {o.items.map((it, i) => {
+                          const p = window.productById(it.pid);
+                          if (!p) return null;
+                          return (
+                            <div key={i} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                              <ProductThumb id={p.id} size={44}/>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
+                                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>SKU {p.sku} · Qty {it.qty}</div>
+                              </div>
+                              <div style={{ fontWeight: 600, fontSize: 13 }}>{window.fmtUSD(it.price * it.qty)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div>
+                        <div className="section-label" style={{ marginBottom: 10 }}>Shipment</div>
+                        {o.ship ? (
+                          <div style={{ padding: 14, background: "var(--lumen)", borderRadius: 10, border: "1px solid var(--border)" }}>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                              <Icon name="truck" size={14} stroke={1.8}/><b style={{ fontSize: 13 }}>{o.ship.carrier}</b>
+                              <StatusPill status={o.ship.status}/>
+                            </div>
+                            <MetaRow k="Mode" v={o.ship.mode}/>
+                            <MetaRow k="Warehouse" v={o.ship.warehouse}/>
+                            <MetaRow k="Destination" v={o.ship.destination}/>
+                            <MetaRow k="Tracking" v={<span style={{ fontFamily: "var(--mono)" }}>{o.ship.tracking}</span>}/>
+                          </div>
+                        ) : (
+                          <div style={{ padding: 14, color: "var(--text-3)", fontSize: 12.5, fontStyle: "italic" }}>No shipment yet.</div>
+                        )}
+                        {o.status === "PENDING" && (
+                          <button className="btn btn-primary btn-sm" style={{ width: "100%", marginTop: 10, justifyContent: "center" }}>
+                            Complete payment <Icon name="arrow_right" size={12}/>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </td></tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function MetaRow({ k, v }) {
+  return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+    <span style={{ color: "var(--text-3)" }}>{k}</span><span>{v}</span>
+  </div>;
+}
+
+function IndReviews() {
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "flex", flexDirection: "column", gap: 16 }}>
+      {window.SEED.myReviews.map(r => {
+        const p = window.productById(r.productId);
+        return (
+          <div key={r.id} className="card" style={{ padding: 20 }}>
+            <div style={{ display: "flex", gap: 14 }}>
+              <ProductThumb id={p.id} size={60}/>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ fontWeight: 600 }}>{p.name}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{window.fmtDate(r.date)}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Stars n={r.stars}/><StatusPill status={r.sentiment}/>
+                  <span style={{ fontSize: 12, color: "var(--text-3)" }}>{r.helpful}/{r.total} found helpful</span>
+                </div>
+                <p style={{ marginTop: 10, color: "var(--text-2)" }}>{r.body}</p>
+                {r.corporateReply && (
+                  <div style={{ marginTop: 12, padding: 12, background: "var(--hover)", borderLeft: "3px solid #034f46", borderRadius: 6 }}>
+                    <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 4, fontFamily: "var(--mono)" }}>
+                      {r.corporateReply.from} replied · {window.fmtDate(r.corporateReply.date)}
+                    </div>
+                    <div style={{ fontSize: 13 }}>{r.corporateReply.body}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { IndDashboard, IndProducts, IndCart, IndCheckout, IndOrders, IndReviews });
+
+</script>
+
+<!-- flower/corporate.jsx -->
+<script type="text/babel" data-presets="react">
+// Corporate (seller) views — TechCorp store
+
+const { useState: useStateCorp } = React;
+
+const STORE = window.SEED.stores[0]; // TechCorp
+const MY_PRODUCTS = () => window.SEED.products.filter(p => p.storeId === STORE.id);
+
+function CorpDashboard({ nav }) {
+  const rev = window.SEED.revenueByMonth.map(m => ({ m: m.m, total: m.tc }));
+  const topProds = [...MY_PRODUCTS()].sort((a, b) => b.reviews - a.reviews).slice(0, 5);
+  const orderStatus = [
+    { s: "DELIVERED", n: 982, color: "#16a34a" },
+    { s: "SHIPPED",   n: 144, color: "#034f46" },
+    { s: "CONFIRMED", n:  76, color: "#dfe9e5" },
+    { s: "PENDING",   n:  48, color: "#ffa946" },
+    { s: "CANCELLED", n:  34, color: "#7f1c34" },
+  ];
+
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <KpiCard label="Revenue (MTD)"   value={window.fmtUSD(45200)}   sub="vs 38.9k last month" accent="#034f46" icon="chart" delta="+16%"/>
+        <KpiCard label="Orders (MTD)"    value="284"                    sub="TechCorp"           accent="#034f46" icon="package" delta="+11%"/>
+        <KpiCard label="Customers"       value="1,247"                  sub="312 new this month"  accent="#034f46" icon="users" delta="+24%"/>
+        <KpiCard label="Avg rating"      value="4.56"                   sub="across 853 reviews"  accent="#ffa946" icon="star"/>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+            <h2 style={{ fontFamily: "var(--serif)" }}>Revenue trend</h2>
+            <span className="chip">Last 6 months</span>
+          </div>
+          <LineChart data={rev} color="#034f46" fill="rgba(3,79,70,0.10)" height={200}/>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <h2 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Orders by status</h2>
+          <Donut data={orderStatus} valueKey="n" labelKey="s" size={140}/>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+          <h2 style={{ fontFamily: "var(--serif)" }}>Top products by review count</h2>
+        </div>
+        <table>
+          <thead><tr><th>Product</th><th>Rating</th><th>Reviews</th><th>Stock</th><th style={{ textAlign: "right" }}>Price</th></tr></thead>
+          <tbody>
+            {topProds.map(p => (
+              <tr key={p.id}>
+                <td><div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <ProductThumb id={p.id} size={36}/>
+                  <div><div style={{ fontWeight: 600 }}>{p.name}</div><div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{p.sku}</div></div>
+                </div></td>
+                <td><Stars n={p.rating} size={12}/> <span style={{ marginLeft: 6, fontSize: 12 }}>{p.rating}</span></td>
+                <td>{p.reviews}</td>
+                <td>{p.stock < 40 ? <span className="badge badge-err">{p.stock}</span> : p.stock}</td>
+                <td style={{ textAlign: "right", fontWeight: 600 }}>{window.fmtUSD(p.price)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CorpProducts() {
+  const [list, setList] = useStateCorp(MY_PRODUCTS());
+  const [editing, setEditing] = useStateCorp(null);
+  const [q, setQ] = useStateCorp("");
+  const [catFilter, setCatFilter] = useStateCorp("All");
+  const visible = list.filter(p =>
+    (catFilter === "All" || p.cat === catFilter) &&
+    (!q || (p.name + p.sku).toLowerCase().includes(q.toLowerCase()))
+  );
+
+  function save(p) {
+    setList(l => p.id ? l.map(x => x.id === p.id ? p : x) : [...l, { ...p, id: Date.now() }]);
+    setEditing(null);
+  }
+  function remove(id) { setList(l => l.filter(x => x.id !== id)); }
+
+  // Emoji by product name / category
+  const emojiFor = (p) => {
+    const n = p.name.toLowerCase();
+    if (n.includes("laptop") || n.includes("macbook")) return "💻";
+    if (n.includes("monitor") || n.includes("display")) return "🖥️";
+    if (n.includes("keyboard")) return "⌨️";
+    if (n.includes("mouse")) return "🖱️";
+    if (n.includes("headphone") || n.includes("earbud") || n.includes("airpod")) return "🎧";
+    if (n.includes("speaker")) return "🔊";
+    if (n.includes("watch")) return "⌚";
+    if (n.includes("phone") || n.includes("iphone")) return "📱";
+    if (n.includes("tablet") || n.includes("ipad")) return "📲";
+    if (n.includes("camera")) return "📷";
+    if (p.cat === "Computers") return "💻";
+    if (p.cat === "Audio") return "🎧";
+    if (p.cat === "Wearables") return "⌚";
+    return "📦";
+  };
+
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      {/* Page header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontFamily: "var(--serif)", fontSize: 32, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+            Products Catalog <span style={{ fontSize: 28 }}>📦</span>
+          </h1>
+          <div style={{ color: "var(--text-2)", fontSize: 13, marginTop: 4 }}>Manage your inventory</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => setEditing({ name: "", sku: "", price: 0, stock: 0, cat: "Computers", desc: "", rating: 0, reviews: 0, storeId: STORE.id })}>
+          <Icon name="plus" size={13}/> Add Product
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <select className="select" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ width: 160 }}>
+          <option>All Categories</option>
+          {["Computers", "Audio", "Wearables"].map(c => <option key={c}>{c}</option>)}
+        </select>
+        <div style={{ position: "relative", flex: "0 0 280px" }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", fontSize: 13 }}>🔍</span>
+          <input className="input" placeholder="Search products…" value={q} onChange={e => setQ(e.target.value)} style={{ paddingLeft: 34, width: "100%" }}/>
+        </div>
+      </div>
+
+      {/* Product card grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+        {visible.map(p => (
+          <div key={p.id} className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            {/* Emoji hero */}
+            <div style={{
+              aspectRatio: "1.6", background: "var(--bg-2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 56, borderBottom: "1px solid var(--border)",
+            }}>{emojiFor(p)}</div>
+
+            <div style={{ padding: 14, flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3 }}>{p.name}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 2 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#16a34a" }}>{window.fmtUSD(p.price)}</div>
+                <div style={{ fontSize: 11, color: p.stock < 40 ? "#dc2626" : "var(--text-3)" }}>
+                  {p.stock} in stock
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                <Stars n={p.rating} size={11}/>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>{p.rating} · {p.reviews}</span>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                <button className="btn btn-sm btn-ghost" style={{ flex: 1 }} onClick={() => setEditing(p)}>
+                  <Icon name="edit" size={12}/> Edit
+                </button>
+                <button className="btn btn-sm btn-ghost btn-danger" onClick={() => remove(p.id)}>
+                  <Icon name="trash" size={12}/>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {editing && (
+        <Dialog title={editing.id ? "Edit product" : "New product"} onClose={() => setEditing(null)} width={520}
+                footer={<><button className="btn" onClick={() => setEditing(null)}>Cancel</button>
+                          <button className="btn btn-primary" onClick={() => save(editing)}>Save</button></>}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div><label className="label">Name</label><input className="input" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })}/></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label className="label">SKU</label><input className="input" value={editing.sku} onChange={e => setEditing({ ...editing, sku: e.target.value })}/></div>
+              <div><label className="label">Category</label>
+                <select className="select" value={editing.cat} onChange={e => setEditing({ ...editing, cat: e.target.value })}>
+                  {["Computers", "Audio", "Wearables"].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label className="label">Price (USD)</label><input className="input" type="number" value={editing.price} onChange={e => setEditing({ ...editing, price: +e.target.value })}/></div>
+              <div><label className="label">Stock</label><input className="input" type="number" value={editing.stock} onChange={e => setEditing({ ...editing, stock: +e.target.value })}/></div>
+            </div>
+            <div><label className="label">Description</label><textarea className="textarea" rows={3} value={editing.desc} onChange={e => setEditing({ ...editing, desc: e.target.value })}/></div>
+          </div>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function CorpOrders() {
+  const [list, setList] = useStateCorp(window.SEED.corpOrders);
+  const [statusFilter, setStatusFilter] = useStateCorp("ALL");
+  const [timeFilter, setTimeFilter] = useStateCorp("ALL");
+  function advance(id) {
+    const nextMap = { PENDING: "CONFIRMED", CONFIRMED: "SHIPPED", SHIPPED: "DELIVERED" };
+    setList(l => l.map(o => o.id === id ? { ...o, status: nextMap[o.status] || o.status } : o));
+  }
+  const visible = list.filter(o => statusFilter === "ALL" || o.status === statusFilter);
+
+  // Avatar color by customer initial (stable hash)
+  const avatarColors = ["#7c3aed", "#0d9488", "#f59e0b", "#dc2626", "#2563eb", "#db2777", "#16a34a", "#9333ea"];
+  const avatarFor = (name) => {
+    let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return avatarColors[h % avatarColors.length];
+  };
+  const initials = (name) => name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      {/* Page header — hoca-style */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontFamily: "var(--serif)", fontSize: 32, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+            Orders Management <span style={{ fontSize: 28 }}>🛒</span>
+          </h1>
+          <div style={{ color: "var(--text-2)", fontSize: 13, marginTop: 4 }}>Track and manage all orders</div>
+        </div>
+        <button className="btn btn-primary"><Icon name="plus" size={13}/> New Order</button>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <select className="select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 140 }}>
+          <option value="ALL">All Status</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="SHIPPED">Shipped</option>
+          <option value="DELIVERED">Delivered</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+        <select className="select" value={timeFilter} onChange={e => setTimeFilter(e.target.value)} style={{ width: 140 }}>
+          <option value="ALL">All Time</option>
+          <option value="7D">Last 7 days</option>
+          <option value="30D">Last 30 days</option>
+          <option value="90D">Last 90 days</option>
+        </select>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead>
+            <tr>
+              <th style={{ letterSpacing: 1, fontSize: 11 }}>ORDER ID</th>
+              <th style={{ letterSpacing: 1, fontSize: 11 }}>CUSTOMER</th>
+              <th style={{ letterSpacing: 1, fontSize: 11 }}>ITEMS</th>
+              <th style={{ letterSpacing: 1, fontSize: 11 }}>TOTAL</th>
+              <th style={{ letterSpacing: 1, fontSize: 11 }}>DATE</th>
+              <th style={{ letterSpacing: 1, fontSize: 11 }}>STATUS</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map(o => (
+              <tr key={o.id}>
+                <td style={{ fontFamily: "var(--mono)", fontWeight: 500, color: "#034f46" }}>#ORD-{String(o.id).padStart(4, "0")}</td>
+                <td>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: avatarFor(o.user), color: "white",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontWeight: 700, fontSize: 11, letterSpacing: 0.5,
+                    }}>{initials(o.user)}</div>
+                    <span style={{ fontWeight: 500 }}>{o.user}</span>
+                  </div>
+                </td>
+                <td style={{ color: "var(--text-2)" }}>{o.items} {o.items === 1 ? "item" : "items"}</td>
+                <td style={{ fontWeight: 700 }}>{window.fmtUSD(o.total)}</td>
+                <td style={{ color: "var(--text-2)" }}>{window.fmtDate(o.date)}</td>
+                <td><StatusPill status={o.status}/></td>
+                <td style={{ textAlign: "right" }}>
+                  {["PENDING", "CONFIRMED", "SHIPPED"].includes(o.status) && (
+                    <button className="btn btn-sm btn-primary" onClick={() => advance(o.id)}>
+                      {o.status === "PENDING" ? "Confirm" : o.status === "CONFIRMED" ? "Mark shipped" : "Mark delivered"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CorpReviews() {
+  const [list, setList] = useStateCorp(window.SEED.corpReviews);
+  const [replyFor, setReplyFor] = useStateCorp(null);
+  const [reply, setReply] = useStateCorp("");
+  function submitReply() {
+    setList(l => l.map(r => r.id === replyFor.id ? { ...r, reply: { body: reply } } : r));
+    setReplyFor(null); setReply("");
+  }
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "flex", flexDirection: "column", gap: 14 }}>
+      {list.map(r => (
+        <div key={r.id} className="card" style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Avatar name={r.user} size={30} bg="linear-gradient(135deg, #dfe9e5, #c9ded7)"/>
+              <div><div style={{ fontWeight: 600 }}>{r.user}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>on {r.product} · {window.fmtDate(r.date)}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Stars n={r.stars}/><StatusPill status={r.sentiment}/>
+            </div>
+          </div>
+          <p style={{ color: "var(--text-2)", marginTop: 10 }}>{r.body}</p>
+          {r.reply ? (
+            <div style={{ marginTop: 12, padding: 12, background: "var(--hover)", borderLeft: "3px solid #034f46", borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 4, fontFamily: "var(--mono)" }}>TechCorp replied</div>
+              <div style={{ fontSize: 13 }}>{r.reply.body}</div>
+            </div>
+          ) : (
+            <button className="btn btn-sm btn-primary" style={{ marginTop: 10 }} onClick={() => setReplyFor(r)}>Reply</button>
+          )}
+        </div>
+      ))}
+
+      {replyFor && (
+        <Dialog title={`Reply to ${replyFor.user}`} onClose={() => setReplyFor(null)}
+                footer={<><button className="btn" onClick={() => setReplyFor(null)}>Cancel</button>
+                          <button className="btn btn-primary" disabled={!reply.trim()} onClick={submitReply}>Post reply</button></>}>
+          <div style={{ padding: 12, background: "var(--hover)", borderRadius: 10, marginBottom: 14, fontSize: 13 }}>
+            <b>{replyFor.product}</b> · <Stars n={replyFor.stars} size={12}/>
+            <div style={{ marginTop: 6, color: "var(--text-2)" }}>{replyFor.body}</div>
+          </div>
+          <label className="label">Your reply</label>
+          <textarea className="textarea" rows={4} value={reply} onChange={e => setReply(e.target.value)}/>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { CorpDashboard, CorpProducts, CorpOrders, CorpReviews });
+
+</script>
+
+<!-- flower/admin.jsx -->
+<script type="text/babel" data-presets="react">
+// Admin views — platform-wide
+
+const { useState: useStateAdm } = React;
+
+function AdmDashboard({ nav }) {
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <KpiCard label="GMV (MTD)"      value={window.fmtUSD(92910)} sub="vs 81.2k last month" accent="#034f46" icon="chart" delta="+14%"/>
+        <KpiCard label="Active stores"  value="3"                    sub="1 closed · 4 total"  accent="#034f46" icon="store"/>
+        <KpiCard label="Users"          value="12"                   sub="5 corporate · 7 individual" accent="#ffa946" icon="users" delta="+2"/>
+        <KpiCard label="Flags today"    value="2"                    sub="1 suspended · 1 pending" accent="#dc2626" icon="shield"/>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <h2 style={{ fontFamily: "var(--serif)", marginBottom: 12 }}>Revenue by store</h2>
+          <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+            {[["TechCorp", "#034f46"], ["GreenMarket", "#dfe9e5"], ["FashionHub", "#ffa946"], ["HomeEssentials", "#d5d5c0"]].map(([n, c]) => (
+              <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: c }}/>{n}
+              </span>
+            ))}
+          </div>
+          <StackedBarChart/>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <h2 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Orders by status (all stores)</h2>
+          <Donut data={window.SEED.ordersByStatus} valueKey="n" labelKey="s" size={140}/>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontFamily: "var(--serif)" }}>Store comparison</h2>
+            <button className="btn btn-sm" onClick={() => nav("adm-stores")}>View all</button>
+          </div>
+          <table>
+            <thead><tr><th>Store</th><th>Status</th><th>Orders</th><th style={{ textAlign: "right" }}>Revenue</th></tr></thead>
+            <tbody>{window.SEED.stores.map(s => (
+              <tr key={s.id}>
+                <td><b>{s.name}</b><div style={{ fontSize: 11, color: "var(--text-3)" }}>{s.owner}</div></td>
+                <td><StatusPill status={s.status}/></td>
+                <td>{s.orders}</td>
+                <td style={{ textAlign: "right", fontWeight: 600 }}>{window.fmtUSD(s.revenue)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontFamily: "var(--serif)" }}>Recent audit events</h2>
+            <button className="btn btn-sm" onClick={() => nav("adm-audit")}>Open logs</button>
+          </div>
+          <div style={{ padding: 6 }}>
+            {window.SEED.auditLogs.slice(0, 5).map(a => (
+              <div key={a.id} style={{ padding: "10px 14px", borderRadius: 8, display: "flex", gap: 10, fontSize: 12.5 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: a.action.includes("FAIL") || a.action.includes("SUSPEND") || a.action.includes("CLOSE") ? "var(--err-bg)" : "var(--hover)",
+                              color: a.action.includes("FAIL") || a.action.includes("SUSPEND") || a.action.includes("CLOSE") ? "var(--err)" : "var(--fathom)",
+                              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon name={a.action.includes("LOGIN") ? "shield" : a.action.includes("ORDER") ? "package" : a.action.includes("PRODUCT") ? "tag" : "edit"} size={14}/>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div><b>{a.action}</b> <span style={{ color: "var(--text-3)" }}>· {a.entity}</span></div>
+                  <div style={{ color: "var(--text-2)", marginTop: 2 }}>{a.details}</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{a.ts.split(" ")[1]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StackedBarChart() {
+  const data = window.SEED.revenueByMonth;
+  const max = Math.max(...data.map(d => d.total)) * 1.1;
+  return (
+    <div>
+      <svg width="100%" height="180" viewBox="0 0 100 180" preserveAspectRatio="none">
+        {data.map((d, i) => {
+          const xw = 100 / data.length;
+          const x = i * xw + xw * 0.22;
+          const w = xw * 0.56;
+          const scale = 150 / max;
+          const h = (v) => v * scale;
+          let y = 160;
+          const segs = [
+            { v: d.tc, c: "#034f46" },
+            { v: d.gm, c: "#dfe9e5" },
+            { v: d.fh, c: "#ffa946" },
+            { v: d.he, c: "#d5d5c0" },
+          ];
+          return <g key={i}>
+            {segs.map((s, j) => {
+              const hh = h(s.v);
+              const rect = <rect key={j} x={x} y={y - hh} width={w} height={hh} fill={s.c}
+                                 rx={j === 0 ? 1.5 : 0}/>;
+              y -= hh;
+              return rect;
+            })}
+          </g>;
+        })}
+      </svg>
+      <div style={{ display: "flex", marginTop: 4 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 10.5, color: "var(--text-3)", fontWeight: 500 }}>{d.m}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdmUsers() {
+  const [list, setList] = useStateAdm(window.SEED.allUsers);
+  const [role, setRole] = useStateAdm("ALL");
+  const [q, setQ] = useStateAdm("");
+  const vis = list.filter(u =>
+    (role === "ALL" || u.role === role) &&
+    (!q || (u.name + u.email).toLowerCase().includes(q.toLowerCase())));
+
+  function toggleSuspend(id) {
+    setList(l => l.map(u => u.id === id ? { ...u, suspended: !u.suspended } : u));
+  }
+  function remove(id) { setList(l => l.filter(u => u.id !== id)); }
+
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <input className="input" placeholder="Search users…" value={q} onChange={e => setQ(e.target.value)} style={{ maxWidth: 320 }}/>
+        <select className="select" value={role} onChange={e => setRole(e.target.value)} style={{ width: 180 }}>
+          <option value="ALL">All roles</option>
+          <option value="ADMIN">Admin</option>
+          <option value="CORPORATE">Corporate</option>
+          <option value="INDIVIDUAL">Individual</option>
+        </select>
+        <div style={{ flex: 1 }}/>
+        <button className="btn"><Icon name="download" size={13}/> Export</button>
+        <button className="btn btn-primary"><Icon name="plus" size={13}/> Invite corporate</button>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th style={{ textAlign: "right", width: 150 }}>Actions</th></tr></thead>
+          <tbody>{vis.map(u => (
+            <tr key={u.id}>
+              <td><div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <Avatar name={u.name} size={32}/>
+                <div><div style={{ fontWeight: 600 }}>{u.name}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{u.email}</div></div>
+              </div></td>
+              <td><RoleBadge role={u.role}/></td>
+              <td>{u.suspended ? <StatusPill status="CANCELLED"/> : <StatusPill status="ACTIVE"/>}</td>
+              <td style={{ color: "var(--text-2)" }}>{window.fmtDate(u.createdAt)}</td>
+              <td style={{ textAlign: "right" }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => toggleSuspend(u.id)}>{u.suspended ? "Unsuspend" : "Suspend"}</button>
+                <button className="btn btn-ghost btn-sm btn-danger" onClick={() => remove(u.id)}><Icon name="trash" size={13}/></button>
+              </td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdmStores() {
+  const [list, setList] = useStateAdm(window.SEED.stores);
+  function toggle(id) {
+    setList(l => l.map(s => s.id === id ? { ...s, status: s.status === "ACTIVE" ? "CLOSED" : "ACTIVE" } : s));
+  }
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+        {list.map(s => (
+          <div key={s.id} className="card" style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #dfe9e5, #c9ded7)",
+                                display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="store" size={18}/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, fontFamily: "var(--serif)" }}>{s.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-3)" }}>{s.desc}</div>
+                  </div>
+                </div>
+              </div>
+              <StatusPill status={s.status}/>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, padding: "12px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+              <Stat k="Revenue" v={window.fmtUSD(s.revenue)}/>
+              <Stat k="Orders"  v={s.orders}/>
+              <Stat k="Rating"  v={<span><Stars n={s.rating} size={11}/> {s.rating}</span>}/>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+              <div style={{ fontSize: 12, color: "var(--text-2)" }}>Owner: <b>{s.owner}</b></div>
+              <div style={{ flex: 1 }}/>
+              <button className="btn btn-sm" onClick={() => toggle(s.id)}>
+                {s.status === "ACTIVE" ? "Close store" : "Reactivate"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ k, v }) {
+  return <div><div style={{ fontSize: 10.5, color: "var(--text-3)", letterSpacing: 0.6, textTransform: "uppercase", fontWeight: 700 }}>{k}</div>
+    <div style={{ fontWeight: 600, fontSize: 14, marginTop: 3 }}>{v}</div></div>;
+}
+
+function AdmCategories() {
+  const [cats, setCats] = useStateAdm(window.SEED.categories);
+  const tree = cats.filter(c => c.parent === null).map(root => ({
+    ...root, children: cats.filter(c => c.parent === root.id),
+  }));
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <div style={{ flex: 1 }}/>
+        <button className="btn btn-primary"><Icon name="plus" size={13}/> New category</button>
+      </div>
+      <div className="card" style={{ padding: 14 }}>
+        {tree.map(root => (
+          <div key={root.id} style={{ marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--hover)" }}>
+              <Icon name="tag" size={14}/><b>{root.name}</b>
+              <span style={{ fontSize: 11, color: "var(--text-3)" }}>· {root.count} products</span>
+              <div style={{ flex: 1 }}/>
+              <button className="btn btn-ghost btn-sm"><Icon name="edit" size={12}/></button>
+              <button className="btn btn-ghost btn-sm"><Icon name="plus" size={12}/> Add child</button>
+            </div>
+            {root.children.map(ch => (
+              <div key={ch.id} style={{ marginLeft: 26, padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--border)" }}>
+                <Icon name="chevron_right" size={12}/>
+                <div style={{ fontSize: 13 }}>{ch.name}</div>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>· {ch.count} products</span>
+                <div style={{ flex: 1 }}/>
+                <button className="btn btn-ghost btn-sm"><Icon name="edit" size={12}/></button>
+                <button className="btn btn-ghost btn-sm btn-danger"><Icon name="trash" size={12}/></button>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdmAnalytics() {
+  const [tab, setTab] = useStateAdm("comparison");
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, padding: 4, background: "var(--hover)", borderRadius: 10, width: "fit-content" }}>
+        {[["comparison", "Store comparison"], ["segmentation", "Customer segmentation"], ["categories", "Category performance"]].map(([k, t]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className="btn btn-sm" style={{ background: tab === k ? "var(--lumen)" : "transparent", border: tab === k ? "1px solid var(--border)" : "none" }}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === "comparison" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          {window.SEED.stores.map(s => (
+            <div key={s.id} className="card" style={{ padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <b style={{ fontFamily: "var(--serif)", fontSize: 16 }}>{s.name}</b>
+                <StatusPill status={s.status}/>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+                <Stat k="Revenue" v={window.fmtUSD(s.revenue)}/>
+                <Stat k="Orders" v={s.orders}/>
+                <Stat k="Products" v={s.products}/>
+                <Stat k="Rating" v={s.rating.toFixed(1)}/>
+              </div>
+              <div style={{ marginTop: 14, height: 8, background: "var(--hover)", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${(s.revenue / 285000) * 100}%`, background: "#034f46", borderRadius: 999 }}/>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6 }}>Revenue share of top performer</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "segmentation" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Customers by membership</h3>
+            <Donut size={160} valueKey="v" labelKey="c" data={[
+              { c: "Gold", v: 4,    color: "#ffa946" },
+              { c: "Silver", v: 5,  color: "#d5d5c0" },
+              { c: "Premium", v: 2, color: "#dfe9e5" },
+              { c: "Standard", v: 1,color: "#034f46" },
+            ]}/>
+          </div>
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Satisfaction distribution</h3>
+            <BarChart height={180} barColor="#034f46"
+              data={[{ m: "Very satisfied", total: 42 }, { m: "Satisfied", total: 28 }, { m: "Neutral", total: 11 }, { m: "Unsatisfied", total: 5 }]}/>
+          </div>
+        </div>
+      )}
+
+      {tab === "categories" && (
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Top categories by revenue</h3>
+          <BarChart height={220} barColor="#034f46"
+            data={window.SEED.categories.filter(c => c.parent === null).map(c => ({ m: c.name, total: c.count * 4200 + Math.random() * 5000 | 0 }))}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdmAudit() {
+  const [list] = useStateAdm(window.SEED.auditLogs);
+  const [filter, setFilter] = useStateAdm("ALL");
+  const actions = ["ALL", ...new Set(list.map(a => a.action))];
+  const vis = filter === "ALL" ? list : list.filter(a => a.action === filter);
+  return (
+    <div style={{ padding: "12px 32px 40px" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        {actions.map(a => (
+          <button key={a} onClick={() => setFilter(a)}
+            className={"btn btn-sm" + (filter === a ? " btn-dark" : "")}>
+            {a}
+          </button>
+        ))}
+      </div>
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr></thead>
+          <tbody>{vis.map(a => (
+            <tr key={a.id}>
+              <td style={{ fontFamily: "var(--mono)", fontSize: 12 }}>{a.ts}</td>
+              <td>{a.user}</td>
+              <td><span className="badge badge-muted" style={{ fontFamily: "var(--mono)" }}>{a.action}</span></td>
+              <td>{a.entity}</td>
+              <td style={{ color: "var(--text-2)" }}>{a.details}</td>
+              <td style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-3)" }}>{a.ip}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdmSettings() {
+  return (
+    <div style={{ padding: "12px 32px 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="card" style={{ padding: 20 }}>
+        <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Platform</h3>
+        <SettingRow k="Platform name" v="Flower"/>
+        <SettingRow k="Default currency" v="USD ($)"/>
+        <SettingRow k="Tax rate" v="8%"/>
+        <SettingRow k="Default locale" v="en-US"/>
+        <SettingRow k="Timezone" v="Europe/Istanbul"/>
+      </div>
+      <div className="card" style={{ padding: 20 }}>
+        <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Security</h3>
+        <SettingRow k="JWT algorithm" v="HS512"/>
+        <SettingRow k="Access token TTL" v="1 hour"/>
+        <SettingRow k="Refresh token TTL" v="7 days"/>
+        <SettingRow k="Rate limit · /auth/login" v="20 / min / IP"/>
+        <SettingRow k="Rate limit · /chat/ask"  v="20 / min / IP"/>
+      </div>
+      <div className="card" style={{ padding: 20 }}>
+        <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>AI chatbot</h3>
+        <SettingRow k="LLM provider" v="Google Gemini (OpenAI-compat)"/>
+        <SettingRow k="Model" v="gemini-3-flash-preview"/>
+        <SettingRow k="Max retries (SQL error handler)" v="3"/>
+        <SettingRow k="Visualizer timeout" v="5 s"/>
+        <SettingRow k="Fallback" v="GeminiService.java direct"/>
+      </div>
+      <div className="card" style={{ padding: 20 }}>
+        <h3 style={{ fontFamily: "var(--serif)", marginBottom: 14 }}>Integrations</h3>
+        <SettingRow k="Payments" v="Stripe (test mode)"/>
+        <SettingRow k="Database profile" v="postgres"/>
+        <SettingRow k="CORS origin" v="http://localhost:4200"/>
+        <SettingRow k="Session policy" v="STATELESS"/>
+      </div>
+    </div>
+  );
+}
+
+function SettingRow({ k, v }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+      <span style={{ color: "var(--text-2)" }}>{k}</span>
+      <span style={{ fontFamily: "var(--mono)", fontSize: 12.5 }}>{v}</span>
+    </div>
+  );
+}
+
+Object.assign(window, { AdmDashboard, AdmUsers, AdmStores, AdmCategories, AdmAnalytics, AdmAudit, AdmSettings });
+
+</script>
+
+<!-- flower/chatbot.jsx -->
+<script type="text/babel" data-presets="react">
+// Flower AI — Text2SQL multi-agent chatbot view
+
+const { useState: useStateChat, useEffect: useEffectChat, useRef: useRefChat } = React;
+
+// Canned SQL + data for each prompt, per role
+const CANNED = {
+  "Show me sales by category for last month": {
+    role: "ADMIN",
+    sql: `SELECT c.name AS category,
+       COUNT(DISTINCT o.id) AS orders,
+       SUM(oi.quantity * oi.price) AS revenue
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.id
+JOIN products p     ON p.id = oi.product_id
+JOIN categories c   ON c.id = p.category_id
+WHERE o.order_date >= date_trunc('month', current_date) - interval '1 month'
+  AND o.order_date <  date_trunc('month', current_date)
+  AND o.status != 'CANCELLED'
+GROUP BY c.name
+ORDER BY revenue DESC;`,
+    cols: ["category", "orders", "revenue"],
+    rows: [
+      ["Computers", 182, 42810.44],
+      ["Audio", 94, 18240.12],
+      ["Kitchen", 71, 11820.50],
+      ["Fashion", 64, 9244.88],
+      ["Wearables", 22, 6599.78],
+      ["Organic", 58, 4821.40],
+      ["Beauty", 41, 3180.66],
+    ],
+    chart: { type: "bar", x: "category", y: "revenue", color: "#034f46" },
+    answer: "Computers led February revenue at $42.8k across 182 orders — nearly 2.3× the next category (Audio). Kitchen and Fashion rounded out the top four. Wearables had only 22 orders but a high average order value (~$300).",
+  },
+  "What are my top 5 customers by revenue?": {
+    role: "CORPORATE",
+    sql: `SELECT u.first_name || ' ' || u.last_name AS customer,
+       COUNT(DISTINCT o.id) AS orders,
+       SUM(o.grand_total) AS revenue
+FROM orders o
+JOIN users u ON u.id = o.user_id
+WHERE o.store_id = :store_id    -- injected from JWT
+  AND o.status IN ('CONFIRMED','SHIPPED','DELIVERED')
+GROUP BY u.id, u.first_name, u.last_name
+ORDER BY revenue DESC
+LIMIT 5;`,
+    cols: ["customer", "orders", "revenue"],
+    rows: [
+      ["Selin Demir", 4, 819.94],
+      ["Okan Polat", 3, 529.97],
+      ["Mert Yıldız", 2, 379.97],
+      ["Ayşe Korkmaz", 2, 179.98],
+      ["Burcu Ergin", 1, 49.99],
+    ],
+    chart: { type: "bar", x: "customer", y: "revenue", color: "#034f46" },
+    answer: "Your top customer is Selin Demir with $819.94 across 4 orders — she accounts for ~40% of your top-5 revenue. Your loyalty cohort skews toward electronics buyers who purchase accessories alongside primary devices.",
+  },
+  "Which products have the lowest ratings?": {
+    role: "CORPORATE",
+    sql: `SELECT p.name, p.sku, AVG(r.star_rating) AS avg_rating, COUNT(r.id) AS review_count
+FROM products p
+LEFT JOIN reviews r ON r.product_id = p.id
+WHERE p.store_id = :store_id    -- injected from JWT
+GROUP BY p.id, p.name, p.sku
+HAVING COUNT(r.id) >= 5
+ORDER BY avg_rating ASC
+LIMIT 5;`,
+    cols: ["name", "sku", "avg_rating", "review_count"],
+    rows: [
+      ["Gaming Mouse X500", "TC-002", 4.30, 88],
+      ["Mechanical Keyboard MX", "TC-007", 4.40, 45],
+      ["Wireless Keyboard Pro", "TC-001", 4.50, 124],
+      ["Smart Watch Series X", "TC-010", 4.60, 201],
+      ["Wireless Earbuds Pro", "TC-009", 4.70, 312],
+    ],
+    chart: { type: "bar", x: "sku", y: "avg_rating", color: "#dc2626" },
+    answer: "Gaming Mouse X500 is your lowest-rated product at 4.30★ across 88 reviews — recent complaints mention a squeaky scroll wheel. Consider reviewing supplier QC or offering proactive replacements.",
+  },
+  "How much have I spent this year?": {
+    role: "INDIVIDUAL",
+    sql: `SELECT date_trunc('month', o.order_date) AS month,
+       COUNT(*) AS orders,
+       SUM(o.grand_total) AS spent
+FROM orders o
+WHERE o.user_id = :user_id        -- injected from JWT
+  AND o.order_date >= date_trunc('year', current_date)
+  AND o.status != 'CANCELLED'
+GROUP BY 1
+ORDER BY 1;`,
+    cols: ["month", "orders", "spent"],
+    rows: [
+      ["2026-01", 2, 137.98],
+      ["2026-02", 3, 268.96],
+      ["2026-03", 2, 346.99],
+    ],
+    chart: { type: "line", x: "month", y: "spent", color: "#034f46" },
+    answer: "You've spent $753.93 across 7 orders so far this year, with March leading at $346.99. Your monthly spend has trended upward for three months running.",
+  },
+  "What's the trend in order cancellations?": {
+    role: "ADMIN",
+    sql: `SELECT date_trunc('month', order_date) AS month,
+       COUNT(*) FILTER (WHERE status='CANCELLED')::float / NULLIF(COUNT(*),0) AS cancel_rate,
+       COUNT(*) AS total_orders
+FROM orders
+WHERE order_date >= current_date - interval '6 months'
+GROUP BY 1
+ORDER BY 1;`,
+    cols: ["month", "cancel_rate", "total_orders"],
+    rows: [
+      ["2025-10", 0.041, 612],
+      ["2025-11", 0.038, 740],
+      ["2025-12", 0.029, 882],
+      ["2026-01", 0.032, 910],
+      ["2026-02", 0.025, 1041],
+      ["2026-03", 0.022, 1184],
+    ],
+    chart: { type: "line", x: "month", y: "cancel_rate", color: "#7f1c34" },
+    answer: "Cancellation rate has trended down for four of the last five months — from 4.1% in October to 2.2% in March. This correlates with the new 24-hour fulfilment SLA you rolled out in November.",
+  },
+  "How many orders were shipped by air?": {
+    role: "CORPORATE",
+    sql: `SELECT s.mode_of_shipment, COUNT(*) AS count
+FROM shipments s
+JOIN orders o ON o.id = s.order_id
+WHERE o.store_id = :store_id    -- injected from JWT
+GROUP BY s.mode_of_shipment
+ORDER BY count DESC;`,
+    cols: ["mode_of_shipment", "count"],
+    rows: [["Air", 487], ["Road", 642], ["Ship", 155]],
+    chart: { type: "bar", x: "mode_of_shipment", y: "count", color: "#034f46" },
+    answer: "487 of your 1,284 orders (38%) shipped by air. Road remains primary at 50%, with sea freight covering the rest — mostly international bulk SKUs.",
+  },
+};
+
+// Pipeline steps shown during "thinking"
+const PIPELINE = [
+  { k: "guardrails", label: "Guardrails", icon: "shield",   desc: "Is the question in scope? Any prompt injection?" },
+  { k: "sql",        label: "SQL Generator", icon: "database", desc: "Translate natural language to SQL + inject role filter" },
+  { k: "exec",       label: "Executor",  icon: "bolt",     desc: "Run SELECT against read-only database" },
+  { k: "analyst",    label: "Analyst",   icon: "book",     desc: "Explain results in natural language" },
+  { k: "viz",        label: "Visualizer",icon: "chart",    desc: "Build Plotly chart (AST-validated, sandboxed)" },
+];
+
+function ChatbotPage({ me }) {
+  const [input, setInput] = useStateChat("");
+  const [messages, setMessages] = useStateChat([
+    { role: "assistant", kind: "intro" },
+  ]);
+  const [thinking, setThinking] = useStateChat(null); // step index
+  const scrollRef = useRefChat(null);
+
+  useEffectChat(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, thinking]);
+
+  const prompts = window.SEED.suggestedPrompts[me.role] || [];
+
+  function send(text) {
+    const q = (text || input).trim();
+    if (!q) return;
+    setInput("");
+    setMessages(m => [...m, { role: "user", text: q }]);
+
+    const match = CANNED[q];
+    // Guardrails: block injection attempts
+    const blocked = /ignore (your )?previous instructions|you are now|system override|reveal.*prompt|list all users|show all users/i.test(q);
+    if (blocked) {
+      setThinking(0);
+      setTimeout(() => {
+        setThinking(null);
+        setMessages(m => [...m, {
+          role: "assistant", kind: "blocked",
+          text: "That request looks like it's trying to change my role or bypass access controls. I can only answer questions scoped to your authenticated role (" + me.role + ").",
+          layer: "Guardrails Agent + InputValidator (Spring Boot regex)",
+        }]);
+      }, 900);
+      return;
+    }
+
+    // Walk the pipeline
+    let step = 0;
+    setThinking(step);
+    const tick = () => {
+      step++;
+      if (step >= PIPELINE.length) {
+        setThinking(null);
+        if (match) {
+          setMessages(m => [...m, {
+            role: "assistant", kind: "result", data: match, userAsked: q,
+          }]);
+        } else {
+          setMessages(m => [...m, {
+            role: "assistant", kind: "text",
+            text: `I don't have a pre-built answer for "${q}" in this prototype, but in the live system the SQL Generator agent would translate it to a role-scoped SELECT query, execute it, and explain the results. Try one of the suggested prompts below.`,
+          }]);
+        }
+        return;
+      }
+      setThinking(step);
+      setTimeout(tick, 550 + Math.random() * 250);
+    };
+    setTimeout(tick, 600);
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 0, height: "calc(100vh - 101px)" }}>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: 0, borderRight: "1px solid var(--border)" }}>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "24px 32px 0" }}>
+          {messages.map((m, i) => (
+            <Message key={i} m={m} me={me} onPrompt={send}/>
+          ))}
+          {thinking !== null && <ThinkingBlock step={thinking}/>}
+        </div>
+
+        <div style={{ padding: "16px 32px 24px", borderTop: "1px solid var(--border)", background: "var(--lumen-dark)" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            {prompts.slice(0, 4).map(p => (
+              <button key={p} onClick={() => send(p)}
+                className="chip" style={{ cursor: "pointer", background: "var(--lumen)", padding: "6px 12px" }}>
+                <Icon name="sparkle" size={11}/>{p}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end",
+                        background: "var(--lumen)", border: "1px solid var(--border-in)", borderRadius: 14,
+                        padding: "10px 12px" }}>
+            <textarea rows={1} value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              placeholder={`Ask Flower AI · authenticated as ${me.role}`}
+              style={{ flex: 1, border: "none", background: "transparent", outline: "none", resize: "none",
+                       fontSize: 14, fontFamily: "var(--sans)", padding: "6px 4px", color: "var(--text)", lineHeight: 1.5 }}/>
+            <button className="btn btn-primary" disabled={!input.trim()} onClick={() => send()} style={{ padding: "8px 14px" }}>
+              <Icon name="send" size={14}/>
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>
+            <span><Icon name="shield" size={11}/> Role-scoped via JWT</span>
+            <span><Icon name="database" size={11}/> SELECT-only · READ ONLY txn</span>
+            <span><Icon name="bolt" size={11}/> Gemini · LangGraph</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right rail: pipeline + session */}
+      <div style={{ padding: "20px 20px 28px", background: "var(--lumen)", overflowY: "auto" }}>
+        <div className="section-label" style={{ marginBottom: 10 }}>Agent pipeline</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 24 }}>
+          {PIPELINE.map((s, i) => {
+            const active = thinking === i;
+            const done = thinking !== null && i < thinking;
+            return (
+              <div key={s.k} style={{
+                display: "flex", gap: 10, padding: "10px 8px", borderRadius: 8,
+                background: active ? "rgba(3,79,70,0.08)" : "transparent",
+              }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                  background: active ? "#034f46" : done ? "#dcfce7" : "var(--hover)",
+                  color: active ? "#ffffeb" : done ? "#16a34a" : "var(--text-2)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {done ? <Icon name="check" size={13}/> : <Icon name={s.icon} size={13}/>}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>{s.label}
+                    {active && <span style={{ marginLeft: 8 }} className="dots"><span/><span/><span/></span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, lineHeight: 1.35 }}>{s.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="section-label" style={{ marginBottom: 10 }}>Session context</div>
+        <div style={{ padding: 12, background: "var(--hover)", borderRadius: 10, fontFamily: "var(--mono)", fontSize: 11.5, lineHeight: 1.7 }}>
+          <div>user_role = <b>{me.role}</b></div>
+          <div>user_id   = {me.userId || me.storeId ? me.userId || "—" : "—"}</div>
+          <div>store_id  = {me.storeId || "—"}</div>
+          <div>session   = sess_b82f…a04c</div>
+          <div>turns     = {messages.filter(m => m.role === "user").length} / 10</div>
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)", color: "var(--text-3)" }}>
+            rate_limit: 20 req / min
+          </div>
+        </div>
+
+        <div className="section-label" style={{ margin: "20px 0 10px" }}>Try asking</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {prompts.map(p => (
+            <button key={p} onClick={() => send(p)} style={{
+              textAlign: "left", padding: "9px 12px", background: "var(--hover)",
+              border: "1px solid var(--border)", borderRadius: 10, cursor: "pointer",
+              fontSize: 12.5, color: "var(--text)", fontFamily: "inherit",
+            }}>{p}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ThinkingBlock({ step }) {
+  const s = PIPELINE[step];
+  return (
+    <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      <Avatar name="AI" size={34} bg="linear-gradient(135deg, #034f46, #1c6056)"/>
+      <div className="card" style={{ padding: "12px 16px", background: "var(--hover)", border: "1px dashed var(--border-in)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Icon name={s.icon} size={14}/>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{s.label}</span>
+          <span className="dots"><span/><span/><span/></span>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 4 }}>{s.desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function Message({ m, me, onPrompt }) {
+  if (m.role === "user") {
+    return (
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 18, gap: 10 }}>
+        <div style={{ maxWidth: "70%", background: "#dfe9e5", color: "#1a1a1a",
+                      padding: "10px 14px", borderRadius: "14px 14px 3px 14px", fontSize: 14 }}>
+          {m.text}
+        </div>
+        <Avatar name={me.name} size={30}/>
+      </div>
+    );
+  }
+
+  if (m.kind === "intro") {
+    return (
+      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+        <Avatar name="AI" size={34} bg="linear-gradient(135deg, #034f46, #1c6056)"/>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14 }}>
+            Hi <b>{me.first || me.name.split(" ")[0]}</b>, I'm Flower's analytics assistant. I translate natural-language
+            questions into SQL queries, run them against the read-only replica, and explain the results in plain English.
+          </div>
+          <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--hover)", borderRadius: 12, fontSize: 12.5, color: "var(--text-2)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, color: "var(--text)" }}>
+              <Icon name="shield" size={13}/> <b>Role-scoped access</b>
+            </div>
+            You're authenticated as <b>{me.role}</b>. Every SQL query I run has a role filter injected
+            deterministically — I physically cannot see another user's private data, even if the LLM is tricked.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (m.kind === "blocked") {
+    return (
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <Avatar name="AI" size={34} bg="linear-gradient(135deg, #7f1c34, #a42244)"/>
+        <div className="card" style={{ flex: 1, padding: 14, background: "#fce5e5", border: "1px solid #f2b5b5" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, color: "#7f1c34", fontWeight: 600 }}>
+            <Icon name="shield" size={14}/> Request blocked
+          </div>
+          <div style={{ fontSize: 13.5, color: "var(--text)" }}>{m.text}</div>
+          <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>Caught by: {m.layer}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (m.kind === "text") {
+    return (
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <Avatar name="AI" size={34} bg="linear-gradient(135deg, #034f46, #1c6056)"/>
+        <div style={{ flex: 1, fontSize: 14, padding: "6px 0", lineHeight: 1.55 }}>{m.text}</div>
+      </div>
+    );
+  }
+
+  if (m.kind === "result") {
+    return <ResultBlock data={m.data}/>;
+  }
+  return null;
+}
+
+function ResultBlock({ data }) {
+  const [tab, setTab] = useStateChat("answer");
+  return (
+    <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+      <Avatar name="AI" size={34} bg="linear-gradient(135deg, #034f46, #1c6056)"/>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 14 }}>{data.answer}</div>
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ display: "flex", borderBottom: "1px solid var(--border)", background: "var(--hover)" }}>
+            {[["answer", "Chart", "chart"], ["table", "Table", "layers"], ["sql", "SQL", "database"]].map(([k, l, ic]) => (
+              <button key={k} onClick={() => setTab(k)}
+                style={{
+                  padding: "10px 16px", border: "none", background: tab === k ? "var(--lumen)" : "transparent",
+                  cursor: "pointer", fontSize: 12.5, fontWeight: 600,
+                  color: tab === k ? "var(--fathom)" : "var(--text-2)",
+                  borderBottom: tab === k ? "2px solid var(--fathom)" : "2px solid transparent",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                <Icon name={ic} size={12}/>{l}
+              </button>
+            ))}
+            <div style={{ flex: 1 }}/>
+            <div style={{ padding: "10px 14px", display: "flex", gap: 6 }}>
+              <button className="btn btn-ghost btn-sm" title="Copy"><Icon name="edit" size={13}/></button>
+              <button className="btn btn-ghost btn-sm" title="Download"><Icon name="download" size={13}/></button>
+            </div>
+          </div>
+
+          <div style={{ padding: 18 }}>
+            {tab === "answer" && <ChartPanel data={data}/>}
+            {tab === "table"  && <TablePanel data={data}/>}
+            {tab === "sql"    && <SqlPanel data={data}/>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChartPanel({ data }) {
+  const chartData = data.rows.map(r => Object.fromEntries(data.cols.map((c, i) => [c, r[i]])));
+  const xKey = data.chart.x, yKey = data.chart.y;
+  const barData = chartData.map(d => ({ m: String(d[xKey]).length > 12 ? String(d[xKey]).slice(0, 12) + "…" : String(d[xKey]), total: d[yKey] }));
+  const isCurrency = /revenue|spent|total|price/i.test(yKey);
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+        <span>plotly.{data.chart.type} · x={data.chart.x}, y={data.chart.y}</span>
+        <span>rendered in sandboxed iframe</span>
+      </div>
+      {data.chart.type === "line"
+        ? <LineChart data={barData} valueKey="total" labelKey="m" color={data.chart.color} fill={data.chart.color + "20"} height={240}/>
+        : <BarChart  data={barData} valueKey="total" labelKey="m" barColor={data.chart.color} height={240}/>}
+      <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", textAlign: "center" }}>
+        {data.cols.map(c => c.toUpperCase()).join(" · ")}
+      </div>
+    </div>
+  );
+}
+
+function TablePanel({ data }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table>
+        <thead><tr>{data.cols.map(c => <th key={c}>{c}</th>)}</tr></thead>
+        <tbody>
+          {data.rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((v, j) => (
+                <td key={j} style={{ fontFamily: typeof v === "number" ? "var(--mono)" : undefined,
+                                     textAlign: typeof v === "number" ? "right" : "left" }}>
+                  {typeof v === "number"
+                    ? (data.cols[j].match(/revenue|spent|total|price/i) ? window.fmtUSD(v)
+                        : data.cols[j].match(/rate/i) ? (v * 100).toFixed(1) + "%"
+                        : data.cols[j].match(/rating/i) ? v.toFixed(2) + "★"
+                        : v.toLocaleString())
+                    : v}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SqlPanel({ data }) {
+  return (
+    <div>
+      <pre style={{ margin: 0, padding: 16, background: "#1a1a1a", color: "#ffffeb",
+                    borderRadius: 10, fontSize: 12.5, lineHeight: 1.55, overflowX: "auto",
+                    fontFamily: "var(--mono)" }}>{highlightSql(data.sql)}</pre>
+      <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(3,79,70,0.08)", borderRadius: 10, fontSize: 12, color: "var(--fathom)", display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <Icon name="shield" size={14}/>
+        <div>
+          <b>Role filter injected deterministically.</b> The <code>:store_id</code> / <code>:user_id</code> bind
+          parameters come from the JWT's verified claims — never from the LLM output or conversation history.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function highlightSql(sql) {
+  const kw = /\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|LIMIT|AS|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|ON|AND|OR|NOT|IN|NULL|IS|HAVING|WITH|UNION|INTERSECT|EXCEPT|CASE|WHEN|THEN|ELSE|END|DISTINCT|COUNT|SUM|AVG|MAX|MIN|FILTER|INTERVAL|CURRENT_DATE|DATE_TRUNC|NULLIF)\b/gi;
+  const parts = [];
+  let last = 0;
+  sql.replace(kw, (m, _, idx) => {
+    if (idx > last) parts.push(sql.slice(last, idx));
+    parts.push(<span key={idx} style={{ color: "#dfe9e5", fontWeight: 600 }}>{m.toUpperCase()}</span>);
+    last = idx + m.length;
+    return m;
+  });
+  parts.push(sql.slice(last));
+  // comments
+  return parts.map((p, i) => {
+    if (typeof p !== "string") return p;
+    const segs = [];
+    let li = 0;
+    p.replace(/--[^\n]*/g, (m, idx) => {
+      if (idx > li) segs.push(p.slice(li, idx));
+      segs.push(<span key={"c" + i + idx} style={{ color: "#8ca8a4" }}>{m}</span>);
+      li = idx + m.length;
+      return m;
+    });
+    segs.push(p.slice(li));
+    return <React.Fragment key={i}>{segs}</React.Fragment>;
+  });
+}
+
+Object.assign(window, { ChatbotPage });
+
+</script>
+
+<!-- flower/app.jsx -->
+<script type="text/babel" data-presets="react">
+// Flower app entry
+
+const { useState, useEffect, useMemo } = React;
+
+// ------------------------------------------------------------
+// Tweak defaults — editable via the Tweaks toolbar toggle
+// ------------------------------------------------------------
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "density": "comfortable",
+  "accent": "fathom",
+  "sidebarCollapsedDefault": false,
+  "showRoleSwitcher": true
+}/*EDITMODE-END*/;
+
+const ACCENTS = {
+  fathom: { label: "Fathom (default)", primary: "#034f46", primary2: "#1c6056", dawn: "#dfe9e5", dawnHover: "#c9ded7" },
+  dawn:   { label: "Dawn (lavender)", primary: "#034f46", primary2: "#1c6056", dawn: "#dfe9e5", dawnHover: "#c9ded7" },
+  glow:   { label: "Glow (amber)",   primary: "#c46a1a", primary2: "#e18c2f", dawn: "#ffe4c0", dawnHover: "#f7d1a0" },
+  pulse:  { label: "Pulse (plum)",   primary: "#7f1c34", primary2: "#a42244", dawn: "#dfe9e5", dawnHover: "#c9ded7" },
+};
+
+function applyTweaks(t) {
+  const a = ACCENTS[t.accent] || ACCENTS.fathom;
+  const r = document.documentElement.style;
+  r.setProperty("--fathom", a.primary);
+  r.setProperty("--fathom-2", a.primary2);
+  r.setProperty("--dawn", a.dawn);
+  r.setProperty("--dawn-hover", a.dawnHover);
+  r.setProperty("--active-bg", `color-mix(in srgb, ${a.primary} 8%, transparent)`);
+  r.setProperty("--focus-ring", `color-mix(in srgb, ${a.primary} 18%, transparent)`);
+  document.body.dataset.density = t.density;
+}
+
+// ------------------------------------------------------------
+// Landing routes per role
+// ------------------------------------------------------------
+const ROLE_HOME = {
+  INDIVIDUAL: "ind-dashboard",
+  CORPORATE:  "corp-dashboard",
+  ADMIN:      "adm-dashboard",
+};
+
+// ------------------------------------------------------------
+// Persistence helpers
+// ------------------------------------------------------------
+const LS_ME    = "flower.me";
+const LS_ROUTE = "flower.route";
+const LS_CART  = "flower.cart";
+const LS_COLL  = "flower.sidebar.collapsed";
+
+function loadLS(k, fallback) {
+  try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); }
+  catch { return fallback; }
+}
+function saveLS(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+}
+
+// ------------------------------------------------------------
+// Root App
+// ------------------------------------------------------------
+function App() {
+  const [tweaks, setTweaks]     = useState(TWEAKS);
+  const [editMode, setEditMode] = useState(false);
+  const [me, setMe]             = useState(() => loadLS(LS_ME, null));
+  const [route, setRoute]       = useState(() => loadLS(LS_ROUTE, null));
+  const [cart, setCart]         = useState(() => loadLS(LS_CART, []));
+  const [collapsed, setCollapsed] = useState(() => loadLS(LS_COLL, TWEAKS.sidebarCollapsedDefault));
+
+  useEffect(() => { applyTweaks(tweaks); }, [tweaks]);
+  useEffect(() => { saveLS(LS_ME, me); }, [me]);
+  useEffect(() => { saveLS(LS_ROUTE, route); }, [route]);
+  useEffect(() => { saveLS(LS_CART, cart); }, [cart]);
+  useEffect(() => { saveLS(LS_COLL, collapsed); }, [collapsed]);
+
+  // Tweaks protocol — register listener BEFORE announcing availability
+  useEffect(() => {
+    function onMsg(e) {
+      const d = e.data || {};
+      if (d.type === "__activate_edit_mode")   setEditMode(true);
+      if (d.type === "__deactivate_edit_mode") setEditMode(false);
+    }
+    window.addEventListener("message", onMsg);
+    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
+  function updateTweak(key, value) {
+    setTweaks(t => {
+      const next = { ...t, [key]: value };
+      window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [key]: value } }, "*");
+      return next;
+    });
+  }
+
+  function onLogin(acc) {
+    setMe(acc);
+    setRoute(ROLE_HOME[acc.role]);
+  }
+  function onLogout() {
+    setMe(null);
+    setRoute(null);
+    setCart([]);
+    localStorage.removeItem(LS_ME);
+    localStorage.removeItem(LS_ROUTE);
+    localStorage.removeItem(LS_CART);
+  }
+  function switchRole(roleKey) {
+    const acc = window.SEED.demoAccounts.find(a => a.role === roleKey);
+    if (acc) onLogin(acc);
+  }
+  function addToCart(productId) {
+    setCart(c => {
+      const ex = c.find(x => x.id === productId);
+      if (ex) return c.map(x => x.id === productId ? { ...x, qty: x.qty + 1 } : x);
+      return [...c, { id: productId, qty: 1 }];
+    });
+  }
+
+  if (!me) return (
+    <>
+      <LoginPage onLogin={onLogin}/>
+      {editMode && <TweaksPanel tweaks={tweaks} update={updateTweak} onClose={() => setEditMode(false)}/>}
+    </>
+  );
+
+  // Role-aware route whitelist — guard against a stale route after role switch
+  const roleRoutes = {
+    INDIVIDUAL: ["ind-dashboard","ind-products","ind-cart","ind-checkout","ind-orders","ind-reviews","chat"],
+    CORPORATE:  ["corp-dashboard","corp-products","corp-orders","corp-reviews","chat"],
+    ADMIN:      ["adm-dashboard","adm-users","adm-stores","adm-categories","adm-analytics","adm-audit","adm-settings","chat"],
+  };
+  const current = roleRoutes[me.role].includes(route) ? route : ROLE_HOME[me.role];
+  const nav = (k) => setRoute(k);
+
+  // Render the right page
+  let page;
+  const cartCount = cart.reduce((s, c) => s + c.qty, 0);
+
+  switch (current) {
+    // Individual
+    case "ind-dashboard": page = <IndDashboard me={me} nav={nav}/>; break;
+    case "ind-products":  page = <IndProducts nav={nav} addToCart={addToCart}/>; break;
+    case "ind-cart":      page = <IndCart cart={cart} setCart={setCart} nav={nav}/>; break;
+    case "ind-checkout":  page = <IndCheckout cart={cart} setCart={setCart} nav={nav}/>; break;
+    case "ind-orders":    page = <IndOrders/>; break;
+    case "ind-reviews":   page = <IndReviews/>; break;
+    // Corporate
+    case "corp-dashboard":page = <CorpDashboard nav={nav}/>; break;
+    case "corp-products": page = <CorpProducts/>; break;
+    case "corp-orders":   page = <CorpOrders/>; break;
+    case "corp-reviews":  page = <CorpReviews/>; break;
+    // Admin
+    case "adm-dashboard": page = <AdmDashboard nav={nav}/>; break;
+    case "adm-users":     page = <AdmUsers/>; break;
+    case "adm-stores":    page = <AdmStores/>; break;
+    case "adm-categories":page = <AdmCategories/>; break;
+    case "adm-analytics": page = <AdmAnalytics/>; break;
+    case "adm-audit":     page = <AdmAudit/>; break;
+    case "adm-settings":  page = <AdmSettings/>; break;
+    // Chat
+    case "chat":          page = <ChatbotPage me={me}/>; break;
+    default: page = <div style={{ padding: 40 }}>Unknown route.</div>;
+  }
+
+  return (
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--lumen-dark)" }}
+         data-screen-label={current}>
+      <Sidebar me={me} route={current} nav={nav}
+               collapsed={collapsed} setCollapsed={setCollapsed}
+               onLogout={onLogout} cartCount={cartCount}/>
+      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <Topbar me={me} route={current} nav={nav}
+                showRoleSwitcher={tweaks.showRoleSwitcher} switchRole={switchRole}
+                cartCount={cartCount} onLogout={onLogout}/>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {page}
+        </div>
+      </main>
+      {editMode && <TweaksPanel tweaks={tweaks} update={updateTweak} onClose={() => setEditMode(false)}/>}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Tweaks panel
+// ------------------------------------------------------------
+function TweaksPanel({ tweaks, update, onClose }) {
+  return (
+    <div style={{
+      position: "fixed", right: 20, bottom: 20, zIndex: 200,
+      width: 280, background: "var(--lumen)", border: "1px solid var(--border)",
+      borderRadius: 14, boxShadow: "0 20px 50px -20px rgba(0,0,0,0.3)", padding: 16,
+      fontFamily: "var(--sans)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <Icon name="sparkle" size={15}/>
+        <div style={{ fontFamily: "var(--serif)", fontWeight: 700, fontSize: 15, flex: 1 }}>Tweaks</div>
+        <button onClick={onClose} className="btn btn-ghost" style={{ padding: 4 }}>
+          <Icon name="close" size={14}/>
+        </button>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div className="section-label" style={{ marginBottom: 8 }}>Accent</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {Object.entries(ACCENTS).map(([k, a]) => (
+            <button key={k} onClick={() => update("accent", k)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "7px 10px",
+                border: "1px solid " + (tweaks.accent === k ? "var(--fathom)" : "var(--border)"),
+                background: tweaks.accent === k ? "var(--active-bg)" : "var(--lumen)",
+                borderRadius: 9, cursor: "pointer", fontSize: 12, fontWeight: 500,
+                textAlign: "left", color: "var(--text)",
+              }}>
+              <span style={{ width: 14, height: 14, borderRadius: 4, background: a.primary, flexShrink: 0 }}/>
+              {a.label.split(" ")[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div className="section-label" style={{ marginBottom: 8 }}>Density</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["compact", "comfortable"].map(d => (
+            <button key={d} onClick={() => update("density", d)}
+              style={{
+                flex: 1, padding: "7px 10px", fontSize: 12, fontWeight: 500,
+                border: "1px solid " + (tweaks.density === d ? "var(--fathom)" : "var(--border)"),
+                background: tweaks.density === d ? "var(--active-bg)" : "var(--lumen)",
+                borderRadius: 9, cursor: "pointer", textTransform: "capitalize", color: "var(--text)",
+              }}>{d}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 4 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "4px 0", fontSize: 13 }}>
+          <input type="checkbox" checked={tweaks.showRoleSwitcher}
+            onChange={e => update("showRoleSwitcher", e.target.checked)}/>
+          Show role switcher in topbar
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "4px 0", fontSize: 13 }}>
+          <input type="checkbox" checked={tweaks.sidebarCollapsedDefault}
+            onChange={e => update("sidebarCollapsedDefault", e.target.checked)}/>
+          Collapse sidebar by default
+        </label>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+
+</script>
+
+
+</body>
+</html>

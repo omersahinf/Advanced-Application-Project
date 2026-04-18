@@ -1,0 +1,158 @@
+@use '../../../styles/responsive' as r;
+
+:host { display: block; }
+
+.page {
+  padding: 12px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Toolbar ——————————————————————————————————— */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.search-input {
+  max-width: 320px;
+  flex: 1 1 240px;
+}
+.role-select {
+  width: 180px;
+  flex-shrink: 0;
+}
+.toolbar-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Users card ————————————————————————————————— */
+.users-card {
+  padding: 0;
+  overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th {
+  background: var(--hover);
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 14px 16px;
+  font-size: 13.5px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+tbody tr:hover td {
+  background: var(--hover);
+}
+
+/* User cell ——————————————————————————————— */
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #dfe9e5, #c9ded7);
+  color: #034f46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.user-name-block { min-width: 0; }
+.user-name {
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+.user-email {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.joined { color: var(--text-2); }
+
+.actions-col {
+  width: 160px;
+  text-align: right;
+  white-space: nowrap;
+}
+.actions-col .btn + .btn { margin-left: 4px; }
+
+.empty-row {
+  text-align: center;
+  color: var(--text-2);
+  padding: 28px 16px;
+}
+
+/* Invite dialog ——————————————————————————————— */
+.invite-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+.field { display: block; }
+.field .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-2);
+}
+.field-span-2 { grid-column: span 2; }
+
+.feedback {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.feedback.error {
+  background: var(--err-tint);
+  color: var(--err);
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--ok-tint);
+  color: var(--ok);
+  z-index: 40;
+}
+
+@include r.lt-sm {
+  .invite-grid { grid-template-columns: 1fr; }
+  .field-span-2 { grid-column: span 1; }
+  .actions-col { width: auto; }
+}

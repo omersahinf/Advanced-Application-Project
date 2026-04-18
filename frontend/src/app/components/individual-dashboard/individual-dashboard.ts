@@ -1,325 +1,181 @@
-import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
-import { DashboardService } from '../../services/dashboard.service';
-import { IndividualDashboard } from '../../models/product.model';
 import { Chart, registerables } from 'chart.js';
+
+import { DashboardService } from '../../services/dashboard.service';
+import { OrderService } from '../../services/order.service';
+import { IndividualDashboard, Order } from '../../models/product.model';
+
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { KpiCardComponent } from '../../shared/kpi-card/kpi-card';
+import { StatusPillComponent } from '../../shared/status-pill/status-pill';
 
 Chart.register(...registerables);
 
+/**
+ * Individual (shopper) Dashboard — replicates `Flower Prototype.html`
+ * §IndDashboard layout. Topbar already renders "Dashboard — Your spending
+ * at a glance." so no in-page title.
+ *
+ * Data sources (backend-only — no hardcoded data):
+ *  - KPIs come from GET /api/dashboard/individual (IndividualDashboard).
+ *  - Recent orders come from GET /api/orders/me (first 4 by date desc).
+ *
+ * Deviations from the prototype caused by backend contract — the prototype
+ * shows "Saved with discounts" and "+18% / +4%" deltas in KPIs, and an
+ * "Orders over time" monthly bar chart. None of those fields exist on
+ * IndividualDashboard, so:
+ *  - KPI 4 shows "Items purchased" (totalItemsPurchased) with the same
+ *    green accent and tag-style icon — keeps layout parity.
+ *  - Delta chips are omitted (UI helper supports empty delta).
+ *  - Left chart becomes "Spending by category" (bar) instead of monthly
+ *    order count. Right chart stays the donut — "Orders by status" since
+ *    we have that breakdown but not a spend-by-category currency-weighted
+ *    donut that matches the prototype's total-in-center rendering.
+ */
 @Component({
   selector: 'app-individual-dashboard',
-  imports: [RouterLink, DecimalPipe],
+  standalone: true,
+  imports: [
+    RouterLink,
+    DecimalPipe,
+    DatePipe,
+    FlowerIconComponent,
+    KpiCardComponent,
+    StatusPillComponent,
+  ],
   template: `
-    <div class="page">
-      <div class="page-header">
-        <h1>My Dashboard</h1>
-        <p>Personal spending analytics</p>
-        <button class="btn-configure" (click)="showConfig = !showConfig">
-          {{ showConfig ? 'Done' : 'Configure Widgets' }}
-        </button>
-      </div>
-
-      @if (showConfig) {
-        <div class="widget-config card">
-          <h3>Toggle Widgets</h3>
-          <div class="config-options">
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['kpis']"
-                (change)="toggleWidget('kpis')"
-              />
-              KPI Cards</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['orderChart']"
-                (change)="toggleWidget('orderChart')"
-              />
-              Orders by Status</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['categoryChart']"
-                (change)="toggleWidget('categoryChart')"
-              />
-              Spending by Category</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['quickLinks']"
-                (change)="toggleWidget('quickLinks')"
-              />
-              Quick Links</label
-            >
-          </div>
-        </div>
-      }
-
+    <div class="page ind-dashboard">
       @if (data(); as d) {
-        @if (widgets()['kpis']) {
-          <div class="kpi-grid">
-            <div class="kpi-card highlight">
-              <div class="kpi-icon">💳</div>
-              <div class="kpi-value">\${{ d.totalSpend | number: '1.2-2' }}</div>
-              <div class="kpi-label">Total Spend</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">🛒</div>
-              <div class="kpi-value">{{ d.totalOrders }}</div>
-              <div class="kpi-label">Orders</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">📦</div>
-              <div class="kpi-value">{{ d.totalItemsPurchased }}</div>
-              <div class="kpi-label">Items Purchased</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">📊</div>
-              <div class="kpi-value">\${{ d.avgOrderValue | number: '1.2-2' }}</div>
-              <div class="kpi-label">Avg Order Value</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">⭐</div>
-              <div class="kpi-value">{{ d.totalReviews }}</div>
-              <div class="kpi-label">Reviews Written</div>
-            </div>
-            <div class="kpi-card membership">
-              <div class="kpi-icon">🏅</div>
-              <div class="kpi-value">{{ d.membershipType }}</div>
-              <div class="kpi-label">Membership</div>
-            </div>
-          </div>
-        }
+        <!-- KPI row — 4 cards, grid-cols-4 -->
+        <div class="kpi-grid">
+          <kpi-card
+            label="Lifetime spend"
+            [value]="'$' + (d.totalSpend | number: '1.2-2')"
+            [sub]="'across ' + d.totalOrders + ' orders'"
+            accent="#034f46"
+            icon="chart"
+          />
+          <kpi-card
+            label="Orders"
+            [value]="d.totalOrders"
+            [sub]="d.totalItemsPurchased + ' items purchased'"
+            accent="#034f46"
+            icon="package"
+          />
+          <kpi-card
+            label="Average order"
+            [value]="'$' + (d.avgOrderValue | number: '1.2-2')"
+            sub="per order across history"
+            accent="#d97706"
+            icon="bolt"
+          />
+          <kpi-card
+            label="Reviews written"
+            [value]="d.totalReviews"
+            [sub]="d.membershipType + ' member'"
+            accent="#16a34a"
+            icon="review"
+          />
+        </div>
 
+        <!-- Charts row: 1.4fr / 1fr like prototype -->
         <div class="charts-row">
-          @if (widgets()['orderChart']) {
-            <div class="chart-card card">
-              <h3>Orders by Status</h3>
-              <canvas #orderChart></canvas>
+          <div class="card chart-card">
+            <div class="chart-head">
+              <h2>Spending by category</h2>
+              <span class="chip">Lifetime</span>
             </div>
-          }
-          @if (widgets()['categoryChart']) {
-            <div class="chart-card card">
-              <h3>Spending by Category</h3>
-              <canvas #categoryChart></canvas>
-            </div>
+            <div class="chart-wrap"><canvas #categoryChart></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h2>Orders by status</h2>
+            <div class="chart-wrap"><canvas #orderChart></canvas></div>
+          </div>
+        </div>
+
+        <!-- Recent orders -->
+        <div class="card recent-orders-card">
+          <div class="recent-head">
+            <h2>Recent orders</h2>
+            <a class="btn btn-sm view-all" routerLink="/orders">
+              View all <flower-icon name="arrow_right" [size]="13" />
+            </a>
+          </div>
+          @if (recentOrders().length > 0) {
+            <table>
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Payment</th>
+                  <th style="text-align:right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of recentOrders(); track o.id) {
+                  <tr>
+                    <td class="order-id">#{{ o.id }}</td>
+                    <td class="order-date">{{ o.orderDate | date: 'mediumDate' }}</td>
+                    <td><status-pill [status]="o.status" /></td>
+                    <td class="order-payment">{{ o.paymentMethod }}</td>
+                    <td class="order-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <div class="empty-row">No orders yet — head over to Products to start shopping.</div>
           }
         </div>
 
-        @if (widgets()['quickLinks']) {
-          <div class="quick-links">
-            <a routerLink="/products" class="quick-card card">
-              <span class="quick-icon">🛍️</span>
-              <span>Browse Products</span>
-            </a>
-            <a routerLink="/orders" class="quick-card card">
-              <span class="quick-icon">📋</span>
-              <span>My Orders</span>
-            </a>
-            <a routerLink="/reviews" class="quick-card card">
-              <span class="quick-icon">⭐</span>
-              <span>My Reviews</span>
-            </a>
+        <!-- Ask Flower AI banner -->
+        <div class="ai-banner">
+          <div class="ai-icon" aria-hidden="true">
+            <flower-icon name="sparkle" [size]="22" [stroke]="1.8" />
           </div>
-        }
+          <div class="ai-copy">
+            <div class="ai-title">Ask Flower AI anything about your purchases</div>
+            <div class="ai-sub">
+              "What's my biggest-spend category?" · "Which orders took longest to deliver?"
+            </div>
+          </div>
+          <a class="btn ai-cta" routerLink="/chat">
+            Open chat <flower-icon name="arrow_right" [size]="14" />
+          </a>
+        </div>
       } @else {
-        <div class="loading">Loading dashboard...</div>
+        <div class="loading">Loading dashboard…</div>
       }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        margin-bottom: 28px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .page-header p {
-        color: #666;
-        font-size: 14px;
-        margin-top: 4px;
-      }
-      .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 14px;
-        margin-bottom: 28px;
-      }
-      .kpi-card {
-        background: #ffffeb;
-        border-radius: 16px;
-        padding: 18px;
-        text-align: center;
-        border: 1px solid #d5d5c0;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-        transition: transform 0.15s;
-      }
-      .kpi-card:hover {
-        transform: translateY(-2px);
-      }
-      .kpi-card.highlight {
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        border: none;
-      }
-      .kpi-card.highlight .kpi-label {
-        color: rgba(255, 255, 255, 0.8);
-      }
-      .kpi-card.highlight .kpi-value {
-        color: white;
-      }
-      .kpi-card.membership {
-        border: 2px solid #d97706;
-      }
-      .kpi-icon {
-        font-size: 24px;
-        margin-bottom: 6px;
-      }
-      .kpi-value {
-        font-size: 22px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .kpi-label {
-        font-size: 11px;
-        color: #666;
-        margin-top: 4px;
-        font-weight: 500;
-        text-transform: uppercase;
-      }
-      .charts-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 28px;
-      }
-      .chart-card {
-        padding: 20px;
-      }
-      .chart-card h3 {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #1a1a1a;
-      }
-      .quick-links {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-      }
-      .quick-card {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 20px;
-        text-decoration: none;
-        color: #1a1a1a;
-        font-weight: 600;
-        transition: all 0.15s;
-      }
-      .quick-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(3, 79, 70, 0.3);
-      }
-      .quick-icon {
-        font-size: 24px;
-      }
-      .btn-configure {
-        margin-top: 10px;
-        padding: 6px 16px;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        background: #ffffeb;
-        font-size: 13px;
-        cursor: pointer;
-        font-family: inherit;
-        color: #666;
-      }
-      .btn-configure:hover {
-        background: #f5f5e1;
-        color: #1a1a1a;
-      }
-      .widget-config {
-        padding: 16px;
-        margin-bottom: 20px;
-      }
-      .widget-config h3 {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #1a1a1a;
-      }
-      .config-options {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-      }
-      .config-options label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        cursor: pointer;
-        color: #1a1a1a;
-      }
-      .loading {
-        text-align: center;
-        padding: 60px;
-        color: #666;
-      }
-      @media (max-width: 768px) {
-        .kpi-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-        .charts-row {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+  styleUrls: ['./individual-dashboard.scss'],
 })
 export class IndividualDashboardComponent implements OnInit, OnDestroy {
   data = signal<IndividualDashboard | null>(null);
-  widgets = signal<Record<string, boolean>>({
-    kpis: true,
-    orderChart: true,
-    categoryChart: true,
-    quickLinks: true,
-  });
-  showConfig = false;
-  @ViewChild('orderChart') orderChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('categoryChart') categoryChartRef!: ElementRef<HTMLCanvasElement>;
+  recentOrders = signal<Order[]>([]);
+
+  @ViewChild('orderChart') orderChartRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('categoryChart') categoryChartRef?: ElementRef<HTMLCanvasElement>;
   private charts: Chart[] = [];
 
-  constructor(private dashboardService: DashboardService) {
-    const saved = localStorage.getItem('individual_widgets');
-    if (saved) this.widgets.set(JSON.parse(saved));
-  }
-
-  toggleWidget(key: string) {
-    const current = this.widgets();
-    const updated = { ...current, [key]: !current[key] };
-    this.widgets.set(updated);
-    localStorage.setItem('individual_widgets', JSON.stringify(updated));
-    if (this.data()) setTimeout(() => this.renderCharts(this.data()!), 0);
-  }
+  constructor(
+    private dashboardService: DashboardService,
+    private orderService: OrderService,
+  ) {}
 
   ngOnInit() {
     this.dashboardService.getIndividualDashboard().subscribe((d) => {
       this.data.set(d);
-      setTimeout(() => this.renderCharts(d), 0);
+      this.tryRenderCharts(d, 0);
+    });
+    this.orderService.getMyOrders().subscribe((orders) => {
+      const sorted = [...orders].sort(
+        (a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime(),
+      );
+      this.recentOrders.set(sorted.slice(0, 4));
     });
   }
 
@@ -328,52 +184,96 @@ export class IndividualDashboardComponent implements OnInit, OnDestroy {
     this.charts = [];
   }
 
+  /**
+   * ViewChild canvases live inside @if (data()) so they aren't available
+   * until a change-detection pass renders the block. Retry across a few
+   * animation frames until both canvases are mounted.
+   */
+  private tryRenderCharts(d: IndividualDashboard, attempt: number) {
+    if (attempt > 10) return;
+    const ready = !!this.orderChartRef && !!this.categoryChartRef;
+    if (!ready) {
+      requestAnimationFrame(() => this.tryRenderCharts(d, attempt + 1));
+      return;
+    }
+    this.renderCharts(d);
+  }
+
   private renderCharts(d: IndividualDashboard) {
     this.charts.forEach((c) => c.destroy());
     this.charts = [];
-    const colors = ['#8b7cf6', '#f472b6', '#06b6d4', '#f59e0b', '#a78bfa', '#10b981'];
-    const chartTextColor = '#6b7280';
-    const gridColor = '#ebe6dc';
-    const statusLabels = Object.keys(d.ordersByStatus);
-    this.charts.push(
-      new Chart(this.orderChartRef.nativeElement, {
-        type: 'doughnut',
-        data: {
-          labels: statusLabels,
-          datasets: [
-            { data: statusLabels.map((k) => d.ordersByStatus[k]), backgroundColor: colors },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } },
-        },
-      }),
-    );
 
-    const catLabels = Object.keys(d.spendByCategory);
-    this.charts.push(
-      new Chart(this.categoryChartRef.nativeElement, {
-        type: 'bar',
-        data: {
-          labels: catLabels,
-          datasets: [
-            {
-              label: 'Spend ($)',
-              data: catLabels.map((k) => d.spendByCategory[k]),
-              backgroundColor: '#10b981',
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
-            y: { beginAtZero: true, ticks: { color: chartTextColor }, grid: { color: gridColor } },
+    // Palette from FLOWER_DESIGN_SYSTEM.md §1.9 (chart colors).
+    const donutPalette = ['#034f46', '#16a34a', '#ffa946', '#dfe9e5', '#7f1c34'];
+    const fathom = '#034f46';
+    const axisColor = '#8a8a7c';
+    const gridColor = '#d5d5c0';
+
+    const categoryCanvas = this.categoryChartRef?.nativeElement;
+    if (categoryCanvas) {
+      const catLabels = Object.keys(d.spendByCategory);
+      this.charts.push(
+        new Chart(categoryCanvas, {
+          type: 'bar',
+          data: {
+            labels: catLabels,
+            datasets: [
+              {
+                label: 'Spend ($)',
+                data: catLabels.map((k) => d.spendByCategory[k]),
+                backgroundColor: fathom,
+                borderRadius: 6,
+                barThickness: 22,
+              },
+            ],
           },
-        },
-      }),
-    );
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: axisColor, font: { size: 11 } }, grid: { display: false } },
+              y: {
+                beginAtZero: true,
+                ticks: { color: axisColor, font: { size: 11 } },
+                grid: { color: gridColor, tickBorderDash: [2, 2] },
+              },
+            },
+          },
+        }),
+      );
+    }
+
+    const orderCanvas = this.orderChartRef?.nativeElement;
+    if (orderCanvas) {
+      const statusLabels = Object.keys(d.ordersByStatus);
+      this.charts.push(
+        new Chart(orderCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: statusLabels,
+            datasets: [
+              {
+                data: statusLabels.map((k) => d.ordersByStatus[k]),
+                backgroundColor: statusLabels.map((_, i) => donutPalette[i % donutPalette.length]),
+                borderColor: '#faf8ea',
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: axisColor, font: { size: 11 }, boxWidth: 10 },
+              },
+            },
+          },
+        }),
+      );
+    }
   }
 }

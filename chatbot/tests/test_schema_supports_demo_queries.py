@@ -7,14 +7,18 @@ doğrular. Veri seviyesi için test_data_quality.py'ye bakın.
 """
 import pytest
 from sqlalchemy import inspect
+from sqlalchemy.exc import SQLAlchemyError
 
 from database import engine
 
 
 @pytest.fixture(scope="module")
 def columns():
-    insp = inspect(engine)
-    return {t: {c["name"] for c in insp.get_columns(t)} for t in insp.get_table_names()}
+    try:
+        insp = inspect(engine)
+        return {t: {c["name"] for c in insp.get_columns(t)} for t in insp.get_table_names()}
+    except SQLAlchemyError:
+        pytest.skip("Database unavailable — skipping schema smoke tests.")
 
 
 # ---------- 5.7 Example #1: "Show me sales by category for last month" ----------

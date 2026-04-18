@@ -1,0 +1,13 @@
+/* ============================================================
+   Flower global stylesheet.
+   Import order matters:
+     1. tokens      — defines CSS custom properties first
+     2. typography  — base heading / body rules that consume tokens
+     3. components  — .btn, .card, .input, tables ...
+     4. utilities   — layout / a11y / responsive helpers (last wins)
+   ============================================================ */
+
+@use 'tokens';
+@use 'typography';
+@use 'components';
+@use 'utilities';

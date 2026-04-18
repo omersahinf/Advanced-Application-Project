@@ -1,446 +1,305 @@
-import { Component, OnInit, signal } from '@angular/core';
+/**
+ * Admin Users — pixel-parity replica of Flower Prototype.html §AdmUsers.
+ *
+ * Inventory (verbatim from prototype):
+ *   Root: padding "12px 32px 40px".
+ *
+ *   Toolbar row (flex gap 10 mb 16):
+ *     [.input  placeholder="Search users…" maxWidth 320]
+ *     [.select role filter (180w): All roles | Admin | Corporate |
+ *                                   Individual]
+ *     spacer
+ *     [btn  <Icon download/> Export]
+ *     [btn-primary <Icon plus/> Invite corporate]
+ *
+ *   Table card (padding 0):
+ *     Columns: User · Role · Status · Joined · Actions (right, w 150)
+ *     User cell:   <Avatar name size=32/> · (name weight 600) / (email
+ *                  mono 11.5px text-3)
+ *     Role:        <RoleBadge role={role}/>   (badge-err/corp/ind)
+ *     Status:      <StatusPill ACTIVE/CANCELLED>  (← suspended flag)
+ *     Joined:      fmtDate(createdAt) text-2
+ *     Actions:     btn-ghost btn-sm  Suspend|Unsuspend
+ *                  btn-ghost btn-sm btn-danger  <Icon trash/>
+ *
+ * Adaptations:
+ *   - "Export" wires to AdminService.exportUsers() (blob download).
+ *   - "Invite corporate" opens a <flower-dialog> with the existing
+ *     create-user form (the backend needs email/password/names, so
+ *     we keep that functionality but move it out of the page flow).
+ *   - ADMIN accounts cannot be deleted/suspended (server-side rule).
+ *
+ * AdminService.{getAllUsers, getUsersByRole, createUser, suspendUser,
+ *              deleteUser, exportUsers} are all untouched.
+ */
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { AdminCreateUserRequest, UserDto } from '../../models/product.model';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { StatusPillComponent } from '../../shared/status-pill/status-pill';
+import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [DatePipe, FormsModule],
+  standalone: true,
+  imports: [DatePipe, FormsModule, FlowerIconComponent, StatusPillComponent, FlowerDialogComponent],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>User Management</h1>
-        <div class="filter-bar">
-          <button class="filter-btn" [class.active]="filter() === ''" (click)="loadUsers('')">
-            All
-          </button>
-          <button
-            class="filter-btn"
-            [class.active]="filter() === 'ADMIN'"
-            (click)="loadUsers('ADMIN')"
-          >
-            Admin
-          </button>
-          <button
-            class="filter-btn"
-            [class.active]="filter() === 'CORPORATE'"
-            (click)="loadUsers('CORPORATE')"
-          >
-            Corporate
-          </button>
-          <button
-            class="filter-btn"
-            [class.active]="filter() === 'INDIVIDUAL'"
-            (click)="loadUsers('INDIVIDUAL')"
-          >
-            Individual
-          </button>
+      <!-- Toolbar row ————————————————————————————————— -->
+      <div class="toolbar">
+        <input
+          class="input search-input"
+          placeholder="Search users…"
+          [(ngModel)]="searchQuery"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        <select
+          class="select role-select"
+          [(ngModel)]="roleFilter"
+          [ngModelOptions]="{ standalone: true }"
+          (change)="loadUsers(roleFilter)"
+        >
+          <option value="ALL">All roles</option>
+          <option value="ADMIN">Admin</option>
+          <option value="CORPORATE">Corporate</option>
+          <option value="INDIVIDUAL">Individual</option>
+        </select>
+        <div class="toolbar-spacer"></div>
+        <button type="button" class="btn" (click)="exportUsers()" [disabled]="exporting()">
+          <flower-icon name="download" [size]="13" />
+          {{ exporting() ? 'Exporting…' : 'Export' }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="openInvite()">
+          <flower-icon name="plus" [size]="13" />
+          Invite corporate
+        </button>
+      </div>
+
+      <!-- Users table ——————————————————————————————— -->
+      <div class="card users-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of visibleUsers(); track u.id) {
+                <tr>
+                  <td>
+                    <div class="user-cell">
+                      <span class="avatar" aria-hidden="true">{{ initials(u) }}</span>
+                      <div class="user-name-block">
+                        <div class="user-name">{{ u.firstName }} {{ u.lastName }}</div>
+                        <div class="user-email">{{ u.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge" [class]="'badge-' + roleClass(u.role)">
+                      {{ u.role }}
+                    </span>
+                  </td>
+                  <td>
+                    <status-pill [status]="u.suspended ? 'CANCELLED' : 'ACTIVE'" />
+                  </td>
+                  <td class="joined">{{ u.createdAt | date: 'MMM d, y' }}</td>
+                  <td class="actions-col">
+                    @if (u.role !== 'ADMIN') {
+                      <button type="button" class="btn btn-sm btn-ghost" (click)="toggleSuspend(u)">
+                        {{ u.suspended ? 'Unsuspend' : 'Suspend' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-ghost btn-danger"
+                        (click)="deleteUser(u.id)"
+                        aria-label="Delete user"
+                      >
+                        <flower-icon name="trash" [size]="13" />
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+              @if (visibleUsers().length === 0) {
+                <tr>
+                  <td colspan="5" class="empty-row">No users match these filters.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="create-card card">
-        <div class="card-header">
-          <div>
-            <h2>Create Account</h2>
-            <p>Create individual or corporate accounts directly from the admin panel.</p>
-          </div>
-        </div>
-
-        <form class="create-grid" (ngSubmit)="createUser()">
-          <div class="field">
-            <label>First Name</label>
-            <input [(ngModel)]="form.firstName" name="firstName" required />
-          </div>
-          <div class="field">
-            <label>Last Name</label>
-            <input [(ngModel)]="form.lastName" name="lastName" required />
-          </div>
-          <div class="field">
-            <label>Email</label>
-            <input [(ngModel)]="form.email" name="email" type="email" required />
-          </div>
-          <div class="field">
-            <label>Password</label>
-            <input
-              [(ngModel)]="form.password"
-              name="password"
-              type="password"
-              minlength="6"
-              required
-            />
-          </div>
-          <div class="field">
-            <label>Role</label>
-            <select [(ngModel)]="form.role" name="role">
-              <option value="INDIVIDUAL">Individual</option>
-              <option value="CORPORATE">Corporate</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Gender</label>
-            <select [(ngModel)]="form.gender" name="gender">
-              <option value="">Unspecified</option>
-              <option value="Female">Female</option>
-              <option value="Male">Male</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          @if (form.role === 'CORPORATE') {
+      <!-- Invite dialog ——————————————————————————————— -->
+      @if (inviteOpen()) {
+        <flower-dialog
+          [title]="form.role === 'CORPORATE' ? 'Invite corporate' : 'Create account'"
+          [width]="560"
+          (closed)="closeInvite()"
+        >
+          <form class="invite-grid" (ngSubmit)="createUser()">
             <div class="field">
-              <label>Store Name</label>
-              <input [(ngModel)]="form.storeName" name="storeName" required />
+              <label class="label">First name</label>
+              <input class="input" [(ngModel)]="form.firstName" name="firstName" required />
+            </div>
+            <div class="field">
+              <label class="label">Last name</label>
+              <input class="input" [(ngModel)]="form.lastName" name="lastName" required />
             </div>
             <div class="field field-span-2">
-              <label>Store Description</label>
-              <input [(ngModel)]="form.storeDescription" name="storeDescription" />
+              <label class="label">Email</label>
+              <input class="input" [(ngModel)]="form.email" name="email" type="email" required />
             </div>
-          }
-          <div class="create-actions">
-            <button class="create-btn" type="submit" [disabled]="saving()">
-              {{ saving() ? 'Creating...' : 'Create User' }}
-            </button>
-            <button class="reset-btn" type="button" (click)="resetForm()">Reset</button>
-          </div>
-        </form>
-
-        @if (createSuccess()) {
-          <div class="feedback success">{{ createSuccess() }}</div>
-        }
-        @if (createError()) {
-          <div class="feedback error">{{ createError() }}</div>
-        }
-      </div>
-
-      <div class="table-card card">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Gender</th>
-              <th>Store</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (u of users(); track u.id) {
-              <tr>
-                <td>{{ u.id }}</td>
-                <td>{{ u.firstName }} {{ u.lastName }}</td>
-                <td>{{ u.email }}</td>
-                <td>
-                  <span class="role-badge" [class]="'role-' + u.role.toLowerCase()">{{
-                    u.role
-                  }}</span>
-                </td>
-                <td>{{ u.gender || '-' }}</td>
-                <td>{{ u.storeName || '-' }}</td>
-                <td>{{ u.createdAt | date: 'short' }}</td>
-                <td>
-                  @if (u.role !== 'ADMIN') {
-                    <button
-                      class="btn-sm"
-                      [class]="u.suspended ? 'success' : 'warn'"
-                      (click)="toggleSuspend(u)"
-                    >
-                      {{ u.suspended ? 'Reactivate' : 'Suspend' }}
-                    </button>
-                    <button class="btn-sm danger" (click)="deleteUser(u.id)">Delete</button>
-                  }
-                </td>
-              </tr>
+            <div class="field field-span-2">
+              <label class="label">Password</label>
+              <input
+                class="input"
+                [(ngModel)]="form.password"
+                name="password"
+                type="password"
+                minlength="6"
+                required
+              />
+            </div>
+            <div class="field">
+              <label class="label">Role</label>
+              <select class="select" [(ngModel)]="form.role" name="role">
+                <option value="INDIVIDUAL">Individual</option>
+                <option value="CORPORATE">Corporate</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label">Gender</label>
+              <select class="select" [(ngModel)]="form.gender" name="gender">
+                <option value="">Unspecified</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            @if (form.role === 'CORPORATE') {
+              <div class="field field-span-2">
+                <label class="label">Store name</label>
+                <input class="input" [(ngModel)]="form.storeName" name="storeName" required />
+              </div>
+              <div class="field field-span-2">
+                <label class="label">Store description</label>
+                <input class="input" [(ngModel)]="form.storeDescription" name="storeDescription" />
+              </div>
             }
-          </tbody>
-        </table>
-        @if (users().length === 0) {
-          <div class="empty">No users found</div>
-        }
-      </div>
+            @if (createError()) {
+              <div class="feedback error field-span-2">{{ createError() }}</div>
+            }
+          </form>
+          <div footer>
+            <button type="button" class="btn" (click)="closeInvite()">Cancel</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="saving()"
+              (click)="createUser()"
+            >
+              {{ saving() ? 'Creating…' : 'Create user' }}
+            </button>
+          </div>
+        </flower-dialog>
+      }
+
+      @if (createSuccess()) {
+        <div class="toast success">{{ createSuccess() }}</div>
+      }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .create-card {
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .card-header {
-        margin-bottom: 16px;
-      }
-      .card-header h2 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .card-header p {
-        color: #666;
-        font-size: 13px;
-        margin-top: 4px;
-      }
-      .create-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px 16px;
-        align-items: end;
-      }
-      .field label {
-        display: block;
-        font-size: 12px;
-        font-weight: 600;
-        color: #666;
-        margin-bottom: 6px;
-      }
-      .field input,
-      .field select {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 10px 12px;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        background: #ffffeb;
-        color: #1a1a1a;
-        font-size: 14px;
-      }
-      .field input:focus,
-      .field select:focus {
-        outline: none;
-        border-color: #034f46;
-      }
-      .create-actions {
-        display: flex;
-        gap: 10px;
-      }
-      .field-span-2 {
-        grid-column: span 2;
-      }
-      .create-btn,
-      .reset-btn {
-        height: 40px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .create-btn {
-        border: none;
-        background: #034f46;
-        color: #ffffeb;
-        padding: 0 16px;
-      }
-      .create-btn:disabled {
-        opacity: 0.65;
-        cursor: wait;
-      }
-      .reset-btn {
-        border: 1px solid #c8c8b4;
-        background: #ffffeb;
-        color: #666;
-        padding: 0 16px;
-      }
-      .feedback {
-        margin-top: 14px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-      }
-      .feedback.success {
-        background: #dcfce7;
-        color: #166534;
-      }
-      .feedback.error {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-      .filter-bar {
-        display: flex;
-        gap: 6px;
-      }
-      .filter-btn {
-        padding: 6px 14px;
-        border: 1px solid #c8c8b4;
-        border-radius: 6px;
-        background: #ffffeb;
-        font-size: 13px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.15s;
-        color: #666;
-      }
-      .filter-btn.active {
-        background: #034f46;
-        color: white;
-        border-color: #034f46;
-      }
-      .table-card {
-        padding: 0;
-        overflow-x: auto;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      th {
-        background: #f5f5e1;
-        padding: 12px 16px;
-        text-align: left;
-        font-weight: 600;
-        color: #666;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      td {
-        padding: 12px 16px;
-        border-top: 1px solid #d5d5c0;
-      }
-      tr:hover td {
-        background: #f5f5e1;
-      }
-      .role-badge {
-        font-size: 11px;
-        font-weight: 700;
-        padding: 2px 8px;
-        border-radius: 4px;
-      }
-      .role-admin {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .role-corporate {
-        background: #034f46;
-        color: #ffffeb;
-      }
-      .role-individual {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .btn-sm {
-        padding: 4px 10px;
-        border: none;
-        border-radius: 4px;
-        font-size: 12px;
-        cursor: pointer;
-        font-weight: 500;
-      }
-      .btn-sm.danger {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .btn-sm.danger:hover {
-        background: #fecaca;
-      }
-      .btn-sm.warn {
-        background: #fef3c7;
-        color: #d97706;
-        margin-right: 4px;
-      }
-      .btn-sm.warn:hover {
-        background: #fde68a;
-      }
-      .btn-sm.success {
-        background: #dcfce7;
-        color: #16a34a;
-        margin-right: 4px;
-      }
-      .btn-sm.success:hover {
-        background: #bbf7d0;
-      }
-      .empty {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-      }
-      @media (max-width: 960px) {
-        .page-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 12px;
-        }
-        .create-grid {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-      @media (max-width: 640px) {
-        .create-grid {
-          grid-template-columns: 1fr;
-        }
-        .create-actions {
-          flex-direction: column;
-        }
-        .create-btn,
-        .reset-btn {
-          width: 100%;
-        }
-      }
-    `,
-  ],
+  styleUrls: ['./admin-users.scss'],
 })
 export class AdminUsersComponent implements OnInit {
   users = signal<UserDto[]>([]);
-  filter = signal('');
+  roleFilter = 'ALL';
+  searchQuery = '';
   saving = signal(false);
+  exporting = signal(false);
   createSuccess = signal('');
   createError = signal('');
+  inviteOpen = signal(false);
 
   form: AdminCreateUserRequest = this.emptyForm();
+
+  visibleUsers = computed(() => {
+    const q = this.searchQuery.trim().toLowerCase();
+    const list = this.users();
+    if (!q) return list;
+    return list.filter((u) => {
+      const hay = `${u.firstName} ${u.lastName} ${u.email} ${u.storeName ?? ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+  });
 
   constructor(private adminService: AdminService) {}
 
   ngOnInit() {
-    this.loadUsers('');
+    this.loadUsers('ALL');
   }
 
   loadUsers(role: string) {
-    this.filter.set(role);
-    if (role) {
-      this.adminService.getUsersByRole(role).subscribe((u) => this.users.set(u));
+    const normalized = role && role !== 'ALL' ? role : '';
+    this.roleFilter = role;
+    if (normalized) {
+      this.adminService.getUsersByRole(normalized).subscribe((u) => this.users.set(u));
     } else {
       this.adminService.getAllUsers().subscribe((u) => this.users.set(u));
     }
   }
 
+  initials(u: UserDto): string {
+    const f = u.firstName?.[0] ?? '';
+    const l = u.lastName?.[0] ?? '';
+    return `${f}${l}`.toUpperCase() || '?';
+  }
+
+  roleClass(role: string): 'err' | 'corp' | 'ind' {
+    if (role === 'ADMIN') return 'err';
+    if (role === 'CORPORATE') return 'corp';
+    return 'ind';
+  }
+
+  openInvite() {
+    this.form = this.emptyForm();
+    this.form.role = 'CORPORATE';
+    this.createError.set('');
+    this.inviteOpen.set(true);
+  }
+
+  closeInvite() {
+    this.inviteOpen.set(false);
+  }
+
   createUser() {
+    if (!this.form.firstName.trim() || !this.form.email.trim() || !this.form.password) {
+      this.createError.set('First name, email, and password are required.');
+      return;
+    }
     if (this.form.role === 'CORPORATE' && !this.form.storeName?.trim()) {
       this.createError.set('Store name is required for corporate accounts.');
       return;
     }
-
     this.saving.set(true);
     this.createSuccess.set('');
     this.createError.set('');
-
     this.adminService.createUser(this.buildCreatePayload()).subscribe({
       next: (created) => {
-        const storePart =
-          created.role === 'CORPORATE' && created.storeName
-            ? ` Store "${created.storeName}" is waiting for approval.`
-            : '';
-        this.createSuccess.set(`${created.role} account created for ${created.email}.${storePart}`);
-        this.resetForm();
-        this.loadUsers(created.role);
+        this.createSuccess.set(`${created.role} account created for ${created.email}.`);
+        setTimeout(() => this.createSuccess.set(''), 4000);
+        this.inviteOpen.set(false);
         this.saving.set(false);
+        this.loadUsers(this.roleFilter);
       },
       error: (err) => {
         this.createError.set(err?.error?.message || err?.error?.error || 'Could not create user.');
@@ -449,19 +308,32 @@ export class AdminUsersComponent implements OnInit {
     });
   }
 
+  toggleSuspend(user: UserDto) {
+    this.adminService
+      .suspendUser(user.id, !user.suspended)
+      .subscribe(() => this.loadUsers(this.roleFilter));
+  }
+
   deleteUser(id: number) {
-    if (confirm('Are you sure you want to delete this user?')) {
-      this.adminService.deleteUser(id).subscribe(() => this.loadUsers(this.filter()));
+    if (confirm('Delete this user? This cannot be undone.')) {
+      this.adminService.deleteUser(id).subscribe(() => this.loadUsers(this.roleFilter));
     }
   }
 
-  toggleSuspend(user: UserDto) {
-    const newState = !user.suspended;
-    this.adminService.suspendUser(user.id, newState).subscribe(() => this.loadUsers(this.filter()));
-  }
-
-  resetForm() {
-    this.form = this.emptyForm();
+  exportUsers() {
+    this.exporting.set(true);
+    this.adminService.exportUsers().subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob as Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'users.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => this.exporting.set(false),
+    });
   }
 
   private emptyForm(): AdminCreateUserRequest {
@@ -485,7 +357,6 @@ export class AdminUsersComponent implements OnInit {
         storeDescription: this.form.storeDescription?.trim() || '',
       };
     }
-
     return {
       firstName: this.form.firstName,
       lastName: this.form.lastName,

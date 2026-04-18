@@ -130,7 +130,6 @@ class OrderServiceTest {
     void updateOrderStatus_adminCanUpdateAny() {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
-        when(shipmentRepository.findByOrderId(1L)).thenReturn(Optional.empty());
 
         OrderDto result = orderService.updateOrderStatus(1L, OrderStatus.CONFIRMED, 99L, "ADMIN");
 

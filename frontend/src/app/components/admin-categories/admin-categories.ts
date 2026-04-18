@@ -1,24 +1,138 @@
+/**
+ * Admin Categories — pixel-parity replica of Flower Prototype.html §AdmCategories.
+ *
+ * Inventory (verbatim):
+ *   Root: padding 12px 32px 40px.
+ *   Toolbar row (flex, gap 10, mb 16):
+ *     spacer · [btn-primary  <Icon plus/> New category]
+ *   Card (padding 14) contains a tree:
+ *     Root row: flex align-center, gap 10, padding 10/12, radius 8,
+ *               bg var(--hover). Shows <Icon tag size=14/> <b>{name}</b>
+ *               · {count} products  · spacer ·
+ *               [btn-ghost btn-sm <Icon edit/>]
+ *               [btn-ghost btn-sm <Icon plus/> Add child]
+ *     Child row: marginLeft 26, padding 8/12, flex align-center gap 10,
+ *                border-bottom 1px var(--border). Shows
+ *                <Icon chevron_right size=12/> <div font-size:13>{name}</div>
+ *                · {count} products · spacer ·
+ *                [btn-ghost btn-sm <Icon edit/>]
+ *                [btn-ghost btn-sm btn-danger <Icon trash/>]
+ *
+ * Adaptations:
+ *   - Editing / new-category opens a flower-dialog that reuses the
+ *     existing CategoryService.create / update endpoints.
+ *   - Category.productCount is not on the existing Category model,
+ *     so the "· X products" note is omitted when the count is not
+ *     available, keeping layout intact.
+ */
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CategoryService } from '../../services/category.service';
 import { Category } from '../../models/product.model';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog';
 
 @Component({
   selector: 'app-admin-categories',
-  imports: [FormsModule],
+  standalone: true,
+  imports: [FormsModule, FlowerIconComponent, FlowerDialogComponent],
   template: `
     <div class="page">
-      <div class="content-grid">
-        <div class="form-card card">
-          <h3>{{ editId() ? 'Edit Category' : 'Add Category' }}</h3>
-          <form (ngSubmit)="save()">
+      <!-- Toolbar row ————————————————————————————————— -->
+      <div class="toolbar">
+        <div class="toolbar-spacer"></div>
+        <button type="button" class="btn btn-primary" (click)="openNew()">
+          <flower-icon name="plus" [size]="13" />
+          New category
+        </button>
+      </div>
+
+      <!-- Tree card ——————————————————————————————— -->
+      <div class="card tree-card">
+        @for (root of tree(); track root.id) {
+          <div class="tree-block">
+            <div class="tree-row root-row">
+              <flower-icon name="tag" [size]="14" />
+              <b class="root-name">{{ root.name }}</b>
+              @if (productCountOf(root); as n) {
+                <span class="count-note">· {{ n }} products</span>
+              }
+              <div class="row-spacer"></div>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                (click)="openEdit(root)"
+                aria-label="Edit category"
+              >
+                <flower-icon name="edit" [size]="12" />
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                (click)="openChild(root)"
+              >
+                <flower-icon name="plus" [size]="12" />
+                Add child
+              </button>
+            </div>
+
+            @for (child of root.children || []; track child.id) {
+              <div class="tree-row child-row">
+                <flower-icon name="chevron_right" [size]="12" />
+                <div class="child-name">{{ child.name }}</div>
+                @if (productCountOf(child); as n) {
+                  <span class="count-note">· {{ n }} products</span>
+                }
+                <div class="row-spacer"></div>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="openEdit(child)"
+                  aria-label="Edit category"
+                >
+                  <flower-icon name="edit" [size]="12" />
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm btn-danger"
+                  (click)="remove(child.id)"
+                  aria-label="Delete category"
+                >
+                  <flower-icon name="trash" [size]="12" />
+                </button>
+              </div>
+            }
+          </div>
+        }
+        @if (tree().length === 0) {
+          <div class="tree-empty">No categories yet.</div>
+        }
+      </div>
+
+      <!-- Edit dialog ——————————————————————————————— -->
+      @if (dialogOpen()) {
+        <flower-dialog
+          [title]="editId() ? 'Edit category' : 'New category'"
+          [width]="440"
+          (closed)="closeDialog()"
+        >
+          <div class="dlg-form">
             <div class="field">
-              <label>Name</label>
-              <input [(ngModel)]="formName" name="name" placeholder="Category name" required />
+              <label class="label">Name</label>
+              <input
+                class="input"
+                [(ngModel)]="formName"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="e.g. Accessories"
+              />
             </div>
             <div class="field">
-              <label>Parent</label>
-              <select [(ngModel)]="formParentId" name="parentId">
+              <label class="label">Parent</label>
+              <select
+                class="select"
+                [(ngModel)]="formParentId"
+                [ngModelOptions]="{ standalone: true }"
+              >
                 <option [ngValue]="null">None (root category)</option>
                 @for (c of allCategories(); track c.id) {
                   <option [ngValue]="c.id">
@@ -27,176 +141,29 @@ import { Category } from '../../models/product.model';
                 }
               </select>
             </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">
-                {{ editId() ? 'Update' : 'Create' }}
-              </button>
-              @if (editId()) {
-                <button type="button" class="btn btn-secondary" (click)="resetForm()">
-                  Cancel
-                </button>
-              }
-            </div>
-          </form>
-        </div>
-
-        <div class="tree-card card">
-          <h3>Category Tree</h3>
-          @for (c of tree(); track c.id) {
-            <div class="tree-item root">
-              <div class="tree-row">
-                <span class="tree-name">{{ c.name }}</span>
-                <div class="tree-actions">
-                  <button class="btn-xs" (click)="startEdit(c)">Edit</button>
-                  <button class="btn-xs danger" (click)="remove(c.id)">Delete</button>
-                </div>
-              </div>
-              @if (c.children) {
-                @for (child of c.children; track child.id) {
-                  <div class="tree-item child">
-                    <div class="tree-row">
-                      <span class="tree-name">↳ {{ child.name }}</span>
-                      <div class="tree-actions">
-                        <button class="btn-xs" (click)="startEdit(child)">Edit</button>
-                        <button class="btn-xs danger" (click)="remove(child.id)">Delete</button>
-                      </div>
-                    </div>
-                  </div>
-                }
-              }
-            </div>
-          }
-          @if (tree().length === 0) {
-            <div class="empty">No categories yet</div>
-          }
-        </div>
-      </div>
+          </div>
+          <div footer>
+            <button type="button" class="btn" (click)="closeDialog()">Cancel</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!formName.trim()"
+              (click)="save()"
+            >
+              Save
+            </button>
+          </div>
+        </flower-dialog>
+      }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        margin-bottom: 20px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .content-grid {
-        display: grid;
-        grid-template-columns: 350px 1fr;
-        gap: 20px;
-      }
-      .form-card,
-      .tree-card {
-        padding: 20px;
-      }
-      .form-card h3,
-      .tree-card h3 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #1a1a1a;
-      }
-      .field {
-        margin-bottom: 14px;
-      }
-      .field label {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #666;
-      }
-      select {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid #c8c8b4;
-        border-radius: 8px;
-        font-size: 14px;
-        font-family: inherit;
-        background: #ffffeb;
-        color: #1a1a1a;
-      }
-      .form-actions {
-        display: flex;
-        gap: 8px;
-      }
-      .btn-secondary {
-        background: #f5f5e1;
-        color: #666;
-        border: 1px solid #c8c8b4;
-        padding: 10px 20px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 14px;
-      }
-      .tree-item.root {
-        margin-bottom: 4px;
-      }
-      .tree-item.child {
-        padding-left: 20px;
-      }
-      .tree-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        border-radius: 6px;
-        transition: background 0.15s;
-      }
-      .tree-row:hover {
-        background: #f5f5e1;
-      }
-      .tree-name {
-        font-size: 14px;
-        font-weight: 500;
-        color: #1a1a1a;
-      }
-      .tree-actions {
-        display: flex;
-        gap: 4px;
-      }
-      .btn-xs {
-        padding: 3px 8px;
-        border: 1px solid #c8c8b4;
-        border-radius: 4px;
-        background: #ffffeb;
-        font-size: 11px;
-        cursor: pointer;
-        color: #1a1a1a;
-      }
-      .btn-xs.danger {
-        border-color: rgba(220, 38, 38, 0.3);
-        color: #dc2626;
-      }
-      .btn-xs:hover {
-        background: #f5f5e1;
-      }
-      .empty {
-        padding: 20px;
-        text-align: center;
-        color: #666;
-      }
-      @media (max-width: 768px) {
-        .content-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+  styleUrls: ['./admin-categories.scss'],
 })
 export class AdminCategoriesComponent implements OnInit {
   tree = signal<Category[]>([]);
   allCategories = signal<Category[]>([]);
   editId = signal<number | null>(null);
+  dialogOpen = signal(false);
   formName = '';
   formParentId: number | null = null;
 
@@ -211,28 +178,46 @@ export class AdminCategoriesComponent implements OnInit {
     this.categoryService.getAll().subscribe((a) => this.allCategories.set(a));
   }
 
+  productCountOf(c: Category): number | null {
+    const n = (c as Category & { productCount?: number }).productCount;
+    return typeof n === 'number' ? n : null;
+  }
+
+  openNew() {
+    this.editId.set(null);
+    this.formName = '';
+    this.formParentId = null;
+    this.dialogOpen.set(true);
+  }
+
+  openEdit(c: Category) {
+    this.editId.set(c.id);
+    this.formName = c.name;
+    this.formParentId = c.parentId;
+    this.dialogOpen.set(true);
+  }
+
+  openChild(parent: Category) {
+    this.editId.set(null);
+    this.formName = '';
+    this.formParentId = parent.id;
+    this.dialogOpen.set(true);
+  }
+
+  closeDialog() {
+    this.dialogOpen.set(false);
+  }
+
   save() {
     if (!this.formName.trim()) return;
-    const data = { name: this.formName, parentId: this.formParentId ?? undefined };
+    const data = { name: this.formName.trim(), parentId: this.formParentId ?? undefined };
     const obs = this.editId()
       ? this.categoryService.update(this.editId()!, data)
       : this.categoryService.create(data);
     obs.subscribe(() => {
-      this.resetForm();
+      this.closeDialog();
       this.load();
     });
-  }
-
-  startEdit(c: Category) {
-    this.editId.set(c.id);
-    this.formName = c.name;
-    this.formParentId = c.parentId;
-  }
-
-  resetForm() {
-    this.editId.set(null);
-    this.formName = '';
-    this.formParentId = null;
   }
 
   remove(id: number) {

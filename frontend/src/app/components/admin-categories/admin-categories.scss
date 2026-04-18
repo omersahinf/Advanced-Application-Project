@@ -1,0 +1,86 @@
+@use '../../../styles/responsive' as r;
+
+:host { display: block; }
+
+.page {
+  padding: 12px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Toolbar ——————————————————————————————————— */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.toolbar-spacer { flex: 1 1 auto; }
+
+/* Tree card ———————————————————————————————— */
+.tree-card {
+  padding: 14px;
+}
+.tree-block + .tree-block {
+  margin-top: 6px;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.root-row {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--hover);
+}
+.root-name {
+  font-size: 14px;
+  color: var(--text);
+}
+.child-row {
+  margin-left: 26px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.child-row:last-child { border-bottom: none; }
+.child-name {
+  font-size: 13px;
+  color: var(--text);
+}
+.count-note {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.row-spacer {
+  flex: 1 1 auto;
+}
+
+.tree-empty {
+  text-align: center;
+  color: var(--text-2);
+  padding: 24px 12px;
+}
+
+/* Dialog form ————————————————————————————————— */
+.dlg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.field { display: block; }
+.field .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-2);
+}
+
+@include r.lt-sm {
+  .child-row {
+    margin-left: 12px;
+  }
+  .count-note { display: none; }
+}

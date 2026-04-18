@@ -3,10 +3,11 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { LayoutService } from '../../services/layout.service';
 import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
+import { FlowerIconComponent, FlowerIconName } from '../../shared/flower-icon/flower-icon';
 
 type NavItem = {
   label: string;
-  icon: string;
+  icon: FlowerIconName;
   route: string;
   exact?: boolean;
   badge?: string;
@@ -20,7 +21,7 @@ type NavSection = {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, FlowerLogoComponent],
+  imports: [RouterLink, RouterLinkActive, FlowerLogoComponent, FlowerIconComponent],
   template: `
     @if (layout.mobileDrawerOpen()) {
       <div class="mobile-backdrop" (click)="layout.closeMobileDrawer()" aria-hidden="true"></div>
@@ -88,7 +89,9 @@ type NavSection = {
               (click)="layout.closeMobileDrawer()"
               [attr.title]="item.label"
             >
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              <span class="nav-icon" aria-hidden="true">
+                <flower-icon [name]="item.icon" [size]="17" />
+              </span>
               <span class="nav-label">{{ item.label }}</span>
               @if (item.badge) {
                 <span class="badge-new">{{ item.badge }}</span>
@@ -157,25 +160,21 @@ export class NavbarComponent {
       .toUpperCase(),
   );
 
-  // ── Nav config — mirrors FLOWER_DESIGN_SYSTEM.md §1.7.2, scoped to routes
-  //    that actually exist. Items pointing at non-existent routes are omitted
-  //    (no backend changes) and can be added in later steps.
+  // ── Nav config — mirrors Flower Prototype.html sidebar exactly.
+  //    Secondary destinations (Cart, My Orders, My Reviews, Profile) live in
+  //    the topbar avatar dropdown, not the sidebar.
 
   private readonly individualNav: NavSection[] = [
     {
       title: 'Shop',
       items: [
-        { label: 'Dashboard', icon: '🏠', route: '/dashboard', exact: true },
-        { label: 'Products', icon: '🛍️', route: '/products' },
-        { label: 'Cart', icon: '🛒', route: '/cart' },
-        { label: 'Orders', icon: '📦', route: '/orders' },
-        { label: 'Reviews', icon: '⭐', route: '/reviews' },
-        { label: 'Profile', icon: '👤', route: '/profile' },
+        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', exact: true },
+        { label: 'Products', icon: 'store', route: '/products' },
       ],
     },
     {
       title: 'AI',
-      items: [{ label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' }],
+      items: [{ label: 'Analytics Chat', icon: 'sparkle', route: '/chat', badge: 'Text2SQL' }],
     },
   ];
 
@@ -183,20 +182,15 @@ export class NavbarComponent {
     {
       title: 'Store',
       items: [
-        { label: 'Dashboard', icon: '🏠', route: '/corporate', exact: true },
-        { label: 'Products', icon: '🛍️', route: '/corporate/products' },
-        { label: 'Orders', icon: '📦', route: '/corporate/orders' },
-        { label: 'Reviews', icon: '⭐', route: '/corporate/reviews' },
-        { label: 'Profile', icon: '👤', route: '/profile' },
+        { label: 'Dashboard', icon: 'dashboard', route: '/corporate', exact: true },
+        { label: 'Products', icon: 'store', route: '/corporate/products' },
+        { label: 'Orders', icon: 'package', route: '/corporate/orders' },
+        { label: 'Reviews', icon: 'review', route: '/corporate/reviews' },
       ],
     },
     {
-      title: 'Browse',
-      items: [{ label: 'Browse Store', icon: '🏬', route: '/products' }],
-    },
-    {
       title: 'AI',
-      items: [{ label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' }],
+      items: [{ label: 'Analytics Chat', icon: 'sparkle', route: '/chat', badge: 'Text2SQL' }],
     },
   ];
 
@@ -204,25 +198,23 @@ export class NavbarComponent {
     {
       title: 'Platform',
       items: [
-        { label: 'Dashboard', icon: '🏠', route: '/admin', exact: true },
-        { label: 'Users', icon: '👥', route: '/admin/users' },
-        { label: 'Stores', icon: '🏪', route: '/admin/stores' },
-        { label: 'Categories', icon: '📁', route: '/admin/categories' },
+        { label: 'Dashboard', icon: 'dashboard', route: '/admin', exact: true },
+        { label: 'Users', icon: 'users', route: '/admin/users' },
+        { label: 'Stores', icon: 'store', route: '/admin/stores' },
+        { label: 'Categories', icon: 'tag', route: '/admin/categories' },
       ],
     },
     {
       title: 'Insight',
       items: [
-        { label: 'Analytics', icon: '📊', route: '/admin/analytics' },
-        { label: 'Analytics Chat', icon: '✨', route: '/chat', badge: 'Text2SQL' },
+        { label: 'Analytics', icon: 'chart', route: '/admin/analytics' },
+        { label: 'Analytics Chat', icon: 'sparkle', route: '/chat', badge: 'Text2SQL' },
+        { label: 'Audit Logs', icon: 'shield', route: '/admin/audit' },
       ],
     },
     {
       title: 'System',
-      items: [
-        { label: 'Settings', icon: '⚙️', route: '/admin/settings' },
-        { label: 'Profile', icon: '👤', route: '/profile' },
-      ],
+      items: [{ label: 'Settings', icon: 'settings', route: '/admin/settings' }],
     },
   ];
 }

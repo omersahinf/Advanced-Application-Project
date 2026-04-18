@@ -20,130 +20,59 @@ Chart.register(...registerables);
   imports: [RouterLink, DecimalPipe],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>Platform Analytics</h1>
-        <p>Admin Dashboard</p>
-      </div>
-
-      <button class="btn-configure" (click)="showConfig = !showConfig">
-        {{ showConfig ? 'Done' : 'Configure Widgets' }}
-      </button>
-
-      @if (showConfig) {
-        <div class="widget-config card">
-          <h3>Toggle Widgets</h3>
-          <div class="config-options">
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['kpis']"
-                (change)="toggleWidget('kpis')"
-              />
-              KPI Cards</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['orderChart']"
-                (change)="toggleWidget('orderChart')"
-              />
-              Orders by Status</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['userChart']"
-                (change)="toggleWidget('userChart')"
-              />
-              Users by Role</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['revenueChart']"
-                (change)="toggleWidget('revenueChart')"
-              />
-              Revenue by Store</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="widgets()['quickLinks']"
-                (change)="toggleWidget('quickLinks')"
-              />
-              Quick Links</label
-            >
+      @if (data(); as d) {
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <h3>Total Users</h3>
+            <p class="kpi-value">{{ d.totalUsers | number }}</p>
+          </div>
+          <div class="kpi-card">
+            <h3>Total Stores</h3>
+            <p class="kpi-value">{{ d.totalStores | number }}</p>
+          </div>
+          <div class="kpi-card">
+            <h3>Total Products</h3>
+            <p class="kpi-value">{{ d.totalProducts | number }}</p>
+          </div>
+          <div class="kpi-card">
+            <h3>Total Orders</h3>
+            <p class="kpi-value">{{ d.totalOrders | number }}</p>
+          </div>
+          <div class="kpi-card">
+            <h3>Total Revenue</h3>
+            <p class="kpi-value">{{ d.totalRevenue | number: '1.2-2' }}</p>
           </div>
         </div>
-      }
-
-      @if (data(); as d) {
-        @if (widgets()['kpis']) {
-          <div class="kpi-grid">
-            <div class="kpi-card">
-              <h3>Total Users</h3>
-              <p class="kpi-value">{{ d.totalUsers | number }}</p>
-            </div>
-            <div class="kpi-card">
-              <h3>Total Stores</h3>
-              <p class="kpi-value">{{ d.totalStores | number }}</p>
-            </div>
-            <div class="kpi-card">
-              <h3>Total Products</h3>
-              <p class="kpi-value">{{ d.totalProducts | number }}</p>
-            </div>
-            <div class="kpi-card">
-              <h3>Total Orders</h3>
-              <p class="kpi-value">{{ d.totalOrders | number }}</p>
-            </div>
-            <div class="kpi-card">
-              <h3>Total Revenue</h3>
-              <p class="kpi-value">{{ d.totalRevenue | number: '1.2-2' }}</p>
-            </div>
-          </div>
-        }
 
         <div class="charts-row">
-          @if (widgets()['orderChart']) {
-            <div class="chart-card card">
-              <h3>Orders by Status</h3>
-              <canvas #orderChart></canvas>
-            </div>
-          }
-          @if (widgets()['userChart']) {
-            <div class="chart-card card">
-              <h3>Users by Role</h3>
-              <canvas #userChart></canvas>
-            </div>
-          }
-          @if (widgets()['revenueChart']) {
-            <div class="chart-card card">
-              <h3>Revenue by Store</h3>
-              <canvas #revenueChart></canvas>
-            </div>
-          }
+          <div class="chart-card card">
+            <h3>Orders by Status</h3>
+            <canvas #orderChart></canvas>
+          </div>
+          <div class="chart-card card">
+            <h3>Users by Role</h3>
+            <canvas #userChart></canvas>
+          </div>
+          <div class="chart-card card">
+            <h3>Revenue by Store</h3>
+            <canvas #revenueChart></canvas>
+          </div>
         </div>
 
-        @if (widgets()['quickLinks']) {
-          <div class="quick-links">
-            <a routerLink="/admin/users" class="quick-card card">
-              <span class="quick-icon">👥</span>
-              <span>Manage Users</span>
-            </a>
-            <a routerLink="/admin/stores" class="quick-card card">
-              <span class="quick-icon">🏪</span>
-              <span>Manage Stores</span>
-            </a>
-            <a routerLink="/admin/categories" class="quick-card card">
-              <span class="quick-icon">📁</span>
-              <span>Manage Categories</span>
-            </a>
-            <a routerLink="/admin/settings" class="quick-card card">
-              <span class="quick-icon">⚙️</span>
-              <span>System Settings</span>
-            </a>
-          </div>
-        }
+        <div class="quick-links">
+          <a routerLink="/admin/users" class="quick-card card">
+            <span>Manage Users</span>
+          </a>
+          <a routerLink="/admin/stores" class="quick-card card">
+            <span>Manage Stores</span>
+          </a>
+          <a routerLink="/admin/categories" class="quick-card card">
+            <span>Manage Categories</span>
+          </a>
+          <a routerLink="/admin/settings" class="quick-card card">
+            <span>System Settings</span>
+          </a>
+        </div>
       } @else {
         <div class="loading">Loading dashboard...</div>
       }

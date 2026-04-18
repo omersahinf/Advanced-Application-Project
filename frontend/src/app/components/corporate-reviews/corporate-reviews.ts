@@ -27,9 +27,7 @@ import { Review } from '../../models/product.model';
               <span>{{ r.helpfulVotes }}/{{ r.totalVotes }} helpful</span>
             </div>
             @if (r.corporateReply) {
-              <div class="existing-reply">
-                <strong>Your reply:</strong> {{ r.corporateReply }}
-              </div>
+              <div class="existing-reply"><strong>Your reply:</strong> {{ r.corporateReply }}</div>
             } @else {
               <div class="reply-section">
                 <input

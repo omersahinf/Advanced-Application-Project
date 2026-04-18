@@ -18,11 +18,6 @@ export interface PlatformSettings {
   imports: [FormsModule],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>System Settings</h1>
-        <p>Configure platform-wide settings</p>
-      </div>
-
       @if (settings(); as s) {
         <div class="settings-grid">
           <div class="settings-card card">

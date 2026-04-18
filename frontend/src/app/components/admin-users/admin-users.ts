@@ -10,7 +10,6 @@ import { AdminCreateUserRequest, UserDto } from '../../models/product.model';
   template: `
     <div class="page">
       <div class="page-header">
-        <h1>User Management</h1>
         <div class="filter-bar">
           <button class="filter-btn" [class.active]="filter() === ''" (click)="loadUsers('')">
             All

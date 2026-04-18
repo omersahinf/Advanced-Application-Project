@@ -4,6 +4,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
 import { LayoutService } from '../../services/layout.service';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
 
 type Role = 'INDIVIDUAL' | 'CORPORATE' | 'ADMIN';
 
@@ -13,6 +14,11 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
   { prefix: '/admin/stores', title: 'Stores', sub: 'Activate, close, and audit every store.' },
   { prefix: '/admin/categories', title: 'Categories', sub: 'Hierarchical taxonomy for products.' },
   { prefix: '/admin/analytics', title: 'Analytics', sub: 'Cross-store and customer segmentation.' },
+  {
+    prefix: '/admin/audit',
+    title: 'Audit Logs',
+    sub: 'Every sensitive action, who did it, from where.',
+  },
   { prefix: '/admin/settings', title: 'Settings', sub: 'Platform-wide configuration.' },
   {
     prefix: '/admin',
@@ -51,7 +57,7 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
 @Component({
   selector: 'app-top-header',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FlowerIconComponent],
   template: `
     <header class="topbar" role="banner">
       <button
@@ -60,20 +66,15 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
         (click)="layout.toggleMobileDrawer()"
         aria-label="Open navigation"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 6h16M4 12h16M4 18h16"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
+        <flower-icon name="menu" [size]="18" [stroke]="2" />
       </button>
 
       <div class="title-block">
-        <h1>{{ meta().title }}</h1>
-        @if (meta().sub) {
-          <p class="subtitle">{{ meta().sub }}</p>
+        @if (!hideTopbarTitle()) {
+          <h1>{{ meta().title }}</h1>
+          @if (meta().sub) {
+            <p class="subtitle">{{ meta().sub }}</p>
+          }
         }
       </div>
 
@@ -95,59 +96,18 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
       </div>
 
       <button class="icon-btn" type="button" aria-label="Notifications" title="Notifications">
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.75"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
+        <flower-icon name="bell" [size]="17" />
         <span class="bell-dot" aria-hidden="true"></span>
       </button>
 
       <button class="ai-chip" type="button" (click)="openChat()" title="Ask Flower AI (Text2SQL)">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path
-            d="M12 2l2.09 5.26L20 9.27l-4.5 3.9L17 20l-5-3.5L7 20l1.5-6.83L4 9.27l5.91-2.01L12 2z"
-          />
-        </svg>
+        <flower-icon name="sparkle" [size]="14" [stroke]="2" />
         Ask Flower AI
       </button>
 
       @if (auth.isIndividual()) {
         <a class="icon-btn" routerLink="/cart" aria-label="Cart" title="Cart">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.75"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="9" cy="21" r="1" />
-            <circle cx="20" cy="21" r="1" />
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-          </svg>
+          <flower-icon name="cart" [size]="17" />
           @if (cart.cartCount() > 0) {
             <span class="cart-badge">{{ cart.cartCount() }}</span>
           }
@@ -167,22 +127,9 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
             <div class="avatar-name">{{ displayName() }}</div>
             <div class="avatar-role">{{ auth.currentRole() }}</div>
           </div>
-          <svg
-            class="avatar-caret"
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M2 4l4 4 4-4"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <span class="avatar-caret">
+            <flower-icon name="chevron_down" [size]="14" [stroke]="2" />
+          </span>
         </button>
 
         @if (menuOpen()) {
@@ -192,16 +139,6 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
               <div class="menu-email">{{ auth.currentEmail() }}</div>
             </div>
 
-            <a
-              class="menu-item"
-              routerLink="/profile"
-              role="menuitem"
-              (click)="menuOpen.set(false)"
-            >
-              <span class="menu-icon" aria-hidden="true">👤</span>
-              <span>Profile</span>
-            </a>
-
             @if (auth.isIndividual()) {
               <a
                 class="menu-item"
@@ -209,7 +146,9 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
                 role="menuitem"
                 (click)="menuOpen.set(false)"
               >
-                <span class="menu-icon" aria-hidden="true">📦</span>
+                <span class="menu-icon" aria-hidden="true">
+                  <flower-icon name="package" [size]="15" />
+                </span>
                 <span>My Orders</span>
               </a>
               <a
@@ -218,15 +157,38 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
                 role="menuitem"
                 (click)="menuOpen.set(false)"
               >
-                <span class="menu-icon" aria-hidden="true">⭐</span>
+                <span class="menu-icon" aria-hidden="true">
+                  <flower-icon name="review" [size]="15" />
+                </span>
                 <span>My Reviews</span>
               </a>
+              <a class="menu-item" routerLink="/cart" role="menuitem" (click)="menuOpen.set(false)">
+                <span class="menu-icon" aria-hidden="true">
+                  <flower-icon name="cart" [size]="15" />
+                </span>
+                <span>Cart{{ cart.cartCount() > 0 ? ' (' + cart.cartCount() + ')' : '' }} </span>
+              </a>
+              <div class="menu-divider"></div>
             }
+
+            <a
+              class="menu-item"
+              routerLink="/profile"
+              role="menuitem"
+              (click)="menuOpen.set(false)"
+            >
+              <span class="menu-icon" aria-hidden="true">
+                <flower-icon name="settings" [size]="15" />
+              </span>
+              <span>Account settings</span>
+            </a>
 
             <div class="menu-divider"></div>
 
             <button class="menu-item danger" type="button" role="menuitem" (click)="logout()">
-              <span class="menu-icon" aria-hidden="true">🚪</span>
+              <span class="menu-icon" aria-hidden="true">
+                <flower-icon name="logout" [size]="15" />
+              </span>
               <span>Log out</span>
             </button>
           </div>
@@ -253,6 +215,17 @@ export class TopHeaderComponent implements OnInit, OnDestroy {
     const url = this.currentUrl();
     const hit = ROUTE_META.find((m) => url === m.prefix || url.startsWith(m.prefix + '/'));
     return hit ?? { title: 'Flower', sub: '' };
+  });
+
+  /**
+   * Prototype hides the topbar title on pages that render their own big
+   * in-page header (corporate Products + Orders). Keeps the topbar itself
+   * visible — role switcher, bell, AI chip, avatar all stay. Mirrors
+   * `hideTopbarTitle` in Flower Prototype.html §Topbar.
+   */
+  readonly hideTopbarTitle = computed(() => {
+    const url = this.currentUrl();
+    return url === '/corporate/products' || url === '/corporate/orders';
   });
 
   readonly displayName = computed(

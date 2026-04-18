@@ -19,81 +19,16 @@ Chart.register(...registerables);
   imports: [RouterLink, DecimalPipe, KeyValuePipe, DatePipe, FormsModule],
   template: `
     <div class="page">
-      <div class="welcome">
-        <div class="welcome-copy">
-          <h2>Welcome back{{ firstName() ? ', ' + firstName() : '' }} 👋</h2>
-          <p>Here's what's happening with your store today.</p>
+      <div class="dashboard-toolbar">
+        <div class="date-picker">
+          <input type="date" [(ngModel)]="startDate" (change)="onDateFilter()" />
+          <span class="sep">→</span>
+          <input type="date" [(ngModel)]="endDate" (change)="onDateFilter()" />
         </div>
-        <div class="welcome-actions">
-          <div class="date-picker">
-            <input type="date" [(ngModel)]="startDate" (change)="onDateFilter()" />
-            <span class="sep">→</span>
-            <input type="date" [(ngModel)]="endDate" (change)="onDateFilter()" />
-          </div>
-          @if (startDate || endDate) {
-            <button class="btn-clear" type="button" (click)="clearDateFilter()">Clear</button>
-          }
-          <button class="btn-configure" type="button" (click)="showConfig = !showConfig">
-            {{ showConfig ? 'Done' : 'Configure widgets' }}
-          </button>
-        </div>
+        @if (startDate || endDate) {
+          <button class="btn-clear" type="button" (click)="clearDateFilter()">Clear</button>
+        }
       </div>
-
-      @if (showConfig) {
-        <div class="widget-config">
-          <h3>Toggle widgets</h3>
-          <div class="config-options">
-            <label>
-              <input
-                type="checkbox"
-                [checked]="widgets()['kpis']"
-                (change)="toggleWidget('kpis')"
-              />
-              KPI cards
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                [checked]="widgets()['revenueChart']"
-                (change)="toggleWidget('revenueChart')"
-              />
-              Revenue trend
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                [checked]="widgets()['orderChart']"
-                (change)="toggleWidget('orderChart')"
-              />
-              Orders by status
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                [checked]="widgets()['productChart']"
-                (change)="toggleWidget('productChart')"
-              />
-              Top products
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                [checked]="widgets()['segmentation']"
-                (change)="toggleWidget('segmentation')"
-              />
-              Customer segmentation
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                [checked]="widgets()['quickLinks']"
-                (change)="toggleWidget('quickLinks')"
-              />
-              Quick links
-            </label>
-          </div>
-        </div>
-      }
 
       @if (data(); as d) {
         @if (widgets()['kpis']) {
@@ -364,9 +299,7 @@ export class CorporateDashboardComponent implements OnInit {
   }
 
   private getCanvas(name: string): HTMLCanvasElement | null {
-    return this.host.nativeElement.querySelector<HTMLCanvasElement>(
-      `canvas[data-chart="${name}"]`,
-    );
+    return this.host.nativeElement.querySelector<HTMLCanvasElement>(`canvas[data-chart="${name}"]`);
   }
 
   toggleWidget(key: string) {

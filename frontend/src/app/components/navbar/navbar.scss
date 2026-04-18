@@ -141,11 +141,13 @@
   transition: background 0.12s, color 0.12s;
 
   .nav-icon {
-    font-size: 17px;
     width: 22px;
-    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
     line-height: 1;
+    color: currentColor;
   }
 
   .nav-label {

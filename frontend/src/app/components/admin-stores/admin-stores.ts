@@ -10,18 +10,9 @@ type StatusFilter = 'ALL' | 'PENDING_APPROVAL' | 'ACTIVE' | 'CLOSED';
   imports: [DatePipe],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>Store Management</h1>
-        <p class="subtitle">Approve, activate, or close stores across the platform.</p>
-      </div>
-
       <div class="tabs">
         @for (t of tabs; track t.key) {
-          <button
-            class="tab"
-            [class.active]="filter() === t.key"
-            (click)="filter.set(t.key)"
-          >
+          <button class="tab" [class.active]="filter() === t.key" (click)="filter.set(t.key)">
             {{ t.label }}
             <span class="count">{{ countFor(t.key) }}</span>
           </button>
@@ -48,9 +39,7 @@ type StatusFilter = 'ALL' | 'PENDING_APPROVAL' | 'ACTIVE' | 'CLOSED';
                 <button class="btn-sm success" (click)="updateStatus(s.id, 'ACTIVE')">
                   Approve
                 </button>
-                <button class="btn-sm danger" (click)="updateStatus(s.id, 'CLOSED')">
-                  Reject
-                </button>
+                <button class="btn-sm danger" (click)="updateStatus(s.id, 'CLOSED')">Reject</button>
               } @else if (s.status === 'ACTIVE') {
                 <button class="btn-sm warning" (click)="updateStatus(s.id, 'CLOSED')">
                   Close Store

@@ -8,10 +8,6 @@ import { Category } from '../../models/product.model';
   imports: [FormsModule],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1>Category Management</h1>
-      </div>
-
       <div class="content-grid">
         <div class="form-card card">
           <h3>{{ editId() ? 'Edit Category' : 'Add Category' }}</h3>

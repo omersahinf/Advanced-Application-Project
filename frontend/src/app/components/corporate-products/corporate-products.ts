@@ -16,12 +16,7 @@ import { productEmoji } from '../../shared/product-emoji';
         <div class="search-wrap">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" />
-            <path
-              d="m11 11 3 3"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
+            <path d="m11 11 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
           <input
             placeholder="Search products…"
@@ -79,11 +74,7 @@ import { productEmoji } from '../../shared/product-emoji';
               </div>
               <div class="field full">
                 <label>Description</label>
-                <textarea
-                  [(ngModel)]="form.description"
-                  name="description"
-                  rows="2"
-                ></textarea>
+                <textarea [(ngModel)]="form.description" name="description" rows="2"></textarea>
               </div>
             </div>
             <div class="form-actions">
@@ -108,16 +99,12 @@ import { productEmoji } from '../../shared/product-emoji';
               }
               <div class="card-meta">
                 <span class="card-price">\${{ p.price | number: '1.2-2' }}</span>
-                <span class="card-stock" [class.low]="p.stock < 40">
-                  {{ p.stock }} in stock
-                </span>
+                <span class="card-stock" [class.low]="p.stock < 40"> {{ p.stock }} in stock </span>
               </div>
             </div>
             <div class="card-actions">
               <button class="btn-card" type="button" (click)="startEdit(p)">Edit</button>
-              <button class="btn-card danger" type="button" (click)="remove(p.id)">
-                Delete
-              </button>
+              <button class="btn-card danger" type="button" (click)="remove(p.id)">Delete</button>
             </div>
           </div>
         }

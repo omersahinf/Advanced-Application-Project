@@ -75,18 +75,27 @@ type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 
                   </td>
                   <td style="text-align:right">
                     @if (o.status === 'PENDING') {
-                      <button class="btn-action" type="button"
-                              (click)="updateStatus(o.id, 'CONFIRMED')">
+                      <button
+                        class="btn-action"
+                        type="button"
+                        (click)="updateStatus(o.id, 'CONFIRMED')"
+                      >
                         Confirm
                       </button>
                     } @else if (o.status === 'CONFIRMED') {
-                      <button class="btn-action" type="button"
-                              (click)="updateStatus(o.id, 'SHIPPED')">
+                      <button
+                        class="btn-action"
+                        type="button"
+                        (click)="updateStatus(o.id, 'SHIPPED')"
+                      >
                         Ship
                       </button>
                     } @else if (o.status === 'SHIPPED') {
-                      <button class="btn-action" type="button"
-                              (click)="updateStatus(o.id, 'DELIVERED')">
+                      <button
+                        class="btn-action"
+                        type="button"
+                        (click)="updateStatus(o.id, 'DELIVERED')"
+                      >
                         Mark delivered
                       </button>
                     }

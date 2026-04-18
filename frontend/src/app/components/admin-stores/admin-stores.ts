@@ -1,52 +1,130 @@
+/**
+ * Admin Stores — pixel-parity replica of Flower Prototype.html §AdmStores.
+ *
+ * Inventory (verbatim):
+ *   Root: padding 12px 32px 40px.
+ *   Grid: 2 columns, gap 16.
+ *   Card: padding 20.
+ *     Header row (flex, space-between):
+ *       Left: 40x40 rounded gradient tile with <Icon store size=18/>
+ *             + {name (serif, 16px, 700)} / {description (text-3, 12px)}
+ *       Right: <StatusPill status={status}/>
+ *     Stats row (3 cols, border-top + border-bottom, padding 12 0):
+ *       <Stat k="Revenue" v={fmtUSD(revenue)}/>
+ *       <Stat k="Orders"  v={orders}/>
+ *       <Stat k="Rating"  v={<Stars n={rating} size={11}/> {rating}}/>
+ *     Footer: Owner: <b>{owner}</b> · spacer · btn btn-sm
+ *       "Close store" | "Reactivate"   (toggles ACTIVE <-> CLOSED).
+ *
+ *   Stat component: uppercase 10.5px text-3 label + 14px 600 value.
+ *
+ * Adaptations:
+ *   - Store revenue / orders / rating come from
+ *     AdminService.getStoreComparison(); description / owner / status
+ *     come from StoreService.getAllStores(). Merged by storeId.
+ *   - Backend also supports PENDING_APPROVAL. For those rows we
+ *     render Approve / Reject buttons; otherwise we follow the
+ *     prototype toggle exactly.
+ */
 import { Component, OnInit, computed, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { StoreService } from '../../services/store.service';
-import { Store } from '../../models/product.model';
+import { AdminService } from '../../services/admin.service';
+import { Store, StoreComparison } from '../../models/product.model';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { FlowerStarsComponent } from '../../shared/flower-stars/flower-stars';
+import { StatusPillComponent } from '../../shared/status-pill/status-pill';
+import { CommonModule } from '@angular/common';
 
-type StatusFilter = 'ALL' | 'PENDING_APPROVAL' | 'ACTIVE' | 'CLOSED';
+interface StoreRow {
+  id: number;
+  name: string;
+  description: string;
+  status: string;
+  ownerName: string;
+  revenue: number;
+  orders: number;
+  rating: number;
+  reviews: number;
+}
 
 @Component({
   selector: 'app-admin-stores',
-  imports: [DatePipe],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FlowerIconComponent,
+    FlowerStarsComponent,
+    StatusPillComponent,
+  ],
   template: `
     <div class="page">
-      <div class="tabs">
-        @for (t of tabs; track t.key) {
-          <button class="tab" [class.active]="filter() === t.key" (click)="filter.set(t.key)">
-            {{ t.label }}
-            <span class="count">{{ countFor(t.key) }}</span>
-          </button>
-        }
-      </div>
+      <div class="stores-grid">
+        @for (s of rows(); track s.id) {
+          <div class="card store-card">
+            <div class="store-head">
+              <div class="head-left">
+                <div class="store-tile" aria-hidden="true">
+                  <flower-icon name="store" [size]="18" />
+                </div>
+                <div class="head-text">
+                  <div class="store-name">{{ s.name }}</div>
+                  <div class="store-desc">{{ s.description || 'No description' }}</div>
+                </div>
+              </div>
+              <status-pill [status]="s.status" />
+            </div>
 
-      <div class="store-grid">
-        @for (s of filteredStores(); track s.id) {
-          <div class="store-card card">
-            <div class="store-header">
-              <h3>{{ s.name }}</h3>
-              <span class="status-badge" [class]="'status-' + s.status.toLowerCase()">{{
-                s.status
-              }}</span>
+            <div class="stats-row">
+              <div class="stat">
+                <div class="stat-k">Revenue</div>
+                <div class="stat-v">\${{ s.revenue | number: '1.2-2' }}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-k">Orders</div>
+                <div class="stat-v">{{ s.orders }}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-k">Rating</div>
+                <div class="stat-v rating-v">
+                  <flower-stars [value]="s.rating" [size]="11" />
+                  <span>{{ s.rating ? (s.rating | number: '1.1-1') : '—' }}</span>
+                </div>
+              </div>
             </div>
-            <p class="store-desc">{{ s.description || 'No description' }}</p>
-            <div class="store-meta">
-              <span>Owner: {{ s.ownerName }}</span>
-              <span>Products: {{ s.productCount }}</span>
-              <span>Created: {{ s.createdAt | date: 'mediumDate' }}</span>
-            </div>
-            <div class="store-actions">
+
+            <div class="store-foot">
+              <div class="owner">Owner: <b>{{ s.ownerName }}</b></div>
+              <div class="foot-spacer"></div>
               @if (s.status === 'PENDING_APPROVAL') {
-                <button class="btn-sm success" (click)="updateStatus(s.id, 'ACTIVE')">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  (click)="updateStatus(s.id, 'ACTIVE')"
+                >
                   Approve
                 </button>
-                <button class="btn-sm danger" (click)="updateStatus(s.id, 'CLOSED')">Reject</button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  (click)="updateStatus(s.id, 'CLOSED')"
+                >
+                  Reject
+                </button>
               } @else if (s.status === 'ACTIVE') {
-                <button class="btn-sm warning" (click)="updateStatus(s.id, 'CLOSED')">
-                  Close Store
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  (click)="updateStatus(s.id, 'CLOSED')"
+                >
+                  Close store
                 </button>
               } @else {
-                <button class="btn-sm success" (click)="updateStatus(s.id, 'ACTIVE')">
-                  Activate Store
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  (click)="updateStatus(s.id, 'ACTIVE')"
+                >
+                  Reactivate
                 </button>
               }
             </div>
@@ -54,183 +132,43 @@ type StatusFilter = 'ALL' | 'PENDING_APPROVAL' | 'ACTIVE' | 'CLOSED';
         }
       </div>
 
-      @if (filteredStores().length === 0) {
-        <div class="empty card">No stores match this filter</div>
+      @if (rows().length === 0) {
+        <div class="empty-state card">
+          <div class="empty-icon" aria-hidden="true">🏬</div>
+          <div class="empty-title">No stores yet</div>
+        </div>
       }
     </div>
   `,
-  styles: [
-    `
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .page-header {
-        margin-bottom: 16px;
-      }
-      .page-header h1 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .subtitle {
-        color: #666;
-        font-size: 13px;
-        margin-top: 4px;
-      }
-      .tabs {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #e5e7eb;
-        padding-bottom: 8px;
-        flex-wrap: wrap;
-      }
-      .tab {
-        background: transparent;
-        border: 1px solid #e5e7eb;
-        border-radius: 999px;
-        padding: 6px 14px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #555;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.15s;
-      }
-      .tab:hover {
-        background: #f3f4f6;
-      }
-      .tab.active {
-        background: #1a1a1a;
-        color: #fff;
-        border-color: #1a1a1a;
-      }
-      .tab .count {
-        background: rgba(255, 255, 255, 0.25);
-        color: inherit;
-        padding: 1px 8px;
-        border-radius: 999px;
-        font-size: 11px;
-      }
-      .tab:not(.active) .count {
-        background: #e5e7eb;
-        color: #555;
-      }
-      .store-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 16px;
-      }
-      .store-card {
-        padding: 20px;
-      }
-      .store-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-      .store-header h3 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a1a;
-      }
-      .status-badge {
-        font-size: 11px;
-        font-weight: 700;
-        padding: 3px 10px;
-        border-radius: 12px;
-        text-transform: uppercase;
-      }
-      .status-active {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .status-closed {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .status-pending_approval {
-        background: #fef3c7;
-        color: #d97706;
-      }
-      .store-desc {
-        color: #666;
-        font-size: 13px;
-        margin-bottom: 12px;
-      }
-      .store-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        font-size: 12px;
-        color: #999;
-        margin-bottom: 16px;
-      }
-      .store-actions {
-        display: flex;
-        gap: 8px;
-      }
-      .btn-sm {
-        padding: 6px 14px;
-        border: none;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.15s;
-      }
-      .btn-sm.warning {
-        background: #fef3c7;
-        color: #d97706;
-      }
-      .btn-sm.warning:hover {
-        background: #fde68a;
-      }
-      .btn-sm.success {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .btn-sm.success:hover {
-        background: #bbf7d0;
-      }
-      .btn-sm.danger {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .btn-sm.danger:hover {
-        background: #fecaca;
-      }
-      .empty {
-        padding: 40px;
-        text-align: center;
-        color: #666;
-      }
-    `,
-  ],
+  styleUrls: ['./admin-stores.scss'],
 })
 export class AdminStoresComponent implements OnInit {
-  stores = signal<Store[]>([]);
-  filter = signal<StatusFilter>('ALL');
+  private stores = signal<Store[]>([]);
+  private comparison = signal<StoreComparison[]>([]);
 
-  tabs: { key: StatusFilter; label: string }[] = [
-    { key: 'ALL', label: 'All' },
-    { key: 'PENDING_APPROVAL', label: 'Pending Approval' },
-    { key: 'ACTIVE', label: 'Active' },
-    { key: 'CLOSED', label: 'Closed' },
-  ];
-
-  filteredStores = computed(() => {
-    const f = this.filter();
-    const all = this.stores();
-    return f === 'ALL' ? all : all.filter((s) => s.status === f);
+  rows = computed<StoreRow[]>(() => {
+    const byId = new Map<number, StoreComparison>();
+    for (const c of this.comparison()) byId.set(c.storeId, c);
+    return this.stores().map((s) => {
+      const c = byId.get(s.id);
+      return {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        status: s.status,
+        ownerName: s.ownerName,
+        revenue: c?.totalRevenue ?? 0,
+        orders: c?.totalOrders ?? 0,
+        rating: c?.avgRating ?? 0,
+        reviews: c?.totalReviews ?? 0,
+      };
+    });
   });
 
-  constructor(private storeService: StoreService) {}
+  constructor(
+    private storeService: StoreService,
+    private adminService: AdminService,
+  ) {}
 
   ngOnInit() {
     this.load();
@@ -238,11 +176,7 @@ export class AdminStoresComponent implements OnInit {
 
   load() {
     this.storeService.getAllStores().subscribe((s) => this.stores.set(s));
-  }
-
-  countFor(key: StatusFilter): number {
-    const all = this.stores();
-    return key === 'ALL' ? all.length : all.filter((s) => s.status === key).length;
+    this.adminService.getStoreComparison().subscribe((c) => this.comparison.set(c));
   }
 
   updateStatus(id: number, status: string) {

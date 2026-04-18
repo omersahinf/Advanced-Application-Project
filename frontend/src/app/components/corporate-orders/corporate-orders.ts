@@ -1,99 +1,173 @@
+/**
+ * Corporate Orders — pixel-parity replica of Flower Prototype.html §CorpOrders.
+ *
+ * Inventory (verbatim from prototype):
+ *   Page title:   "Orders Management 🛒"   (serif, 32px, title-emoji 28px)
+ *   Subtitle:     "Track and manage all orders"
+ *   Primary CTA:  [+ New Order]             (top-right, btn-primary — no
+ *                                            click wired, same as prototype)
+ *   Filters row:  [All Status ▾ 140w]       All Status / Pending /
+ *                                            Confirmed / Shipped /
+ *                                            Delivered / Cancelled
+ *                 [All Time ▾ 140w]         All Time / Last 7 days /
+ *                                            Last 30 days / Last 90 days
+ *   Table card (padding 0):
+ *     thead: ORDER ID · CUSTOMER · ITEMS · TOTAL · DATE · STATUS · (blank)
+ *            letter-spacing: 1, font-size 11
+ *     row:   #ORD-0001 (mono, #034f46, weight 500)
+ *            [avatar (32/8r, hashed color, white weight-700 initials) · name (500)]
+ *            "{n} item(s)" (text-2)
+ *            "$total" (weight 700)
+ *            date  (text-2; fmtDate → "Mar 10, 2025")
+ *            <status-pill>
+ *            [Confirm | Mark shipped | Mark delivered]   btn-sm btn-primary
+ *            (only for PENDING / CONFIRMED / SHIPPED)
+ *
+ * Everything our previous implementation layered on (chip filters, from/to
+ * date pickers, items-pill expansion row, custom .status-pill classes)
+ * is out of the prototype and has been removed for pixel parity.
+ *
+ * Backend contracts (`OrderService.getStoreOrders`, `.updateOrderStatus`)
+ * are untouched.
+ */
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../services/order.service';
 import { Order } from '../../models/product.model';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { StatusPillComponent } from '../../shared/status-pill/status-pill';
 
-type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+type StatusFilter =
+  | 'ALL'
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED';
+
+type TimeFilter = 'ALL' | '7D' | '30D' | '90D';
+
+const AVATAR_COLORS = [
+  '#7c3aed',
+  '#0d9488',
+  '#f59e0b',
+  '#dc2626',
+  '#2563eb',
+  '#db2777',
+  '#16a34a',
+  '#9333ea',
+];
 
 @Component({
   selector: 'app-corporate-orders',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    FormsModule,
+    FlowerIconComponent,
+    StatusPillComponent,
+  ],
   template: `
     <div class="page">
-      <div class="toolbar">
-        @for (f of filters; track f.value) {
-          <button
-            type="button"
-            class="filter-chip"
-            [class.active]="statusFilter() === f.value"
-            (click)="statusFilter.set(f.value)"
-          >
-            {{ f.label }}
-          </button>
-        }
-
-        <div class="date-filter">
-          <label>
-            From
-            <input type="date" [(ngModel)]="startDate" (change)="filterByDate()" />
-          </label>
-          <label>
-            To
-            <input type="date" [(ngModel)]="endDate" (change)="filterByDate()" />
-          </label>
-          @if (startDate || endDate) {
-            <button type="button" class="btn-clear" (click)="clearDateFilter()">Clear</button>
-          }
+      <!-- Page header ————————————————————————————————— -->
+      <div class="page-header">
+        <div class="page-title-block">
+          <h1 class="page-title">
+            Orders Management <span class="title-emoji" aria-hidden="true">🛒</span>
+          </h1>
+          <div class="page-sub">Track and manage all orders</div>
         </div>
+        <button type="button" class="btn btn-primary">
+          <flower-icon name="plus" [size]="13" />
+          New Order
+        </button>
       </div>
 
-      <div class="table-card">
+      <!-- Filters row ————————————————————————————————— -->
+      <div class="filters">
+        <select
+          class="select filter-select"
+          [(ngModel)]="statusFilter"
+          [ngModelOptions]="{ standalone: true }"
+        >
+          <option value="ALL">All Status</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="SHIPPED">Shipped</option>
+          <option value="DELIVERED">Delivered</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+        <select
+          class="select filter-select"
+          [(ngModel)]="timeFilter"
+          [ngModelOptions]="{ standalone: true }"
+        >
+          <option value="ALL">All Time</option>
+          <option value="7D">Last 7 days</option>
+          <option value="30D">Last 30 days</option>
+          <option value="90D">Last 90 days</option>
+        </select>
+      </div>
+
+      <!-- Orders table ————————————————————————————————— -->
+      <div class="card orders-card">
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th style="text-align:right">Action</th>
+                <th class="col-uppercase">ORDER ID</th>
+                <th class="col-uppercase">CUSTOMER</th>
+                <th class="col-uppercase">ITEMS</th>
+                <th class="col-uppercase">TOTAL</th>
+                <th class="col-uppercase">DATE</th>
+                <th class="col-uppercase">STATUS</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               @for (o of visibleOrders(); track o.id) {
                 <tr>
-                  <td class="cell-order-id">#{{ o.id }}</td>
+                  <td class="c-order-id">#ORD-{{ padId(o.id) }}</td>
                   <td>
                     <div class="customer-cell">
-                      <span class="avatar-pill" aria-hidden="true">{{
-                        avatarInitial(o.userName)
-                      }}</span>
+                      <span
+                        class="avatar"
+                        [style.background]="avatarColor(o.userName)"
+                      >
+                        {{ initials(o.userName) }}
+                      </span>
                       <span class="customer-name">{{ o.userName }}</span>
                     </div>
                   </td>
-                  <td>{{ o.items.length || 0 }} items</td>
-                  <td class="cell-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
-                  <td>{{ o.orderDate | date: 'MMM d, y' }}</td>
-                  <td>
-                    <span class="status-pill" [class]="'s-' + o.status.toLowerCase()">
-                      {{ o.status }}
-                    </span>
+                  <td class="c-items">
+                    {{ o.items.length }} {{ o.items.length === 1 ? 'item' : 'items' }}
                   </td>
-                  <td style="text-align:right">
+                  <td class="c-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
+                  <td class="c-date">{{ o.orderDate | date: 'MMM d, y' }}</td>
+                  <td><status-pill [status]="o.status" /></td>
+                  <td class="c-action">
                     @if (o.status === 'PENDING') {
                       <button
-                        class="btn-action"
                         type="button"
+                        class="btn btn-sm btn-primary"
                         (click)="updateStatus(o.id, 'CONFIRMED')"
                       >
                         Confirm
                       </button>
                     } @else if (o.status === 'CONFIRMED') {
                       <button
-                        class="btn-action"
                         type="button"
+                        class="btn btn-sm btn-primary"
                         (click)="updateStatus(o.id, 'SHIPPED')"
                       >
-                        Ship
+                        Mark shipped
                       </button>
                     } @else if (o.status === 'SHIPPED') {
                       <button
-                        class="btn-action"
                         type="button"
+                        class="btn btn-sm btn-primary"
                         (click)="updateStatus(o.id, 'DELIVERED')"
                       >
                         Mark delivered
@@ -101,27 +175,13 @@ type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 
                     }
                   </td>
                 </tr>
-                @if (o.items && o.items.length > 0) {
-                  <tr class="detail-row">
-                    <td class="detail-cell" colspan="7">
-                      <div class="items-detail">
-                        @for (item of o.items; track item.id) {
-                          <span class="item-pill">
-                            {{ item.productName }} × {{ item.quantity }} (\${{
-                              item.price | number: '1.2-2'
-                            }})
-                          </span>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
               }
             </tbody>
           </table>
         </div>
+
         @if (visibleOrders().length === 0) {
-          <div class="empty-state" style="padding:40px 16px">
+          <div class="empty">
             <div class="empty-icon" aria-hidden="true">📭</div>
             <div class="empty-title">No orders match these filters</div>
           </div>
@@ -133,24 +193,29 @@ type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 
 })
 export class CorporateOrdersComponent implements OnInit {
   allOrders = signal<Order[]>([]);
-  filteredByDate = signal<Order[]>([]);
-  statusFilter = signal<StatusFilter>('ALL');
-  startDate = '';
-  endDate = '';
-
-  filters: { value: StatusFilter; label: string }[] = [
-    { value: 'ALL', label: 'All' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'CONFIRMED', label: 'Confirmed' },
-    { value: 'SHIPPED', label: 'Shipped' },
-    { value: 'DELIVERED', label: 'Delivered' },
-    { value: 'CANCELLED', label: 'Cancelled' },
-  ];
+  statusFilter: StatusFilter = 'ALL';
+  timeFilter: TimeFilter = 'ALL';
 
   visibleOrders = computed(() => {
-    const list = this.filteredByDate();
-    const s = this.statusFilter();
-    return s === 'ALL' ? list : list.filter((o) => o.status === s);
+    const list = this.allOrders();
+    const s = this.statusFilter;
+    const t = this.timeFilter;
+    const now = Date.now();
+    const windowMs: Record<TimeFilter, number | null> = {
+      ALL: null,
+      '7D': 7 * 86400_000,
+      '30D': 30 * 86400_000,
+      '90D': 90 * 86400_000,
+    };
+    const cutoff = windowMs[t];
+    return list.filter((o) => {
+      if (s !== 'ALL' && o.status !== s) return false;
+      if (cutoff !== null) {
+        const d = new Date(o.orderDate).getTime();
+        if (isNaN(d) || now - d > cutoff) return false;
+      }
+      return true;
+    });
   });
 
   constructor(private orderService: OrderService) {}
@@ -160,38 +225,34 @@ export class CorporateOrdersComponent implements OnInit {
   }
 
   load() {
-    this.orderService.getStoreOrders().subscribe((o) => {
-      this.allOrders.set(o);
-      this.filteredByDate.set(o);
-    });
-  }
-
-  filterByDate() {
-    let filtered = this.allOrders();
-    if (this.startDate) {
-      const start = new Date(this.startDate);
-      filtered = filtered.filter((o) => new Date(o.orderDate) >= start);
-    }
-    if (this.endDate) {
-      const end = new Date(this.endDate);
-      end.setHours(23, 59, 59, 999);
-      filtered = filtered.filter((o) => new Date(o.orderDate) <= end);
-    }
-    this.filteredByDate.set(filtered);
-  }
-
-  clearDateFilter() {
-    this.startDate = '';
-    this.endDate = '';
-    this.filteredByDate.set(this.allOrders());
+    this.orderService.getStoreOrders().subscribe((o) => this.allOrders.set(o));
   }
 
   updateStatus(orderId: number, status: string) {
     this.orderService.updateOrderStatus(orderId, status).subscribe(() => this.load());
   }
 
-  avatarInitial(name: string | undefined): string {
+  padId(id: number): string {
+    return String(id).padStart(4, '0');
+  }
+
+  initials(name: string | undefined): string {
     if (!name) return '?';
-    return name.trim().charAt(0).toUpperCase();
+    return name
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0] || '')
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+
+  avatarColor(name: string | undefined): string {
+    const n = name || '?';
+    let h = 0;
+    for (let i = 0; i < n.length; i += 1) {
+      h = (Math.imul(h, 31) + n.charCodeAt(i)) >>> 0;
+    }
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
   }
 }

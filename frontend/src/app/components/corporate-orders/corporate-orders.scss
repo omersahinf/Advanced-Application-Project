@@ -2,85 +2,65 @@
 
 :host { display: block; }
 
-.toolbar {
+.page {
+  /* Prototype §CorpOrders root: padding "12px 32px 40px". Shell handles the
+     horizontal gutters, so only vertical rhythm lives here. */
+  padding: 12px 0 40px;
+}
+
+/* ── Page header ──────────────────────────────────────────────── */
+.page-header {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-title {
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 0;
+  display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  color: var(--text);
 }
 
-.filter-chip {
-  padding: 7px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  background: var(--lumen);
+.title-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.page-sub {
   color: var(--text-2);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover { background: var(--hover); color: var(--text); }
-
-  &.active {
-    background: var(--dawn);
-    border-color: var(--fathom);
-    color: var(--fathom);
-  }
+  font-size: 13px;
 }
 
-.date-filter {
+/* ── Filters row ──────────────────────────────────────────────── */
+.filters {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
 
-  label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--text-3);
-  }
-
-  input[type='date'] {
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-ctrl);
-    font-size: 12.5px;
-    font-family: inherit;
-    background: var(--lumen);
-    color: var(--text);
-
-    &:focus {
-      outline: none;
-      border-color: var(--fathom);
-      box-shadow: 0 0 0 3px var(--focus-ring);
-    }
-  }
+  @include r.lt-sm { flex-wrap: wrap; }
 }
 
-.btn-clear {
-  padding: 6px 12px;
-  font-size: 12.5px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: var(--lumen);
-  color: var(--text-2);
-  border-radius: var(--radius-ctrl);
-  cursor: pointer;
-
-  &:hover { background: var(--hover); color: var(--text); }
+.filter-select {
+  width: 140px;
 }
 
-.table-card {
-  background: var(--lumen);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+/* ── Orders table card ────────────────────────────────────────── */
+.orders-card {
+  padding: 0;
   overflow: hidden;
 }
 
@@ -94,15 +74,15 @@ table {
   font-size: 13px;
 }
 
-th {
+.col-uppercase {
+  letter-spacing: 1px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-3);
   background: var(--bg-2);
   padding: 12px 16px;
   text-align: left;
-  font-weight: 700;
-  color: var(--text-3);
-  font-size: 10.5px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
@@ -115,88 +95,57 @@ td {
 }
 
 tr:last-child td { border-bottom: none; }
-tr:hover td:not(.detail-cell) { background: var(--hover); }
+tr:hover td { background: var(--hover); }
 
-.cell-order-id { font-weight: 700; color: var(--fathom); }
-.cell-total    { font-weight: 700; }
+.c-order-id {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: #034f46;
+  white-space: nowrap;
+}
 
+.c-items   { color: var(--text-2); white-space: nowrap; }
+.c-total   { font-weight: 700; }
+.c-date    { color: var(--text-2); white-space: nowrap; }
+.c-action  { text-align: right; }
+
+/* ── Customer cell (hashed avatar + name) ─────────────────────── */
 .customer-cell {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-
-  .avatar-pill {
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--fathom);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .customer-name { font-weight: 500; color: var(--text); }
 }
 
-.detail-row td {
-  padding: 0 16px 12px;
-  background: var(--bg-2);
-}
-
-.items-detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 0;
-}
-
-.item-pill {
-  font-size: 11.5px;
-  background: var(--lumen);
-  padding: 4px 10px;
-  border-radius: var(--radius-ctrl);
-  border: 1px solid var(--border);
-  color: var(--text-2);
-}
-
-.status-pill {
-  display: inline-flex;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-
-  &.s-pending    { background: var(--warn-tint); color: var(--pending-text); }
-  &.s-confirmed  { background: var(--fathom-tint); color: var(--fathom); }
-  &.s-shipped    { background: var(--info-tint); color: var(--info); }
-  &.s-out_for_delivery { background: var(--info-tint); color: var(--info); }
-  &.s-delivered  { background: var(--ok-tint); color: var(--ok); }
-  &.s-cancelled  { background: var(--err-tint); color: var(--err); }
-}
-
-.btn-action {
-  padding: 6px 12px;
-  border: 1px solid var(--fathom);
-  background: var(--fathom);
+.avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   color: #fff;
-  font-size: 11.5px;
-  font-weight: 600;
-  border-radius: var(--radius-ctrl);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
-
-  &:hover { background: var(--fathom-dark); }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
 }
 
-@include r.lt-md {
-  .toolbar { gap: 6px; }
-  .date-filter { margin-left: 0; width: 100%; }
+.customer-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ── Empty state ──────────────────────────────────────────────── */
+.empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-2);
+
+  .empty-icon { font-size: 40px; margin-bottom: 8px; }
+  .empty-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--text);
+  }
 }

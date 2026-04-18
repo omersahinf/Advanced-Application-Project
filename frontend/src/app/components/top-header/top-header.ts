@@ -6,8 +6,6 @@ import { CartService } from '../../services/cart.service';
 import { LayoutService } from '../../services/layout.service';
 import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
 
-type Role = 'INDIVIDUAL' | 'CORPORATE' | 'ADMIN';
-
 /** Titles/subtitles shown in the topbar, keyed by route prefix (longest match wins). */
 const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
   { prefix: '/admin/users', title: 'Users', sub: 'List, suspend, and invite corporate accounts.' },
@@ -47,13 +45,6 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
   },
 ];
 
-/** Demo accounts used by the topbar role switcher. */
-const DEMO_ACCOUNTS: Record<Role, string> = {
-  INDIVIDUAL: 'user1@example.com',
-  CORPORATE: 'corporate1@example.com',
-  ADMIN: 'admin@example.com',
-};
-
 @Component({
   selector: 'app-top-header',
   standalone: true,
@@ -75,23 +66,6 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
           @if (meta().sub) {
             <p class="subtitle">{{ meta().sub }}</p>
           }
-        }
-      </div>
-
-      <div class="role-switcher" role="tablist" aria-label="Switch demo role">
-        @for (role of roles; track role) {
-          <button
-            type="button"
-            role="tab"
-            class="role-option"
-            [class.active]="auth.currentRole() === role"
-            [attr.aria-selected]="auth.currentRole() === role"
-            [disabled]="switching()"
-            (click)="switchRole(role)"
-            [title]="'Switch to ' + role + ' demo account'"
-          >
-            {{ shortRole(role) }}
-          </button>
         }
       </div>
 
@@ -199,10 +173,7 @@ const DEMO_ACCOUNTS: Record<Role, string> = {
   styleUrls: ['./top-header.scss'],
 })
 export class TopHeaderComponent implements OnInit, OnDestroy {
-  readonly roles: Role[] = ['INDIVIDUAL', 'CORPORATE', 'ADMIN'];
-
   readonly menuOpen = signal(false);
-  readonly switching = signal(false);
   private readonly currentUrl = signal<string>('');
   private routerSub?: Subscription;
   private docClickHandler = (e: MouseEvent) => {
@@ -264,10 +235,6 @@ export class TopHeaderComponent implements OnInit, OnDestroy {
     document.removeEventListener('click', this.docClickHandler);
   }
 
-  shortRole(role: Role): string {
-    return role === 'INDIVIDUAL' ? 'IND' : role === 'CORPORATE' ? 'CORP' : 'ADM';
-  }
-
   toggleMenu(e: MouseEvent) {
     e.stopPropagation();
     this.menuOpen.update((v) => !v);
@@ -280,29 +247,5 @@ export class TopHeaderComponent implements OnInit, OnDestroy {
   logout() {
     this.menuOpen.set(false);
     this.auth.logout();
-  }
-
-  /**
-   * Demo role switch: silently re-logs in as the corresponding demo account
-   * and redirects to that role's dashboard. Uses the same `/api/auth/login`
-   * endpoint as the login page — no backend changes.
-   */
-  switchRole(role: Role) {
-    if (this.switching() || this.auth.currentRole() === role) return;
-    const email = DEMO_ACCOUNTS[role];
-    this.switching.set(true);
-    this.auth.login({ email, password: 'password' }).subscribe({
-      next: (res) => {
-        this.auth.saveToken(res);
-        this.switching.set(false);
-        if (this.auth.isIndividual()) {
-          this.cart.refreshCartCount();
-        }
-        this.router.navigate([this.auth.getDashboardRoute()]);
-      },
-      error: () => {
-        this.switching.set(false);
-      },
-    });
   }
 }

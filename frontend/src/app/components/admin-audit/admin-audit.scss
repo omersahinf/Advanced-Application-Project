@@ -1,0 +1,69 @@
+:host { display: block; }
+
+.page {
+  padding: 12px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Filter row —————————————————————————————————— */
+.filter-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Audit card ———————————————————————————————— */
+.audit-card {
+  padding: 0;
+  overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th {
+  background: var(--hover);
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 12px 16px;
+  font-size: 13.5px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+tbody tr:hover td {
+  background: var(--hover);
+}
+
+.c-time {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.c-actor {
+  color: var(--text);
+}
+.mono {
+  font-family: var(--mono);
+}
+.c-details {
+  color: var(--text-2);
+}
+.c-empty {
+  text-align: center;
+  color: var(--text-2);
+  padding: 24px 16px;
+}

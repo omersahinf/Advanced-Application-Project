@@ -1,6 +1,6 @@
 package com.demo.ecommerce.controller;
 
-import com.demo.ecommerce.entity.CustomerProfile;
+import com.demo.ecommerce.dto.CustomerProfileDto;
 import com.demo.ecommerce.security.UserPrincipal;
 import com.demo.ecommerce.service.CustomerProfileService;
 import org.springframework.data.domain.Page;
@@ -24,27 +24,27 @@ public class CustomerProfileController {
 
     @GetMapping("/my")
     @PreAuthorize("hasAuthority('INDIVIDUAL')")
-    public ResponseEntity<CustomerProfile> getMyProfile(@AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(profileService.getByOwnerId(principal.getUserId()));
+    public ResponseEntity<CustomerProfileDto> getMyProfile(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(CustomerProfileDto.from(profileService.getByOwnerId(principal.getUserId())));
     }
 
     @PutMapping("/my")
     @PreAuthorize("hasAuthority('INDIVIDUAL')")
-    public ResponseEntity<CustomerProfile> updateMyProfile(@AuthenticationPrincipal UserPrincipal principal,
-                                                            @RequestBody Map<String, Object> updates) {
-        return ResponseEntity.ok(profileService.updateOwn(principal.getUserId(), updates));
+    public ResponseEntity<CustomerProfileDto> updateMyProfile(@AuthenticationPrincipal UserPrincipal principal,
+                                                              @RequestBody Map<String, Object> updates) {
+        return ResponseEntity.ok(CustomerProfileDto.from(profileService.updateOwn(principal.getUserId(), updates)));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<CustomerProfile> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(profileService.getById(id));
+    public ResponseEntity<CustomerProfileDto> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(CustomerProfileDto.from(profileService.getById(id)));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<Page<CustomerProfile>> getAll(Pageable pageable) {
-        return ResponseEntity.ok(profileService.getAll(pageable));
+    public ResponseEntity<Page<CustomerProfileDto>> getAll(Pageable pageable) {
+        return ResponseEntity.ok(profileService.getAll(pageable).map(CustomerProfileDto::from));
     }
 
     @DeleteMapping("/{id}")

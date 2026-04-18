@@ -30,17 +30,18 @@ This document describes how six Kaggle e-commerce datasets were integrated into 
 | created_at | - | - | - | - | ISO 8601 timestamp |
 
 ### Products Table
-| Target Field | DS1 Source | DS4 Source | DS5 Source | DS6 Source | Transform |
-|-------------|-----------|-----------|-----------|-----------|-----------|
-| id | - | - | - | - | Surrogate key (auto-increment) |
-| store_id | - | - | - | - | FK to stores table |
-| category_id | - | Category | CategoryName | ProductCategory | Mapped to categories hierarchy |
-| sku | StockCode | SKU | SKU | - | Cleaned, deduplicated |
-| name | Description | Style | - | ProductTitle | Truncated to 255 chars, trimmed |
-| description | - | - | - | - | Generated from product attributes |
-| unit_price | UnitPrice | - | Price | - | Converted to USD, ROUND(2) |
-| stock | Quantity (aggregated) | - | QtyOrdered (inverse) | - | Calculated from inventory |
-| created_at | InvoiceDate (earliest) | Date | CreatedAt | - | ISO 8601 normalized |
+| Target Field | DS1 Source | DS3 Source | DS4 Source | DS5 Source | DS6 Source | Transform |
+|-------------|-----------|-----------|-----------|-----------|-----------|-----------|
+| id | - | - | - | - | - | Surrogate key (auto-increment) |
+| store_id | - | - | - | - | - | FK to stores table |
+| category_id | - | - | Category | CategoryName | ProductCategory | Mapped to categories hierarchy |
+| sku | StockCode | - | SKU | SKU | - | Cleaned, deduplicated |
+| name | Description | - | Style | - | ProductTitle | Truncated to 255 chars, trimmed |
+| description | - | - | - | - | - | Generated from product attributes |
+| unit_price | UnitPrice | - | - | Price | - | Converted to USD, ROUND(2) |
+| cost_price | - | CostOfProduct | - | - | - | Supplier/production cost in USD, ROUND(2). Enables gross-margin analytics. |
+| stock | Quantity (aggregated) | - | - | QtyOrdered (inverse) | - | Calculated from inventory |
+| created_at | InvoiceDate (earliest) | - | Date | CreatedAt | - | ISO 8601 normalized |
 
 ### Orders Table
 | Target Field | DS1 Source | DS4 Source | DS5 Source | Transform |

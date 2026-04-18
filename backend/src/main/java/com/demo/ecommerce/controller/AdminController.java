@@ -32,16 +32,19 @@ public class AdminController {
     private final DashboardService dashboardService;
     private final AuditLogService auditLogService;
     private final ExportService exportService;
+    private final SystemSettingsService systemSettingsService;
 
     public AdminController(UserManagementService userManagementService, StoreService storeService,
                            CategoryService categoryService, DashboardService dashboardService,
-                           AuditLogService auditLogService, ExportService exportService) {
+                           AuditLogService auditLogService, ExportService exportService,
+                           SystemSettingsService systemSettingsService) {
         this.userManagementService = userManagementService;
         this.storeService = storeService;
         this.categoryService = categoryService;
         this.dashboardService = dashboardService;
         this.auditLogService = auditLogService;
         this.exportService = exportService;
+        this.systemSettingsService = systemSettingsService;
     }
 
     // --- User Management ---
@@ -67,6 +70,16 @@ public class AdminController {
     @Operation(summary = "Filter users by role")
     public ResponseEntity<List<UserDto>> getUsersByRole(@PathVariable String role) {
         return ResponseEntity.ok(userManagementService.getUsersByRole(role));
+    }
+
+    @PostMapping("/users")
+    @Operation(summary = "Create a managed user account")
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody AdminCreateUserRequest request, Authentication auth) {
+        UserPrincipal p = (UserPrincipal) auth.getPrincipal();
+        UserDto created = userManagementService.createManagedUser(request);
+        auditLogService.log(p.getUserId(), p.getEmail(), "CREATE", "USER", created.getId(),
+                "Created " + created.getRole().toLowerCase() + " user: " + created.getEmail());
+        return ResponseEntity.ok(created);
     }
 
     @PostMapping("/users/corporate")
@@ -198,30 +211,20 @@ public class AdminController {
 
     // --- System Settings ---
 
-    private static final Map<String, Object> platformSettings = new java.util.concurrent.ConcurrentHashMap<>(Map.of(
-            "siteName", "E-Commerce Analytics Platform",
-            "maintenanceMode", false,
-            "maxProductsPerStore", 500,
-            "defaultCurrency", "USD",
-            "orderAutoConfirm", false,
-            "reviewModerationEnabled", true,
-            "lowStockThreshold", 10,
-            "sessionTimeoutMinutes", 60
-    ));
-
     @GetMapping("/settings")
     @Operation(summary = "Get platform settings")
     public ResponseEntity<Map<String, Object>> getSettings() {
-        return ResponseEntity.ok(platformSettings);
+        return ResponseEntity.ok(systemSettingsService.getAll());
     }
 
     @PutMapping("/settings")
     @Operation(summary = "Update platform settings")
     public ResponseEntity<Map<String, Object>> updateSettings(@RequestBody Map<String, Object> settings, Authentication auth) {
         UserPrincipal p = (UserPrincipal) auth.getPrincipal();
-        platformSettings.putAll(settings);
-        auditLogService.log(p.getUserId(), p.getEmail(), "UPDATE", "SETTINGS", null, "Updated platform settings");
-        return ResponseEntity.ok(platformSettings);
+        Map<String, Object> updated = systemSettingsService.update(settings, p.getEmail());
+        auditLogService.log(p.getUserId(), p.getEmail(), "UPDATE", "SETTINGS", null,
+                "Updated platform settings: " + String.join(", ", settings.keySet()));
+        return ResponseEntity.ok(updated);
     }
 
     // --- Export ---

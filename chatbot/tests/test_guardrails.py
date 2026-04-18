@@ -1,77 +1,78 @@
-"""Tests for guardrails agent — input validation and scope filtering.
-Tests regex patterns directly to avoid heavy dependency imports.
-"""
-import re
+"""Tests for guardrails agent using the real implementation."""
 
-# Copy the exact patterns from agents/guardrails.py to test independently
-FOLLOW_UP_PATTERNS = re.compile(
-    r'\b(which one|what about|second|third|highest|lowest|more detail|show more|compare|'
-    r'how about|the same|those|that one|previous|last result|drill down|break.*down|'
-    r'why|how come|explain|top \d|bottom \d|sort by|filter by|exclude|include)\b',
-    re.IGNORECASE
-)
-
-ECOMMERCE_KEYWORDS = re.compile(
-    r'\b(products?|orders?|sales?|revenue|customers?|reviews?|shipments?|stores?|categories?|category|'
-    r'inventory|stock|prices?|profits?|discounts?|carts?|payments?|refunds?|ratings?|'
-    r'spend|purchases?|deliver|shipped|shipping|warehouse|sellers?|buyers?|monthly|daily|weekly|'
-    r'total|average|count|sum|trends?|growth|comparison|segments?|analytics)\b',
-    re.IGNORECASE
-)
-
-NOT_ECOMMERCE_BLACKLIST = re.compile(
-    r'\b(jokes?|funny|laugh|humor|football|soccer|basketball|baseball|tennis|'
-    r'weather|forecast|politics|president|election|recipes?|cook|movie|songs?|'
-    r'music|poems?|story|stories|novel|game\s+score|celebrity|gossip|'
-    r'horoscope|zodiac|lottery|riddle|translate|homework|essay)\b',
-    re.IGNORECASE
-)
+from agents import guardrails
 
 
-def _is_follow_up_reference(question: str) -> bool:
-    return bool(FOLLOW_UP_PATTERNS.search(question))
+def test_ecommerce_keywords_match_extended_queries():
+    assert guardrails.ECOMMERCE_KEYWORDS.search("Show me total revenue")
+    assert guardrails.ECOMMERCE_KEYWORDS.search("How many orders today?")
+    assert guardrails.ECOMMERCE_KEYWORDS.search("Which is the cheapest product?")
+    assert guardrails.ECOMMERCE_KEYWORDS.search("Top 5 best selling products")
 
 
-def test_ecommerce_keywords_match():
-    """E-commerce keywords should be detected."""
-    assert ECOMMERCE_KEYWORDS.search("Show me total revenue")
-    assert ECOMMERCE_KEYWORDS.search("How many orders today?")
-    assert ECOMMERCE_KEYWORDS.search("List all products")
-    assert ECOMMERCE_KEYWORDS.search("Customer spending by city")
-    assert ECOMMERCE_KEYWORDS.search("average ratings")
+def test_blacklist_and_keyword_classifier():
+    assert guardrails.NOT_ECOMMERCE_BLACKLIST.search("Tell me a joke")
+    assert guardrails._classify_with_keywords("Tell me a joke") == "OUT_OF_SCOPE"
+    assert guardrails._classify_with_keywords("Show me low stock products") == "IN_SCOPE"
 
 
-def test_ecommerce_keywords_no_match():
-    """Non-ecommerce text should not match."""
-    assert not ECOMMERCE_KEYWORDS.search("Tell me a joke")
-    assert not ECOMMERCE_KEYWORDS.search("What is the weather?")
-    assert not ECOMMERCE_KEYWORDS.search("Write me a poem")
+def test_follow_up_patterns_detect_references():
+    assert guardrails._is_follow_up_reference("Which one has the highest revenue?")
+    assert guardrails._is_follow_up_reference("Break it down by category")
+    assert not guardrails._is_follow_up_reference("What is the total revenue?")
 
 
-def test_blacklist_catches_off_topic():
-    """Blacklist should catch clearly off-topic keywords."""
-    assert NOT_ECOMMERCE_BLACKLIST.search("Tell me a joke")
-    assert NOT_ECOMMERCE_BLACKLIST.search("Who won the football game?")
-    assert NOT_ECOMMERCE_BLACKLIST.search("What's the weather forecast?")
-    assert NOT_ECOMMERCE_BLACKLIST.search("Write me a poem about love")
+def test_pure_greeting_short_circuits_before_llm(monkeypatch):
+    monkeypatch.setattr(guardrails.random, "choice", lambda items: items[0])
+    calls = []
+
+    def llm_spy(*args, **kwargs):
+        calls.append((args, kwargs))
+        return "OUT_OF_SCOPE"
+
+    monkeypatch.setattr(guardrails, "call_llm", llm_spy)
+
+    result = guardrails.guardrails_agent({"question": "hello"})
+
+    assert result["is_greeting"] is True
+    assert result["is_in_scope"] is False
+    assert result["final_answer"] == guardrails.GREETING_RESPONSES[0]
+    assert calls == []
 
 
-def test_blacklist_allows_ecommerce():
-    """Blacklist should not trigger on e-commerce questions."""
-    assert not NOT_ECOMMERCE_BLACKLIST.search("What is the total revenue?")
-    assert not NOT_ECOMMERCE_BLACKLIST.search("Show me order status breakdown")
-    assert not NOT_ECOMMERCE_BLACKLIST.search("Top 5 selling products")
+def test_greeting_plus_analytics_query_stays_in_scope(monkeypatch):
+    monkeypatch.setattr(guardrails, "call_llm", lambda *args, **kwargs: "GREETING")
+
+    result = guardrails.guardrails_agent({"question": "hello show total revenue"})
+
+    assert result["is_greeting"] is False
+    assert result["is_in_scope"] is True
 
 
-def test_follow_up_patterns():
-    """Follow-up references should be detected."""
-    assert _is_follow_up_reference("Which one has the highest?")
-    assert _is_follow_up_reference("Show more details")
-    assert _is_follow_up_reference("Compare those two")
-    assert _is_follow_up_reference("Break it down by category")
+def test_guardrails_allows_ecommerce_query_when_llm_is_ambiguous(monkeypatch):
+    monkeypatch.setattr(guardrails, "call_llm", lambda *args, **kwargs: "Maybe")
+
+    result = guardrails.guardrails_agent({"question": "Show me low stock products"})
+
+    assert result["is_in_scope"] is True
+    assert result["is_greeting"] is False
 
 
-def test_not_follow_up():
-    """Direct questions should not be flagged as follow-ups."""
-    assert not _is_follow_up_reference("What is the total revenue?")
-    assert not _is_follow_up_reference("How many orders are pending?")
+def test_guardrails_overrides_wrong_out_of_scope_for_ecommerce(monkeypatch):
+    monkeypatch.setattr(guardrails, "call_llm", lambda *args, **kwargs: "OUT_OF_SCOPE")
+
+    result = guardrails.guardrails_agent({"question": "What is the total revenue?"})
+
+    assert result["is_in_scope"] is True
+    assert result["is_greeting"] is False
+
+
+def test_guardrails_returns_greeting_response(monkeypatch):
+    monkeypatch.setattr(guardrails, "call_llm", lambda *args, **kwargs: "GREETING")
+    monkeypatch.setattr(guardrails.random, "choice", lambda items: items[0])
+
+    result = guardrails.guardrails_agent({"question": "Hello there"})
+
+    assert result["is_greeting"] is True
+    assert result["is_in_scope"] is False
+    assert result["final_answer"] == guardrails.GREETING_RESPONSES[0]

@@ -42,6 +42,7 @@ References:
 | LLM Provider | OpenAI, Gemini, or alternative LLM | Google Gemini API (`gemini-3-flash-preview`) via OpenAI-compatible endpoint |
 | Visualization | Plotly | Plotly (LLM-generated charts) + Chart.js (dashboards) |
 | API Docs | Swagger/OpenAPI | springdoc-openapi at `/swagger-ui.html` |
+| Payment | Stripe, PayPal, Crypto, or other | Stripe Test API (`stripe-java` SDK + Stripe.js Elements) |
 
 ---
 
@@ -168,6 +169,27 @@ References:
 | GET | `/api/orders` | ADMIN | All orders |
 | PATCH | `/api/orders/{orderId}/status` | ADMIN | Update order status |
 
+### Payments (`/api/payments`) — Stripe Integration
+
+| Method | Path | Access | Description |
+|--------|------|--------|-------------|
+| POST | `/api/payments/create-intent` | INDIVIDUAL | Create Stripe PaymentIntent for a PENDING order |
+| POST | `/api/payments/confirm` | INDIVIDUAL | Confirm payment and update order to CONFIRMED |
+
+**Payment Flow:**
+1. User places order → status = `PENDING`
+2. Frontend calls `/api/payments/create-intent` with `orderId` → backend creates Stripe PaymentIntent, returns `clientSecret`
+3. Frontend uses Stripe.js Elements to collect card details and confirm payment client-side
+4. Frontend calls `/api/payments/confirm` with `paymentIntentId` → backend verifies with Stripe API and updates order status to `CONFIRMED`
+
+**Security:**
+- Stripe Secret Key (`sk_test_`) is stored in `backend/.env`, never exposed to frontend
+- Stripe Publishable Key (`pk_test_`) is returned by the API for frontend Stripe.js initialization
+- Order ownership is enforced — users can only pay for their own orders
+- Only `PENDING` orders can be paid
+
+**Test Card:** `4242 4242 4242 4242` | Any future expiry | Any CVC
+
 ### Reviews (`/api/reviews`)
 
 | Method | Path | Access | Description |
@@ -288,6 +310,7 @@ References:
 | `/cart` | roleGuard('INDIVIDUAL') | CartComponent | Individual |
 | `/dashboard` | roleGuard('INDIVIDUAL') | IndividualDashboardComponent | Individual |
 | `/orders` | roleGuard('INDIVIDUAL') | MyOrdersComponent | Individual |
+| `/checkout/:orderId` | roleGuard('INDIVIDUAL') | CheckoutComponent | Individual |
 | `/reviews` | roleGuard('INDIVIDUAL') | MyReviewsComponent | Individual |
 | `/admin` | roleGuard('ADMIN') | AdminDashboardComponent | Admin |
 | `/admin/users` | roleGuard('ADMIN') | AdminUsersComponent | Admin |
@@ -306,6 +329,7 @@ References:
 - Product browsing with search, category filter, sort
 - Product detail with reviews, add to cart, buy now
 - Shopping cart management (add, update qty, remove, clear, checkout)
+- Stripe payment integration (secure card input via Stripe.js Elements, PaymentIntent flow)
 - Order placement, order history with status filter, cancel, CSV export
 - Shipment tracking
 - Review and rating submission, my reviews list
@@ -331,13 +355,161 @@ References:
 
 ### Frontend Architecture
 
-- **State Management:** Service-based with Angular Signals (no NgRx)
+- **State Management:** Service-based with Angular Signals — zoneless mode (no zone.js), all reactive state uses `signal()` for automatic change detection
 - **Lazy Loading:** All route components use `loadComponent` for code splitting
 - **Auth Interceptor:** Attaches `Authorization: Bearer <token>` to all requests; catches 401 -> logout
 - **Guards:** `authGuard` (is logged in?), `roleGuard(roles)` (has required role?)
 - **Data Visualization:** Chart.js on canvas elements in all 3 dashboard components
 - **Chat Interface:** Sends to `/api/chat/ask`. SQL shown in `<pre>` block, tabular data in `<table>` (both in main DOM). Plotly visualization HTML rendered in sandboxed `<iframe sandbox="allow-scripts">` via Blob URL (isolated from main DOM)
-- **Navbar:** Role-aware navigation links with profile and logout
+- **Navbar:** Role-aware sidebar navigation with collapsible layout, profile card, and logout
+
+### Frontend Design System — Wispr Flow Inspired Theme
+
+The UI uses a warm, natural color palette inspired by [Wispr Flow](https://wisprflow.ai). All design tokens are extracted from Wispr Flow's production CSS (`flowsite-dev.webflow.shared.min.css`).
+
+#### Color Palette (Wispr Flow Brand Tokens)
+
+| Token Name | Hex Code | RGB | Usage |
+|------------|----------|-----|-------|
+| **lumen-dark** | `#e4e4d0` | rgb(228, 228, 208) | Page backgrounds, main content area, login page background |
+| **lumen** | `#ffffeb` | rgb(255, 255, 235) | Card backgrounds, sidebar, input fields, form containers |
+| **dawn** | `#f0d7ff` | rgb(240, 215, 255) | Primary action buttons (Sign In, Submit), badges, lavender accents |
+| **fathom** | `#034f46` | rgb(3, 79, 70) | Logo, active navigation items, focus states, primary accent (dark teal) |
+| **vast** | `#1a1a1a` | rgb(26, 26, 26) | Headings, primary text, button borders on login |
+| **glow** | `#ffa946` | rgb(255, 169, 70) | Warning/attention accents (orange) |
+| **pulse** | `#7f1c34` | rgb(127, 28, 52) | Error states (dark red) |
+| **white** | `#ffffff` | rgb(255, 255, 255) | — |
+
+#### Derived / Secondary Colors
+
+| Color | Hex Code | Usage |
+|-------|----------|-------|
+| Border (primary) | `#d5d5c0` | Card borders, dividers, sidebar border |
+| Border (input) | `#c8c8b4` | Input field borders, scrollbar thumb |
+| Text (secondary) | `#666666` | Secondary text, descriptions, muted labels |
+| Text (muted) | `#999999` | Placeholders, disabled text |
+| Hover background | `#f5f5e1` | Table row hover, button hover states |
+| Hover background (nav) | `#e4e4d0` | Sidebar navigation item hover (matches page bg) |
+| Active accent (alpha) | `rgba(3, 79, 70, 0.08)` | Active navigation item background |
+| Focus ring | `rgba(3, 79, 70, 0.12)` | Input focus box-shadow |
+| Dawn hover | `#e4c4f7` | Primary button hover state (darker dawn) |
+
+#### Semantic Colors (preserved across themes)
+
+| Purpose | Hex Code | Usage |
+|---------|----------|-------|
+| Error/Admin red | `#dc2626` | Error messages, admin role badge text |
+| Error background | `#fce5e5` | Admin badge background, error notification bg |
+| Success green | `#16a34a` | Individual role badge text, success states |
+| Success background | `#dcfce7` | Individual badge background |
+| Corporate purple text | `#6b21a8` | Corporate role badge text |
+| Corporate purple bg | `#f0d7ff` | Corporate badge background (same as dawn) |
+| Warning amber | `#d97706` | Warning states |
+| Warning background | `#fef3c7` | Warning notification background |
+
+#### Login Page UI Pattern (Wispr Flow Get-Started Style)
+
+The login page replicates the Wispr Flow `/get-started` page layout and styling:
+
+| Element | Wispr Flow CSS | Our Implementation |
+|---------|---------------|-------------------|
+| **Page background** | `background-color: var(--base-color--lumen-dark)` | `background: #e4e4d0` |
+| **Card container** | `border-radius: 32px; padding: 2rem` | `border-radius: 32px; padding: 2rem; background: #ffffeb` |
+| **Quick-login buttons** | `border: 2px solid #1a1a1a; border-radius: 8px; padding: 1rem; font-weight: 600` | Labels: **Continue as Admin / Corporate / Individual** (demo accounts); same Wispr button chrome |
+| **Button hover** | `transition: opacity 0.2s` | `opacity: 0.7` on hover |
+| **"or" separator** | Plain text between button group and input | `text-align: center; padding: 20px 0` |
+| **Email/Password inputs** | Bottom border only (`border-bottom: 2px solid #1a1a1a`), no box | Same — `border: none; border-bottom: 2px solid #1a1a1a; border-radius: 0; background: transparent` |
+| **Submit button** | `background-color: var(--base-color--dawn); border-radius: 8px` | Label **Continue**; `background: #f0d7ff; border-radius: 8px; padding: 1rem` |
+| **Wispr “Last used” chip** | Small dawn pill on a provider button | Not used on our quick-login rows (three plain bordered buttons only). |
+
+#### Sidebar Navigation Pattern
+
+| Property | Value |
+|----------|-------|
+| Width | 250px (68px when collapsed) |
+| Background | `#ffffeb` (lumen) |
+| Border right | `1px solid #d5d5c0` |
+| Nav item (default) | `color: #666; font-size: 14px; border-radius: 10px` |
+| Nav item (hover) | `color: #1a1a1a; background: #e4e4d0` |
+| Nav item (active) | `color: #034f46; background: rgba(3, 79, 70, 0.08)` |
+| Section labels | `font-size: 10px; color: #999; letter-spacing: 1.2px; text-transform: uppercase` |
+| User avatar | `background: linear-gradient(135deg, #034f46, #1c6056)` |
+| Badge (new) | `background: #f0d7ff; color: #1a1a1a` |
+
+#### Card & Component Pattern
+
+| Property | Value |
+|----------|-------|
+| Card background | `#ffffeb` |
+| Card border | `1px solid #d5d5c0` |
+| Card border-radius | `16px` |
+| Card shadow | `0 1px 4px rgba(0, 0, 0, 0.04)` |
+| Table header bg | `#f5f5e1` |
+| Table row hover | `#f5f5e1` |
+| Input background | `#ffffeb` |
+| Input border | `1px solid #c8c8b4` |
+| Input focus border | `#034f46` with `box-shadow: 0 0 0 3px rgba(3, 79, 70, 0.12)` |
+
+#### Typography
+
+| Element | Font | Weight | Size | Color |
+|---------|------|--------|------|-------|
+| Body | Inter, -apple-system, sans-serif | 400 | 14px | `#1a1a1a` |
+| Headings | Inter | 700 | 20-28px | `#1a1a1a` |
+| Labels | Inter | 600 | 13px | `#444444` |
+| Muted/secondary | Inter | 400-500 | 12-14px | `#666666` |
+| Section labels | Inter | 700 | 10px | `#999999` |
+
+#### Brand & naming (Flower)
+
+| Item | Detail |
+|------|--------|
+| **Product name in UI** | **Flower** — shown on the login brand row and in the sidebar logo text (replaces earlier placeholder copy such as “DataPulse” in the UI only; backend routes and code identifiers are unchanged unless renamed separately). |
+| **Logo mark** | Inline SVG: four vertical bars of different heights (Wispr Flow–style “sound wave / bar chart”), fill `#1a1a1a`. Login uses `40×40` (`viewBox="0 0 32 32"`); sidebar uses `24×24` (`viewBox="0 0 28 28"`). |
+
+#### Login page — layout & copy (current)
+
+| Topic | Implementation |
+|-------|----------------|
+| **Structure** | Brand row **above** the card (icon + wordmark “Flower”), then a single card. Inside the card: serif **“Get started”** heading; three demo quick-login buttons labeled **Continue as Admin / Continue as Corporate / Continue as Individual**; **“or”**; email and password fields; primary button text **Continue** (loading: “Signing in…”). |
+| **Vertical layout** | `.login-page` uses `justify-content: flex-start` (not vertical centering) so the block sits higher like [wisprflow.ai/get-started](https://wisprflow.ai/get-started). Padding: `padding: 2rem`, `padding-top: 5rem`, `padding-bottom: 4rem`, `gap: 2.5rem` between the brand row and the card. |
+| **Card size** | `max-width: 34rem` (~544px), `border-radius: 32px`, `padding: 2rem`, background `#ffffeb`. |
+| **Brand row nudge** | `.brand` uses `position: relative; top: -1.3rem` so only the logo + “Flower” row shifts **up** slightly; the **Get started** card position is unchanged (avoids changing `gap` / `padding-top`, which would move the card). |
+| **“Get started” title** | Large serif heading (e.g. Georgia), `font-size: ~2.5rem`, centered. |
+
+#### App shell (logged-in)
+
+| Topic | Detail |
+|-------|--------|
+| **Root layout** | `App` shows a sidebar + main content when authenticated; unauthenticated routes (e.g. `/login`) render only `<router-outlet>` so the login page is full-width without the sidebar. Implemented in `frontend/src/app/app.html` + `app.ts` (`AuthService` for `isLoggedIn()`). |
+| **Main content background** | `#e4e4d0` (`app.css` `.main-content`, aligned with lumen-dark). |
+
+#### Global styles (`frontend/src/styles.css`)
+
+| Topic | Detail |
+|-------|--------|
+| **Body** | Background `#e4e4d0`, text `#1a1a1a`. |
+| **Links** | Teal accent `#034f46` (fathom), hover darkened. |
+| **`.btn-primary`** | Background `#f0d7ff` (dawn), text `#1a1a1a` — matches Wispr primary actions, not a saturated purple. |
+| **`.card`, inputs** | Cards `#ffffeb`, borders `#d5d5c0` / `#c8c8b4`; focus ring uses teal `rgba(3, 79, 70, 0.12)`. |
+
+#### Zoneless Angular fix — Admin Analytics
+
+| Issue | Fix |
+|-------|-----|
+| **Symptom** | On `/admin/analytics`, **Cross-Store Comparison** (and related tabs) could stay on **Loading...** until the user switched tabs; data had already loaded. |
+| **Cause** | The app runs in **zoneless** mode: plain property assignments from HTTP subscriptions do not trigger change detection. |
+| **Fix** | `AdminAnalyticsComponent` stores `tab`, `stores`, `segmentation`, and `auditLogs` as **`signal()`** values and uses `.set()` in subscriptions so the UI updates when data arrives (`frontend/src/app/components/admin-analytics/admin-analytics.ts`). |
+
+#### UI files touched by the theme & Flower work (non-exhaustive)
+
+| Area | Typical files |
+|------|----------------|
+| **Global / shell** | `frontend/src/styles.css`, `frontend/src/app/app.css`, `frontend/src/app/app.html`, `frontend/src/app/app.ts` |
+| **Auth chrome** | `frontend/src/app/components/login/login.ts`, `frontend/src/app/components/navbar/navbar.ts` |
+| **Dashboards & charts** | `individual-dashboard.ts`, `corporate-dashboard.ts`, `admin-dashboard.ts` |
+| **Feature pages** | Product list/detail, cart, checkout, orders, reviews, profile, chatbot, corporate admin pages, admin CRUD/analytics/settings |
+| **Admin analytics** | `admin-analytics.ts` (signals + Wispr-aligned styles) |
 
 ---
 

@@ -24,19 +24,25 @@ import { Product, Category } from '../../models/product.model';
             <div class="form-grid">
               <div class="field">
                 <label>Name</label>
-                <input [(ngModel)]="form.name" name="name" required>
+                <input [(ngModel)]="form.name" name="name" required />
               </div>
               <div class="field">
                 <label>SKU</label>
-                <input [(ngModel)]="form.sku" name="sku">
+                <input [(ngModel)]="form.sku" name="sku" />
               </div>
               <div class="field">
                 <label>Price</label>
-                <input type="number" step="0.01" [(ngModel)]="form.unitPrice" name="unitPrice" required>
+                <input
+                  type="number"
+                  step="0.01"
+                  [(ngModel)]="form.unitPrice"
+                  name="unitPrice"
+                  required
+                />
               </div>
               <div class="field">
                 <label>Stock</label>
-                <input type="number" [(ngModel)]="form.stock" name="stock" required>
+                <input type="number" [(ngModel)]="form.stock" name="stock" required />
               </div>
               <div class="field">
                 <label>Category</label>
@@ -53,33 +59,49 @@ import { Product, Category } from '../../models/product.model';
               </div>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">{{ editProduct() ? 'Update' : 'Create' }}</button>
+              <button type="submit" class="btn btn-primary">
+                {{ editProduct() ? 'Update' : 'Create' }}
+              </button>
             </div>
           </form>
         </div>
       }
 
       <div class="search-bar">
-        <input placeholder="Search products..." [(ngModel)]="searchQuery" (input)="onSearch()" [ngModelOptions]="{standalone:true}">
+        <input
+          placeholder="Search products..."
+          [(ngModel)]="searchQuery"
+          (input)="onSearch()"
+          [ngModelOptions]="{ standalone: true }"
+        />
       </div>
 
       <div class="table-card card">
         <table>
           <thead>
             <tr>
-              <th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th>
+              <th>Name</th>
+              <th>SKU</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             @for (p of products(); track p.id) {
               <tr [class.low-stock]="p.stock < 10">
                 <td class="product-name">{{ p.name }}</td>
-                <td><code>{{ p.sku || '-' }}</code></td>
+                <td>
+                  <code>{{ p.sku || '-' }}</code>
+                </td>
                 <td>{{ p.category || '-' }}</td>
-                <td>\${{ p.price | number:'1.2-2' }}</td>
+                <td>\${{ p.price | number: '1.2-2' }}</td>
                 <td>
                   <span [class.stock-warn]="p.stock < 10">{{ p.stock }}</span>
-                  @if (p.stock < 10) { <span class="stock-alert">Low</span> }
+                  @if (p.stock < 10) {
+                    <span class="stock-alert">Low</span>
+                  }
                 </td>
                 <td>
                   <button class="btn-xs" (click)="startEdit(p)">Edit</button>
@@ -95,34 +117,143 @@ import { Product, Category } from '../../models/product.model';
       </div>
     </div>
   `,
-  styles: [`
-    .page { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .page-header h1 { font-size: 24px; font-weight: 700; }
-    .form-card { padding: 20px; margin-bottom: 20px; }
-    .form-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .form-grid .full { grid-column: span 2; }
-    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-    select { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; }
-    textarea { resize: vertical; }
-    .form-actions { margin-top: 14px; }
-    .search-bar { margin-bottom: 16px; }
-    .table-card { padding: 0; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { background: #f8fafc; padding: 12px 16px; text-align: left; font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase; }
-    td { padding: 12px 16px; border-top: 1px solid #f1f5f9; }
-    tr:hover td { background: #f8fafc; }
-    tr.low-stock td { background: #fffbeb; }
-    .product-name { font-weight: 600; }
-    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-    .stock-warn { color: #dc2626; font-weight: 700; }
-    .stock-alert { font-size: 10px; background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
-    .btn-xs { padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 4px; background: white; font-size: 11px; cursor: pointer; margin-right: 4px; }
-    .btn-xs.danger { border-color: #fecaca; color: #dc2626; }
-    .btn-xs:hover { background: #f8fafc; }
-    .empty { padding: 40px; text-align: center; color: #9ca3af; }
-  `]
+  styles: [
+    `
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .page-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a1a;
+      }
+      .form-card {
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .form-card h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #1a1a1a;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .form-grid .full {
+        grid-column: span 2;
+      }
+      .field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #666;
+      }
+      select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #c8c8b4;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        background: #ffffeb;
+        color: #1a1a1a;
+      }
+      textarea {
+        resize: vertical;
+      }
+      .form-actions {
+        margin-top: 14px;
+      }
+      .search-bar {
+        margin-bottom: 16px;
+      }
+      .table-card {
+        padding: 0;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        background: #f5f5e1;
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 600;
+        color: #666;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+      td {
+        padding: 12px 16px;
+        border-top: 1px solid #d5d5c0;
+      }
+      tr:hover td {
+        background: #f5f5e1;
+      }
+      tr.low-stock td {
+        background: #fef3c7;
+      }
+      .product-name {
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+      code {
+        background: #f5f5e1;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #666;
+      }
+      .stock-warn {
+        color: #dc2626;
+        font-weight: 700;
+      }
+      .stock-alert {
+        font-size: 10px;
+        background: #fee2e2;
+        color: #dc2626;
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 4px;
+      }
+      .btn-xs {
+        padding: 4px 10px;
+        border: 1px solid #c8c8b4;
+        border-radius: 4px;
+        background: #ffffeb;
+        font-size: 11px;
+        cursor: pointer;
+        margin-right: 4px;
+        color: #1a1a1a;
+      }
+      .btn-xs.danger {
+        border-color: rgba(220, 38, 38, 0.3);
+        color: #dc2626;
+      }
+      .btn-xs:hover {
+        background: #f5f5e1;
+      }
+      .empty {
+        padding: 40px;
+        text-align: center;
+        color: #666;
+      }
+    `,
+  ],
 })
 export class CorporateProductsComponent implements OnInit {
   products = signal<Product[]>([]);
@@ -130,19 +261,33 @@ export class CorporateProductsComponent implements OnInit {
   showForm = signal(false);
   editProduct = signal<Product | null>(null);
   searchQuery = '';
-  form = { name: '', description: '', unitPrice: 0, stock: 0, sku: '', categoryId: null as number | null };
+  form = {
+    name: '',
+    description: '',
+    unitPrice: 0,
+    stock: 0,
+    sku: '',
+    categoryId: null as number | null,
+  };
 
-  constructor(private storeService: StoreService, private categoryService: CategoryService) {}
+  constructor(
+    private storeService: StoreService,
+    private categoryService: CategoryService,
+  ) {}
 
   ngOnInit() {
     this.load();
-    this.categoryService.getAll().subscribe(c => this.categories.set(c));
+    this.categoryService.getAll().subscribe((c) => this.categories.set(c));
   }
 
-  load() { this.storeService.getMyProducts().subscribe(p => this.products.set(p)); }
+  load() {
+    this.storeService.getMyProducts().subscribe((p) => this.products.set(p));
+  }
 
   onSearch() {
-    this.storeService.getMyProducts(this.searchQuery || undefined).subscribe(p => this.products.set(p));
+    this.storeService
+      .getMyProducts(this.searchQuery || undefined)
+      .subscribe((p) => this.products.set(p));
   }
 
   save() {
@@ -150,13 +295,23 @@ export class CorporateProductsComponent implements OnInit {
     const obs = this.editProduct()
       ? this.storeService.updateProduct(this.editProduct()!.id, data)
       : this.storeService.createProduct(data);
-    obs.subscribe(() => { this.resetForm(); this.load(); });
+    obs.subscribe(() => {
+      this.resetForm();
+      this.load();
+    });
   }
 
   startEdit(p: Product) {
     this.editProduct.set(p);
     this.showForm.set(true);
-    this.form = { name: p.name, description: p.description, unitPrice: p.price, stock: p.stock, sku: p.sku, categoryId: null };
+    this.form = {
+      name: p.name,
+      description: p.description,
+      unitPrice: p.price,
+      stock: p.stock,
+      sku: p.sku,
+      categoryId: null,
+    };
   }
 
   resetForm() {

@@ -1,12 +1,14 @@
 """FastAPI entry point for the chatbot microservice."""
+import json
 import os
 import time
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Iterator, Optional, List
 from collections import defaultdict
-from graph import run_query
+from graph import run_query, run_query_stream
 from seed_data import seed
 import config
 
@@ -51,6 +53,7 @@ class ChatResponse(BaseModel):
     visualization_html: Optional[str] = None
     visualization_code: Optional[str] = None
     is_in_scope: Optional[bool] = None
+    is_greeting: Optional[bool] = None
     iteration_count: Optional[int] = None
 
 
@@ -149,7 +152,71 @@ def chat(req: ChatRequest, x_api_key: Optional[str] = Header(None, alias="X-API-
         visualization_html=result.get("visualization_html"),
         visualization_code=result.get("visualization_code"),
         is_in_scope=result.get("is_in_scope"),
+        is_greeting=result.get("is_greeting"),
         iteration_count=result.get("iteration_count"),
+    )
+
+
+@app.post("/api/chat/stream")
+def chat_stream(req: ChatRequest, x_api_key: Optional[str] = Header(None, alias="X-API-Key")):
+    """SSE endpoint: streams per-agent step events and a final result.
+
+    Each event is framed as:
+        event: step | final
+        data: <json>
+    """
+    if x_api_key != config.INTERNAL_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid or missing API key")
+
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    _cleanup_expired_sessions()
+    context = _build_context(req.session_id) if req.session_id else ""
+    session_id = req.session_id
+
+    def event_stream() -> Iterator[bytes]:
+        final_payload: Optional[dict] = None
+        try:
+            for event in run_query_stream(
+                question=req.question,
+                user_role=req.user_role,
+                user_id=req.user_id,
+                store_id=req.store_id,
+                conversation_context=context,
+            ):
+                event_name = "final" if event.get("step") == "final" else "step"
+                if event_name == "final":
+                    final_payload = event.get("payload", {})
+                data_json = json.dumps(event, default=str)
+                yield f"event: {event_name}\ndata: {data_json}\n\n".encode("utf-8")
+        except Exception as ex:  # noqa: BLE001
+            err = {"step": "final", "status": "error",
+                   "payload": {"answer": f"Internal error: {ex}", "error": str(ex)}}
+            yield f"event: final\ndata: {json.dumps(err)}\n\n".encode("utf-8")
+            return
+
+        # Persist turn into session history so follow-up questions keep context.
+        if session_id and final_payload is not None:
+            _session_last_active[session_id] = time.time()
+            result_columns = []
+            data = final_payload.get("data") or {}
+            if isinstance(data, dict) and data.get("columns"):
+                result_columns = data["columns"]
+            _sessions[session_id].append({
+                "question": req.question,
+                "answer": final_payload.get("answer", ""),
+                "sql_query": final_payload.get("sql_query"),
+                "columns": result_columns,
+            })
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

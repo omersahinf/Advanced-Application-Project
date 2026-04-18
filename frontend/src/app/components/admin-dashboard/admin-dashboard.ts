@@ -34,7 +34,11 @@ Chart.register(...registerables);
           <h3>Toggle Widgets</h3>
           <div class="config-options">
             <label
-              ><input type="checkbox" [checked]="widgets()['kpis']" (change)="toggleWidget('kpis')" />
+              ><input
+                type="checkbox"
+                [checked]="widgets()['kpis']"
+                (change)="toggleWidget('kpis')"
+              />
               KPI Cards</label
             >
             <label
@@ -94,7 +98,7 @@ Chart.register(...registerables);
             </div>
             <div class="kpi-card">
               <h3>Total Revenue</h3>
-              <p class="kpi-value">{{ d.totalRevenue | number:'1.2-2' }}</p>
+              <p class="kpi-value">{{ d.totalRevenue | number: '1.2-2' }}</p>
             </div>
           </div>
         }
@@ -158,9 +162,10 @@ Chart.register(...registerables);
       .page-header h1 {
         font-size: 24px;
         font-weight: 700;
+        color: #1a1a1a;
       }
       .page-header p {
-        color: #64748b;
+        color: #666;
         font-size: 14px;
         margin-top: 4px;
       }
@@ -171,38 +176,28 @@ Chart.register(...registerables);
         margin-bottom: 28px;
       }
       .kpi-card {
-        background: white;
-        border-radius: 12px;
+        background: #ffffeb;
+        border-radius: 16px;
         padding: 20px;
         text-align: center;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        border: 1px solid #d5d5c0;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
         transition: transform 0.15s;
       }
       .kpi-card:hover {
         transform: translateY(-2px);
       }
-      .kpi-card.highlight {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-      .kpi-card.highlight .kpi-label {
-        color: rgba(255, 255, 255, 0.8);
-      }
-      .kpi-icon {
-        font-size: 28px;
-        margin-bottom: 8px;
+      .kpi-card h3 {
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+        text-transform: uppercase;
+        margin-bottom: 6px;
       }
       .kpi-value {
         font-size: 28px;
         font-weight: 700;
-      }
-      .kpi-label {
-        font-size: 12px;
-        color: #64748b;
-        margin-top: 4px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        color: #1a1a1a;
       }
       .charts-row {
         display: grid;
@@ -217,7 +212,7 @@ Chart.register(...registerables);
         font-size: 14px;
         font-weight: 600;
         margin-bottom: 16px;
-        color: #374151;
+        color: #1a1a1a;
       }
       .quick-links {
         display: grid;
@@ -230,13 +225,13 @@ Chart.register(...registerables);
         gap: 12px;
         padding: 20px;
         text-decoration: none;
-        color: #374151;
+        color: #1a1a1a;
         font-weight: 600;
         transition: all 0.15s;
       }
       .quick-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: rgba(3, 79, 70, 0.3);
       }
       .quick-icon {
         font-size: 24px;
@@ -244,16 +239,17 @@ Chart.register(...registerables);
       .btn-configure {
         margin-bottom: 16px;
         padding: 6px 16px;
-        border: 1px solid #d1d5db;
+        border: 1px solid #c8c8b4;
         border-radius: 8px;
-        background: white;
+        background: #ffffeb;
         font-size: 13px;
         cursor: pointer;
         font-family: inherit;
-        color: #374151;
+        color: #666;
       }
       .btn-configure:hover {
-        background: #f3f4f6;
+        background: #f5f5e1;
+        color: #1a1a1a;
       }
       .widget-config {
         padding: 16px;
@@ -263,6 +259,7 @@ Chart.register(...registerables);
         font-size: 14px;
         font-weight: 600;
         margin-bottom: 10px;
+        color: #1a1a1a;
       }
       .config-options {
         display: flex;
@@ -275,11 +272,12 @@ Chart.register(...registerables);
         gap: 6px;
         font-size: 13px;
         cursor: pointer;
+        color: #1a1a1a;
       }
       .loading {
         text-align: center;
         padding: 60px;
-        color: #64748b;
+        color: #666;
       }
       @media (max-width: 768px) {
         .kpi-grid {
@@ -346,9 +344,10 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.chartsReady) return;
     this.charts.forEach((c) => c.destroy());
     this.charts = [];
-    const colors = ['#4361ee', '#f72585', '#4cc9f0', '#fca311', '#7209b7', '#2ec4b6'];
+    const colors = ['#8b7cf6', '#f472b6', '#06b6d4', '#f59e0b', '#a78bfa', '#10b981'];
+    const chartTextColor = '#6b7280';
+    const gridColor = '#ebe6dc';
 
-    // Orders by Status
     const statusLabels = Object.keys(d.ordersByStatus);
     this.charts.push(
       new Chart(this.orderChartRef.nativeElement, {
@@ -359,11 +358,13 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
             { data: statusLabels.map((k) => d.ordersByStatus[k]), backgroundColor: colors },
           ],
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } },
+        },
       }),
     );
 
-    // Users by Role
     const roleLabels = Object.keys(d.usersByRole);
     this.charts.push(
       new Chart(this.userChartRef.nativeElement, {
@@ -373,15 +374,17 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
           datasets: [
             {
               data: roleLabels.map((k) => d.usersByRole[k]),
-              backgroundColor: ['#e63946', '#4361ee', '#2ec4b6'],
+              backgroundColor: ['#ef4444', '#8b7cf6', '#10b981'],
             },
           ],
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } },
+        },
       }),
     );
 
-    // Revenue by Store
     this.charts.push(
       new Chart(this.revenueChartRef.nativeElement, {
         type: 'bar',
@@ -391,14 +394,17 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
             {
               label: 'Revenue ($)',
               data: d.topStores.map((s) => s.revenue),
-              backgroundColor: '#4361ee',
+              backgroundColor: '#8b7cf6',
             },
           ],
         },
         options: {
           responsive: true,
           plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } },
+          scales: {
+            x: { ticks: { color: chartTextColor }, grid: { color: gridColor } },
+            y: { beginAtZero: true, ticks: { color: chartTextColor }, grid: { color: gridColor } },
+          },
         },
       }),
     );

@@ -153,6 +153,71 @@ public class DashboardService {
         return dash;
     }
 
+    public DashboardDto.RevenueDrillDown getCorporateRevenueDrillDown(Long ownerId, String month) {
+        List<Store> stores = storeRepository.findByOwnerId(ownerId);
+        if (stores.isEmpty()) {
+            throw new ResourceNotFoundException("No store found for this user");
+        }
+        Store store = stores.get(0);
+
+        // month format: yyyy-MM
+        LocalDate first = LocalDate.parse(month + "-01");
+        LocalDateTime monthStart = first.atStartOfDay();
+        LocalDateTime monthEnd = first.plusMonths(1).atStartOfDay();
+
+        List<Order> monthOrders = orderRepository.findByStoreId(store.getId()).stream()
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED)
+                .filter(o -> !o.getOrderDate().isBefore(monthStart) && o.getOrderDate().isBefore(monthEnd))
+                .collect(Collectors.toList());
+
+        BigDecimal totalRevenue = monthOrders.stream()
+                .map(Order::getGrandTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long orderCount = monthOrders.size();
+        BigDecimal avgOrderValue = orderCount > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(orderCount), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        List<DashboardDto.DrillOrder> drillOrders = monthOrders.stream()
+                .sorted((a, b) -> b.getOrderDate().compareTo(a.getOrderDate()))
+                .map(o -> new DashboardDto.DrillOrder(
+                        o.getId(),
+                        o.getOrderDate().toString(),
+                        o.getUser().getFirstName() + " " + o.getUser().getLastName(),
+                        o.getStatus().name(),
+                        o.getGrandTotal()))
+                .collect(Collectors.toList());
+
+        Map<String, BigDecimal> revenueByProduct = new HashMap<>();
+        Map<String, Long> qtyByProduct = new HashMap<>();
+        for (Order order : monthOrders) {
+            for (OrderItem item : order.getOrderItems()) {
+                String pName = item.getProduct().getName();
+                BigDecimal itemRevenue = item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                revenueByProduct.merge(pName, itemRevenue, BigDecimal::add);
+                qtyByProduct.merge(pName, (long) item.getQuantity(), Long::sum);
+            }
+        }
+        List<DashboardDto.TopProduct> topProducts = revenueByProduct.entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .limit(10)
+                .map(e -> new DashboardDto.TopProduct(
+                        e.getKey(),
+                        qtyByProduct.getOrDefault(e.getKey(), 0L),
+                        e.getValue()))
+                .collect(Collectors.toList());
+
+        DashboardDto.RevenueDrillDown out = new DashboardDto.RevenueDrillDown();
+        out.setMonth(month);
+        out.setTotalRevenue(totalRevenue);
+        out.setOrderCount(orderCount);
+        out.setAvgOrderValue(avgOrderValue);
+        out.setOrders(drillOrders);
+        out.setTopProducts(topProducts);
+        return out;
+    }
+
     public List<DashboardDto.StoreComparison> getStoreComparison() {
         List<Store> stores = storeRepository.findAll();
         List<DashboardDto.StoreComparison> result = new ArrayList<>();

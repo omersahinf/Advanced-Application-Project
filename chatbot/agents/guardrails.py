@@ -13,6 +13,12 @@ FOLLOW_UP_PATTERNS = re.compile(
     re.IGNORECASE
 )
 
+# Deterministic greeting matcher for short salutations.
+GREETING_PATTERNS = re.compile(
+    r'^\s*(hello|hi|hey|howdy|good\s+(morning|afternoon|evening))(?:\s+(there|assistant|team|bot))?[\s!.,?]*$',
+    re.IGNORECASE
+)
+
 # E-commerce keywords that confirm analytics intent (English only)
 ECOMMERCE_KEYWORDS = re.compile(
     r'\b(products?|orders?|sales?|revenue|customers?|reviews?|shipments?|stores?|categories?|category|'
@@ -38,6 +44,11 @@ def _is_follow_up_reference(question: str) -> bool:
     return bool(FOLLOW_UP_PATTERNS.search(question))
 
 
+def _is_greeting_message(question: str) -> bool:
+    """Allow pure greetings to short-circuit before the LLM."""
+    return bool(GREETING_PATTERNS.fullmatch(question.strip()))
+
+
 def _classify_with_keywords(question: str) -> str:
     """Keyword-based classification fallback when LLM gives ambiguous response."""
     # Check blacklist first
@@ -52,6 +63,13 @@ def _classify_with_keywords(question: str) -> str:
 def guardrails_agent(state: AgentState) -> dict:
     question = state["question"].strip()
     has_context = bool(state.get("conversation_context", "").strip())
+
+    if _is_greeting_message(question):
+        return {
+            "is_greeting": True,
+            "is_in_scope": False,
+            "final_answer": random.choice(GREETING_RESPONSES),
+        }
 
     result = call_llm(
         GUARDRAILS_PROMPT.format(question=question),
@@ -77,6 +95,11 @@ def guardrails_agent(state: AgentState) -> dict:
             resolved = "IN_SCOPE" if ECOMMERCE_KEYWORDS.search(question) else "OUT_OF_SCOPE"
 
     if resolved == "GREETING":
+        if ECOMMERCE_KEYWORDS.search(question) and not _is_greeting_message(question):
+            return {
+                "is_greeting": False,
+                "is_in_scope": True,
+            }
         return {
             "is_greeting": True,
             "is_in_scope": False,

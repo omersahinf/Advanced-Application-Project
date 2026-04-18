@@ -146,7 +146,7 @@ public class DataSeeder implements CommandLineRunner {
         Store fashionHub = createStore(corp3, "FashionHub", "Trendy fashion and lifestyle products", StoreStatus.ACTIVE);
         Store homeEssentials = createStore(corp4, "HomeEssentials", "Quality home and kitchen products", StoreStatus.ACTIVE);
 
-        // ======= PRODUCTS (from DS1: StockCode/Description, DS4: SKU/Category, DS5: Price) =======
+        // ======= PRODUCTS (from DS1: StockCode/Description, DS3: CostOfProduct, DS4: SKU/Category, DS5: Price, DS6: ProductTitle) =======
         // TechCorp products
         List<Product> techProducts = new ArrayList<>();
         techProducts.add(prod(techCorp, computers, "TC-001", "Wireless Keyboard Pro", "Ergonomic wireless keyboard with backlight and rechargeable battery", "79.99", 150));
@@ -396,7 +396,15 @@ public class DataSeeder implements CommandLineRunner {
         p.setSku(sku);
         p.setName(name);
         p.setDescription(desc);
-        p.setUnitPrice(new BigDecimal(price));
+        BigDecimal unitPrice = new BigDecimal(price);
+        p.setUnitPrice(unitPrice);
+        // DS3 CostOfProduct: supplier/production cost in USD.
+        // Simulated as 55-70% of unit_price (deterministic via Random(42)) to match
+        // the cost-to-retail distribution observed in the DS3 shipping dataset.
+        double ratio = 0.55 + (random.nextDouble() * 0.15);
+        BigDecimal costPrice = unitPrice.multiply(BigDecimal.valueOf(ratio))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        p.setCostPrice(costPrice);
         p.setStock(stock);
         return productRepository.save(p);
     }

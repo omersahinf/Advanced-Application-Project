@@ -13,11 +13,13 @@ export class AuthService {
   private _email = signal<string | null>(localStorage.getItem('user_email'));
   private _role = signal<string | null>(localStorage.getItem('user_role'));
   private _company = signal<string | null>(localStorage.getItem('user_company'));
+  private _firstName = signal<string | null>(localStorage.getItem('user_firstName'));
 
   isLoggedIn = computed(() => !!this._token() && !this.isTokenExpired());
   currentEmail = computed(() => this._email());
   currentRole = computed(() => this._role());
   currentCompany = computed(() => this._company());
+  currentFirstName = computed(() => this._firstName());
 
   isAdmin = computed(() => this._role() === 'ADMIN');
   isCorporate = computed(() => this._role() === 'CORPORATE');
@@ -53,11 +55,13 @@ export class AuthService {
     localStorage.setItem('user_email', response.email);
     localStorage.setItem('user_role', response.role);
     localStorage.setItem('user_company', response.companyName);
+    localStorage.setItem('user_firstName', response.firstName || '');
     this._token.set(response.token);
     this._refreshToken.set(response.refreshToken);
     this._email.set(response.email);
     this._role.set(response.role);
     this._company.set(response.companyName);
+    this._firstName.set(response.firstName || '');
   }
 
   getToken(): string | null {
@@ -74,11 +78,13 @@ export class AuthService {
     localStorage.removeItem('user_email');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_company');
+    localStorage.removeItem('user_firstName');
     this._token.set(null);
     this._refreshToken.set(null);
     this._email.set(null);
     this._role.set(null);
     this._company.set(null);
+    this._firstName.set(null);
     this.router.navigate(['/login']);
   }
 

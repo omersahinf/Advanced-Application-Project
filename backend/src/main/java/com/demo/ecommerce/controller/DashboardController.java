@@ -45,6 +45,15 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getCorporateCustomerSegmentation(p.getUserId()));
     }
 
+    @GetMapping("/corporate/revenue-drilldown")
+    @PreAuthorize("hasAuthority('CORPORATE')")
+    public ResponseEntity<DashboardDto.RevenueDrillDown> getCorporateRevenueDrillDown(
+            Authentication auth,
+            @RequestParam String month) {
+        UserPrincipal p = (UserPrincipal) auth.getPrincipal();
+        return ResponseEntity.ok(dashboardService.getCorporateRevenueDrillDown(p.getUserId(), month));
+    }
+
     @GetMapping("/admin")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<DashboardDto.AdminDashboard> getAdminDashboard() {

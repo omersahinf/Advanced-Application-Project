@@ -81,11 +81,18 @@ User question: {question}"""
 ROLE_CONTEXTS = {
     "ADMIN": "You have FULL ACCESS to all data. No restrictions.",
     "CORPORATE": "You can ONLY access data related to store_id={store_id}. "
-                 "Filter all queries by store_id={store_id} or through JOINs to the stores table where stores.id={store_id}. "
-                 "You can see: your store's products, orders for your store, reviews on your products, customer data for your store's orders.",
-    "INDIVIDUAL": "You can ONLY access data for user_id={user_id}. "
-                  "Filter all queries by user_id={user_id}. "
-                  "You can see: your own orders, your reviews, your profile, products you purchased, shipments for your orders.",
+                  "Filter all queries by store_id={store_id} or through JOINs to the stores table where stores.id={store_id}. "
+                  "You can see: your store's products, orders for your store, reviews on your products, customer data for your store's orders. "
+                  "IMPORTANT: If the user asks 'by store' or 'per store' or 'each store', they can only see their OWN store. "
+                  "Generate SQL for store_id={store_id} only, do NOT try to GROUP BY store for multiple stores.",
+    "INDIVIDUAL": "You are querying on behalf of user_id={user_id}. "
+                  "ACCESS RULES: "
+                  "For PERSONAL data (my orders, my reviews, my profile, my shipments): ALWAYS filter by user_id={user_id}. "
+                  "For PUBLIC/AGGREGATE data (most reviewed product, top rated products, product counts, store info, general statistics): DO NOT filter by user_id, show platform-wide results. "
+                  "Keywords like 'my', 'mine', 'I' indicate personal data, use user_id={user_id}. "
+                  "Questions about 'the most', 'top', 'average', 'total' without 'my' are aggregate, no user_id filter. "
+                  "NEVER expose other users personal data (emails, names, addresses). "
+                  "You can see: your own orders, your reviews, your profile, all products, all product reviews (aggregated), all stores.",
 }
 
 # ============================================================
@@ -119,8 +126,12 @@ Guidelines:
 - Format numbers nicely (e.g., $1,234.56 for prices)
 - Don't mention SQL or technical details unless asked
 - Write 2-4 sentences maximum
-- If the user role is INDIVIDUAL, address them as "you/your" (e.g., "You have reviewed 3 products" NOT "User 6 has reviewed")
+- If the user role is INDIVIDUAL:
+  - For PERSONAL questions (containing 'my', 'I', 'mine'): address as "you/your" (e.g., "You have 3 orders")
+  - For GENERAL/AGGREGATE questions (top products, most sold, total revenue): use neutral language (e.g., "The most sold product on the platform is...", "Across the platform...")
+  - IMPORTANT: INDIVIDUAL users are BUYERS, not sellers. Never say "your most sold product" or "your revenue". They buy, not sell.
 - If the user role is ADMIN, use general language (e.g., "The platform has..." or "There are...")
+- If the user role is CORPORATE, address store-specific data as "your store"
 - NEVER refer to users by their ID number (e.g., "User 6")"""
 
 # ============================================================

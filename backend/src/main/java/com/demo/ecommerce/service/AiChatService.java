@@ -9,8 +9,12 @@ import com.demo.ecommerce.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -102,7 +106,12 @@ public class AiChatService {
         chatResponse.setAnswer((String) response.get("answer"));
         // Check is_in_scope from Python chatbot to set refused flag
         Object isInScope = response.get("is_in_scope");
-        chatResponse.setRefused(isInScope != null && Boolean.FALSE.equals(isInScope));
+        Object isGreeting = response.get("is_greeting");
+        chatResponse.setRefused(
+                isInScope != null
+                        && Boolean.FALSE.equals(isInScope)
+                        && !Boolean.TRUE.equals(isGreeting)
+        );
         chatResponse.setSqlQuery((String) response.get("sql_query"));
         chatResponse.setVisualizationHtml((String) response.get("visualization_html"));
 
@@ -112,6 +121,60 @@ public class AiChatService {
         }
 
         return chatResponse;
+    }
+
+    /**
+     * Streams per-agent step events from the Python chatbot back to the caller.
+     * Returns a Flux of SSE events (with event names "step" or "final").
+     */
+    public Flux<ServerSentEvent<String>> chatStream(String message, Long userId, String sessionId) {
+        InputValidator.ValidationResult validation = inputValidator.validate(message);
+        if (!validation.isValid()) {
+            String rejected = "{\"step\":\"final\",\"status\":\"done\",\"payload\":{\"answer\":"
+                    + jsonString(validation.getRejectionMessage())
+                    + ",\"is_in_scope\":false}}";
+            return Flux.just(ServerSentEvent.<String>builder(rejected).event("final").build());
+        }
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            String err = "{\"step\":\"final\",\"status\":\"error\",\"payload\":{\"answer\":\"User not found.\"}}";
+            return Flux.just(ServerSentEvent.<String>builder(err).event("final").build());
+        }
+
+        String role = user.getRoleType().name();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("question", message);
+        body.put("user_role", role);
+        body.put("user_id", userId.intValue());
+        if (sessionId != null) body.put("session_id", sessionId);
+        if ("CORPORATE".equals(role)) {
+            List<Store> stores = storeRepository.findByOwnerId(userId);
+            if (!stores.isEmpty()) body.put("store_id", stores.get(0).getId().intValue());
+        }
+
+        return chatbotClient.post()
+                .uri("/api/chat/stream")
+                .header("Content-Type", "application/json")
+                .header("X-API-Key", chatbotApiKey)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                .timeout(Duration.ofSeconds(120))
+                .onErrorResume(ex -> {
+                    log.warn("Chatbot stream error: {}", ex.getMessage());
+                    String err = "{\"step\":\"final\",\"status\":\"error\",\"payload\":{\"answer\":"
+                            + jsonString("Chatbot unreachable: " + ex.getMessage()) + "}}";
+                    return Flux.just(ServerSentEvent.<String>builder(err).event("final").build());
+                });
+    }
+
+    private static String jsonString(String s) {
+        if (s == null) return "null";
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n").replace("\r", "\\r") + "\"";
     }
 
     private ChatResponse legacyChat(String message, Long userId, User user) {

@@ -45,7 +45,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getRole());
         log.info("User logged in: {} (role={})", user.getEmail(), user.getRole());
-        return new LoginResponse(token, refreshToken, user.getEmail(), user.getRole(), user.getCompanyName());
+        return new LoginResponse(token, refreshToken, user.getEmail(), user.getRole(), user.getCompanyName(), user.getFirstName());
     }
 
     public LoginResponse refresh(RefreshRequest request) {
@@ -62,7 +62,7 @@ public class AuthService {
 
             String newToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
             String newRefreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getRole());
-            return new LoginResponse(newToken, newRefreshToken, user.getEmail(), user.getRole(), user.getCompanyName());
+            return new LoginResponse(newToken, newRefreshToken, user.getEmail(), user.getRole(), user.getCompanyName(), user.getFirstName());
         } catch (AuthenticationException e) {
             throw e;
         } catch (Exception e) {

@@ -9,6 +9,7 @@ export interface LoginResponse {
   email: string;
   role: string;
   companyName: string;
+  firstName: string;
 }
 export interface RegisterRequest {
   firstName: string;
@@ -16,6 +17,11 @@ export interface RegisterRequest {
   email: string;
   password: string;
   gender?: string;
+}
+export interface AdminCreateUserRequest extends RegisterRequest {
+  role: 'INDIVIDUAL' | 'CORPORATE';
+  storeName?: string;
+  storeDescription?: string;
 }
 export interface UserInfo {
   id: number;
@@ -173,6 +179,20 @@ export interface CorporateDashboard {
   ordersByStatus: Record<string, number>;
   topProducts: { productName: string; orderCount: number; revenue: number }[];
   revenueByMonth: Record<string, number>;
+}
+export interface RevenueDrillDown {
+  month: string;
+  totalRevenue: number;
+  orderCount: number;
+  avgOrderValue: number;
+  orders: {
+    orderId: number;
+    orderDate: string;
+    customerName: string;
+    status: string;
+    grandTotal: number;
+  }[];
+  topProducts: { productName: string; orderCount: number; revenue: number }[];
 }
 export interface IndividualDashboard {
   totalSpend: number;

@@ -1,10 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminDashboard, CorporateDashboard, CustomerSegmentation, IndividualDashboard } from '../models/product.model';
+import {
+  AdminDashboard,
+  CorporateDashboard,
+  CustomerSegmentation,
+  IndividualDashboard,
+  RevenueDrillDown,
+} from '../models/product.model';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
-
   constructor(private http: HttpClient) {}
 
   getAdminDashboard() {
@@ -20,6 +25,12 @@ export class DashboardService {
 
   getCorporateCustomerSegmentation() {
     return this.http.get<CustomerSegmentation>('/api/dashboard/corporate/customers');
+  }
+
+  getCorporateRevenueDrillDown(month: string) {
+    return this.http.get<RevenueDrillDown>('/api/dashboard/corporate/revenue-drilldown', {
+      params: { month },
+    });
   }
 
   getIndividualDashboard() {

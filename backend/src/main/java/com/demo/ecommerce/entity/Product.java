@@ -39,6 +39,11 @@ public class Product {
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
 
+    // DS3 (E-Commerce Shipping Data) -> CostOfProduct: supplier/production cost in USD.
+    // Enables gross-margin analytics (unit_price - cost_price).
+    @Column(name = "cost_price", precision = 10, scale = 2)
+    private BigDecimal costPrice;
+
     @Column(nullable = false)
     private Integer stock;
 
@@ -78,6 +83,9 @@ public class Product {
 
     public BigDecimal getUnitPrice() { return unitPrice; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+
+    public BigDecimal getCostPrice() { return costPrice; }
+    public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
 
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }

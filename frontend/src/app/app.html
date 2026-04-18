@@ -1,2 +1,13 @@
-<app-navbar></app-navbar>
-<router-outlet />
+@if (auth.isLoggedIn()) {
+  <div class="app-layout">
+    <app-navbar></app-navbar>
+    <div class="main-wrapper">
+      <app-top-header></app-top-header>
+      <main class="main-content">
+        <router-outlet />
+      </main>
+    </div>
+  </div>
+} @else {
+  <router-outlet />
+}

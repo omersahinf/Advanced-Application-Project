@@ -1,77 +1,94 @@
-"""Tests for database security — read-only enforcement and sensitive column filtering.
-Tests data structures directly to avoid heavy dependency imports.
-"""
+"""Tests for database query validation and safe result shaping."""
 
-# Copy the exact constants from database.py
-_FORBIDDEN_SQL_PATTERNS = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "GRANT", "REVOKE", "EXEC", "EXECUTE"}
-_SENSITIVE_COLUMNS = {"password_hash", "passwordhash", "password"}
+from types import SimpleNamespace
+
+import config
+import database
 
 
-def test_forbidden_patterns_include_dml():
-    """All dangerous SQL keywords should be in the forbidden set."""
+def test_forbidden_patterns_include_dml_and_privilege_keywords():
     for keyword in ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE"]:
-        assert keyword in _FORBIDDEN_SQL_PATTERNS, f"{keyword} should be forbidden"
+        assert keyword in database._FORBIDDEN_SQL_PATTERNS
+    assert "GRANT" in database._FORBIDDEN_SQL_PATTERNS
+    assert "REVOKE" in database._FORBIDDEN_SQL_PATTERNS
+    assert "EXEC" in database._FORBIDDEN_SQL_PATTERNS
+    assert "EXECUTE" in database._FORBIDDEN_SQL_PATTERNS
 
 
-def test_forbidden_patterns_include_privilege():
-    """Privilege escalation keywords should be blocked."""
-    assert "GRANT" in _FORBIDDEN_SQL_PATTERNS
-    assert "REVOKE" in _FORBIDDEN_SQL_PATTERNS
-    assert "EXEC" in _FORBIDDEN_SQL_PATTERNS
-    assert "EXECUTE" in _FORBIDDEN_SQL_PATTERNS
+def test_sensitive_columns_are_configured():
+    assert "password_hash" in database._SENSITIVE_COLUMNS
+    assert "password" in database._SENSITIVE_COLUMNS
+    assert "Password_Hash".lower() in database._SENSITIVE_COLUMNS
 
 
-def test_sensitive_columns_configured():
-    """Password-related columns should be in the sensitive set."""
-    assert "password_hash" in _SENSITIVE_COLUMNS
-    assert "password" in _SENSITIVE_COLUMNS
-    assert "passwordhash" in _SENSITIVE_COLUMNS
+def test_execute_query_rejects_non_select_sql():
+    result = database.execute_query("DELETE FROM users")
+    assert result["error"] == "Only SELECT queries are allowed."
 
 
-def test_sensitive_columns_case_insensitive_logic():
-    """Sensitive column check uses .lower(), so mixed case should be caught."""
-    test_column = "Password_Hash"
-    assert test_column.lower() in _SENSITIVE_COLUMNS
+def test_execute_query_blocks_multi_statement_and_sensitive_columns():
+    multi = database.execute_query("SELECT * FROM users; DELETE FROM users")
+    sensitive = database.execute_query("SELECT password_hash FROM users")
+
+    assert multi["error"] == "Forbidden SQL keyword: DELETE"
+    assert sensitive["error"] == "Access to sensitive columns is not allowed."
 
 
-def test_select_not_in_forbidden():
-    """SELECT should NOT be in forbidden patterns — it's allowed."""
-    assert "SELECT" not in _FORBIDDEN_SQL_PATTERNS
-    assert "WITH" not in _FORBIDDEN_SQL_PATTERNS
+def test_execute_query_filters_sensitive_columns_from_results(monkeypatch):
+    class FakeResult:
+        def keys(self):
+            return ["id", "email", "password_hash"]
+
+        def fetchall(self):
+            return [(1, "user@example.com", "secret")]
+
+    class FakeConn:
+        def execute(self, statement):
+            return FakeResult()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(database, "engine", SimpleNamespace(connect=lambda: FakeConn()))
+    monkeypatch.setattr(config, "USE_SHARED_DB", False)
+
+    result = database.execute_query("SELECT id, email FROM users")
+
+    assert result["columns"] == ["id", "email"]
+    assert result["rows"] == [{"id": 1, "email": "user@example.com"}]
+    assert result["row_count"] == 1
 
 
-def test_sql_validation_logic():
-    """Simulate the execute_query validation logic."""
-    def validate_sql(sql: str):
-        first_word = sql.strip().split()[0].upper() if sql.strip() else ""
-        if first_word not in ("SELECT", "WITH"):
-            return "Only SELECT queries are allowed."
-        upper_sql = sql.upper()
-        for pattern in _FORBIDDEN_SQL_PATTERNS:
-            if f" {pattern} " in f" {upper_sql} " or upper_sql.startswith(pattern):
-                return f"Forbidden SQL keyword: {pattern}"
-        return None
+def test_execute_query_sets_read_only_transaction_on_shared_db(monkeypatch):
+    executed = []
 
-    # Valid queries
-    assert validate_sql("SELECT * FROM users") is None
-    assert validate_sql("WITH cte AS (SELECT 1) SELECT * FROM cte") is None
+    class FakeResult:
+        def keys(self):
+            return ["total_revenue"]
 
-    # Invalid queries
-    assert validate_sql("DELETE FROM users") is not None
-    assert validate_sql("DROP TABLE users") is not None
-    assert validate_sql("INSERT INTO users VALUES (1)") is not None
-    assert validate_sql("UPDATE users SET name='x'") is not None
+        def fetchall(self):
+            return [(123.45,)]
 
-    # Subquery injection attempts
-    assert validate_sql("SELECT * FROM users; DELETE FROM users") is not None
+    class FakeConn:
+        def execute(self, statement):
+            executed.append(str(statement))
+            if "SET TRANSACTION READ ONLY" in str(statement):
+                return None
+            return FakeResult()
 
+        def __enter__(self):
+            return self
 
-def test_column_filtering_logic():
-    """Simulate the column filtering from execute_query."""
-    columns = ["id", "first_name", "email", "password_hash"]
-    safe_columns = [c for c in columns if c.lower() not in _SENSITIVE_COLUMNS]
+        def __exit__(self, exc_type, exc, tb):
+            return False
 
-    assert "password_hash" not in safe_columns
-    assert "id" in safe_columns
-    assert "email" in safe_columns
-    assert len(safe_columns) == 3
+    monkeypatch.setattr(database, "engine", SimpleNamespace(connect=lambda: FakeConn()))
+    monkeypatch.setattr(config, "USE_SHARED_DB", True)
+
+    result = database.execute_query("SELECT SUM(grand_total) AS total_revenue FROM orders")
+
+    assert executed[0] == "SET TRANSACTION READ ONLY"
+    assert result["row_count"] == 1

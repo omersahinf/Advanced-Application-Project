@@ -1,5 +1,5 @@
 """LangGraph workflow - orchestrates all agents in a state machine."""
-from typing import Optional
+from typing import Iterator, Optional
 from langgraph.graph import StateGraph, END
 from state import AgentState
 from agents.guardrails import guardrails_agent
@@ -156,5 +156,109 @@ def run_query(question: str, user_role: str = "ADMIN", user_id: int = 1, store_i
         "visualization_html": result.get("visualization_html"),
         "visualization_code": result.get("visualization_code"),
         "is_in_scope": result.get("is_in_scope"),
+        "is_greeting": result.get("is_greeting"),
         "iteration_count": result.get("iteration_count", 0),
+    }
+
+
+# Human-readable labels for streaming step events.
+STEP_LABELS = {
+    "guardrails":     {"icon": "🔒", "label": "Guardrails Check"},
+    "generate_sql":   {"icon": "🔧", "label": "SQL Generation"},
+    "execute":        {"icon": "⚡", "label": "Query Execution"},
+    "error_handler":  {"icon": "⚠️", "label": "Error Handler"},
+    "analyze":        {"icon": "📊", "label": "Analysis"},
+    "decide_graph":   {"icon": "🤔", "label": "Decide Graph Need"},
+    "visualize":      {"icon": "📈", "label": "Visualization"},
+    "give_up":        {"icon": "🛑", "label": "Give Up"},
+}
+
+
+def _summarize_step(node_name: str, node_state: dict) -> dict:
+    """Extract user-facing payload from a node's state update."""
+    payload: dict = {}
+    if node_name == "guardrails":
+        payload["is_in_scope"] = node_state.get("is_in_scope")
+        payload["is_greeting"] = node_state.get("is_greeting")
+    elif node_name == "generate_sql":
+        payload["sql_query"] = node_state.get("sql_query")
+    elif node_name == "execute":
+        qr = node_state.get("query_result") or {}
+        payload["row_count"] = qr.get("row_count")
+        payload["columns"] = qr.get("columns")
+        if node_state.get("error"):
+            payload["error"] = node_state["error"]
+    elif node_name == "error_handler":
+        payload["sql_query"] = node_state.get("sql_query")
+        payload["iteration_count"] = node_state.get("iteration_count")
+    elif node_name == "analyze":
+        answer = node_state.get("final_answer")
+        payload["preview"] = (answer[:200] + "…") if answer and len(answer) > 200 else answer
+    elif node_name == "visualize":
+        payload["has_chart"] = bool(node_state.get("visualization_html"))
+    return payload
+
+
+def run_query_stream(question: str, user_role: str = "ADMIN", user_id: int = 1,
+                     store_id: Optional[int] = None,
+                     conversation_context: str = "") -> Iterator[dict]:
+    """Run the pipeline and yield step events as each agent finishes.
+
+    Yields dicts like:
+        {"step": "guardrails",   "status": "done", "label": "...", "icon": "🔒", "payload": {...}}
+        {"step": "final",        "status": "done", "payload": {<full result>}}
+    """
+    initial_state: AgentState = {
+        "question": question,
+        "user_role": user_role,
+        "user_id": user_id,
+        "store_id": store_id,
+        "conversation_context": conversation_context,
+        "is_in_scope": None,
+        "is_greeting": None,
+        "sql_query": None,
+        "query_result": None,
+        "error": None,
+        "iteration_count": 0,
+        "final_answer": None,
+        "visualization_code": None,
+        "visualization_html": None,
+        "current_step": None,
+    }
+
+    merged: dict = dict(initial_state)
+
+    for update in app.stream(initial_state, stream_mode="updates"):
+        # `update` is a dict: {node_name: partial_state}
+        for node_name, partial in update.items():
+            if not isinstance(partial, dict):
+                continue
+            merged.update(partial)
+            meta = STEP_LABELS.get(node_name, {"icon": "•", "label": node_name})
+            yield {
+                "step": node_name,
+                "status": "done",
+                "icon": meta["icon"],
+                "label": meta["label"],
+                "payload": _summarize_step(node_name, partial),
+            }
+
+    # Final consolidated event
+    yield {
+        "step": "final",
+        "status": "done",
+        "payload": {
+            "answer": merged.get("final_answer", "No answer generated."),
+            "question": question,
+            "sql_query": merged.get("sql_query"),
+            "query_result": merged.get("query_result"),
+            "data": merged.get("query_result"),
+            "error": merged.get("error"),
+            "final_answer": merged.get("final_answer", "No answer generated."),
+            "visualization_html": merged.get("visualization_html"),
+            "visualization_code": merged.get("visualization_code"),
+            "is_in_scope": merged.get("is_in_scope"),
+            "is_greeting": merged.get("is_greeting"),
+            "iteration_count": merged.get("iteration_count", 0),
+        },
     }

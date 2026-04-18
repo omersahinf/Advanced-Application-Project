@@ -1,15 +1,19 @@
 package com.demo.ecommerce.service;
 
+import com.demo.ecommerce.dto.AdminCreateUserRequest;
 import com.demo.ecommerce.dto.RegisterRequest;
 import com.demo.ecommerce.dto.UpdateProfileRequest;
 import com.demo.ecommerce.dto.UserDto;
 import com.demo.ecommerce.entity.CustomerProfile;
 import com.demo.ecommerce.entity.MembershipType;
 import com.demo.ecommerce.entity.RoleType;
+import com.demo.ecommerce.entity.Store;
+import com.demo.ecommerce.entity.StoreStatus;
 import com.demo.ecommerce.entity.User;
 import com.demo.ecommerce.exception.BadRequestException;
 import com.demo.ecommerce.exception.ResourceNotFoundException;
 import com.demo.ecommerce.repository.CustomerProfileRepository;
+import com.demo.ecommerce.repository.StoreRepository;
 import com.demo.ecommerce.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +34,16 @@ public class UserManagementService {
 
     private final UserRepository userRepository;
     private final CustomerProfileRepository customerProfileRepository;
+    private final StoreRepository storeRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserManagementService(UserRepository userRepository,
                                   CustomerProfileRepository customerProfileRepository,
+                                  StoreRepository storeRepository,
                                   PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.customerProfileRepository = customerProfileRepository;
+        this.storeRepository = storeRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -66,49 +73,28 @@ public class UserManagementService {
 
     @Transactional
     public UserDto registerIndividual(RegisterRequest req) {
-        if (userRepository.findByEmail(req.getEmail()).isPresent()) {
-            throw new BadRequestException("Email already in use");
-        }
-
-        User user = new User();
-        user.setFirstName(req.getFirstName());
-        user.setLastName(req.getLastName());
-        user.setEmail(req.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        user.setRoleType(RoleType.INDIVIDUAL);
-        user.setGender(req.getGender());
-
-        User saved = userRepository.save(user);
-
-        CustomerProfile profile = new CustomerProfile();
-        profile.setOwner(saved);
-        profile.setTotalSpend(BigDecimal.ZERO);
-        profile.setItemsPurchased(0);
-        profile.setAvgRating(BigDecimal.ZERO);
-        profile.setDiscountApplied(false);
-        profile.setPriorPurchases(0);
-        profile.setMembershipType(MembershipType.BRONZE);
-        profile.setSatisfactionLevel("Neutral");
-        saved.setCustomerProfile(profile);
-
-        return UserDto.from(userRepository.save(saved));
+        return createUser(req.getFirstName(), req.getLastName(), req.getEmail(), req.getPassword(),
+                req.getGender(), RoleType.INDIVIDUAL);
     }
 
     @Transactional
     public UserDto createCorporateUser(RegisterRequest req) {
-        if (userRepository.findByEmail(req.getEmail()).isPresent()) {
-            throw new BadRequestException("Email already in use");
+        return createUser(req.getFirstName(), req.getLastName(), req.getEmail(), req.getPassword(),
+                req.getGender(), RoleType.CORPORATE);
+    }
+
+    @Transactional
+    public UserDto createManagedUser(AdminCreateUserRequest req) {
+        if (req.getRole() == RoleType.ADMIN) {
+            throw new BadRequestException("Admin accounts cannot be created from user management");
         }
-
-        User user = new User();
-        user.setFirstName(req.getFirstName());
-        user.setLastName(req.getLastName());
-        user.setEmail(req.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        user.setRoleType(RoleType.CORPORATE);
-        user.setGender(req.getGender());
-
-        return UserDto.from(userRepository.save(user));
+        UserDto created = createUser(req.getFirstName(), req.getLastName(), req.getEmail(), req.getPassword(),
+                req.getGender(), req.getRole());
+        if (req.getRole() == RoleType.CORPORATE) {
+            createPendingStore(created.getId(), req.getStoreName(), req.getStoreDescription());
+            return getUserById(created.getId());
+        }
+        return created;
     }
 
     @Transactional
@@ -148,5 +134,57 @@ public class UserManagementService {
             throw new ResourceNotFoundException("User", id);
         }
         userRepository.deleteById(id);
+    }
+
+    private UserDto createUser(String firstName, String lastName, String email, String password,
+                               String gender, RoleType roleType) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new BadRequestException("Email already in use");
+        }
+
+        User user = new User();
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setRoleType(roleType);
+        user.setGender(gender);
+
+        User saved = userRepository.save(user);
+        if (roleType == RoleType.INDIVIDUAL) {
+            attachDefaultCustomerProfile(saved);
+            saved = userRepository.save(saved);
+        }
+        return UserDto.from(saved);
+    }
+
+    private void attachDefaultCustomerProfile(User saved) {
+        CustomerProfile profile = new CustomerProfile();
+        profile.setOwner(saved);
+        profile.setTotalSpend(BigDecimal.ZERO);
+        profile.setItemsPurchased(0);
+        profile.setAvgRating(BigDecimal.ZERO);
+        profile.setDiscountApplied(false);
+        profile.setPriorPurchases(0);
+        profile.setMembershipType(MembershipType.BRONZE);
+        profile.setSatisfactionLevel("Neutral");
+        saved.setCustomerProfile(profile);
+    }
+
+    private void createPendingStore(Long ownerId, String storeName, String storeDescription) {
+        if (storeName == null || storeName.isBlank()) {
+            throw new BadRequestException("Store name is required for corporate accounts");
+        }
+
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", ownerId));
+
+        Store store = new Store();
+        store.setOwner(owner);
+        store.setName(storeName.trim());
+        store.setDescription(storeDescription);
+        store.setStatus(StoreStatus.PENDING_APPROVAL);
+        storeRepository.save(store);
+        owner.getStores().add(store);
     }
 }

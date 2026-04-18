@@ -65,8 +65,8 @@ public class InputValidator {
         for (Pattern pattern : SQL_PATTERNS) {
             if (pattern.matcher(input).find()) {
                 return ValidationResult.rejected(
-                        "I can only answer questions about your products using natural language. " +
-                        "Database queries are not supported.");
+                        "Ask your question in plain English about the e-commerce analytics data " +
+                        "you are allowed to access. Raw SQL or database commands are not supported.");
             }
         }
 
@@ -74,8 +74,8 @@ public class InputValidator {
         for (Pattern pattern : INJECTION_PATTERNS) {
             if (pattern.matcher(input).find()) {
                 return ValidationResult.rejected(
-                        "I can only help you with questions about your own product catalog. " +
-                        "I cannot access other users' data, system internals, or change my behavior.");
+                        "I can only help with e-commerce analytics questions inside your authorized " +
+                        "scope. I cannot access other users' data, reveal system internals, or ignore security rules.");
             }
         }
 

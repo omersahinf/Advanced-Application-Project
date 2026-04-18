@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { UserDto, AuditLog, StoreComparison, CustomerSegmentation } from '../models/product.model';
+import {
+  UserDto,
+  AuditLog,
+  StoreComparison,
+  CustomerSegmentation,
+  AdminCreateUserRequest,
+} from '../models/product.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -17,6 +23,10 @@ export class AdminService {
 
   deleteUser(id: number) {
     return this.http.delete(`/api/admin/users/${id}`);
+  }
+
+  createUser(data: AdminCreateUserRequest) {
+    return this.http.post<UserDto>('/api/admin/users', data);
   }
 
   createCorporateUser(data: any) {

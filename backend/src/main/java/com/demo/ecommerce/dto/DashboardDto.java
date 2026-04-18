@@ -129,6 +129,50 @@ public class DashboardDto {
         public BigDecimal getRevenue() { return revenue; }
     }
 
+    // Revenue drill-down for a single month
+    public static class RevenueDrillDown {
+        private String month;             // yyyy-MM
+        private BigDecimal totalRevenue;
+        private long orderCount;
+        private BigDecimal avgOrderValue;
+        private List<DrillOrder> orders;
+        private List<TopProduct> topProducts;
+
+        public String getMonth() { return month; }
+        public void setMonth(String v) { month = v; }
+        public BigDecimal getTotalRevenue() { return totalRevenue; }
+        public void setTotalRevenue(BigDecimal v) { totalRevenue = v; }
+        public long getOrderCount() { return orderCount; }
+        public void setOrderCount(long v) { orderCount = v; }
+        public BigDecimal getAvgOrderValue() { return avgOrderValue; }
+        public void setAvgOrderValue(BigDecimal v) { avgOrderValue = v; }
+        public List<DrillOrder> getOrders() { return orders; }
+        public void setOrders(List<DrillOrder> v) { orders = v; }
+        public List<TopProduct> getTopProducts() { return topProducts; }
+        public void setTopProducts(List<TopProduct> v) { topProducts = v; }
+    }
+
+    public static class DrillOrder {
+        private Long orderId;
+        private String orderDate;
+        private String customerName;
+        private String status;
+        private BigDecimal grandTotal;
+
+        public DrillOrder(Long orderId, String orderDate, String customerName, String status, BigDecimal grandTotal) {
+            this.orderId = orderId;
+            this.orderDate = orderDate;
+            this.customerName = customerName;
+            this.status = status;
+            this.grandTotal = grandTotal;
+        }
+        public Long getOrderId() { return orderId; }
+        public String getOrderDate() { return orderDate; }
+        public String getCustomerName() { return customerName; }
+        public String getStatus() { return status; }
+        public BigDecimal getGrandTotal() { return grandTotal; }
+    }
+
     // Cross-store comparison
     public static class StoreComparison {
         private Long storeId;

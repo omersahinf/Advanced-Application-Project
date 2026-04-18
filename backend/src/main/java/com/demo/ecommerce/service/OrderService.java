@@ -104,8 +104,10 @@ public class OrderService {
         Order order = new Order();
         order.setUser(user);
         order.setStore(store);
-        order.setStatus(OrderStatus.PENDING);
-        order.setPaymentMethod(req.getPaymentMethod() != null ? req.getPaymentMethod() : "CREDIT_CARD");
+        String paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : "CREDIT_CARD";
+        // COD orders skip the payment gateway and are confirmed immediately
+        order.setStatus("COD".equals(paymentMethod) ? OrderStatus.CONFIRMED : OrderStatus.PENDING);
+        order.setPaymentMethod(paymentMethod);
         order.setSalesChannel("WEB");
         order.setFulfilment("WAREHOUSE");
 

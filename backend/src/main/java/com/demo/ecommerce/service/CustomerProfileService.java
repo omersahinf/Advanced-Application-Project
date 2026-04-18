@@ -20,16 +20,19 @@ public class CustomerProfileService {
         this.profileRepository = profileRepository;
     }
 
+    @Transactional(readOnly = true)
     public CustomerProfile getByOwnerId(Long userId) {
         return profileRepository.findByOwnerId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("CustomerProfile for user " + userId + " not found"));
     }
 
+    @Transactional(readOnly = true)
     public CustomerProfile getById(Long id) {
         return profileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("CustomerProfile", id));
     }
 
+    @Transactional(readOnly = true)
     public Page<CustomerProfile> getAll(Pageable pageable) {
         return profileRepository.findAll(pageable);
     }

@@ -21,55 +21,135 @@ import { Review } from '../../models/product.model';
                 <h3>{{ r.productName }}</h3>
               </div>
               <div class="review-actions">
-                <span class="sentiment" [class]="'sent-' + r.sentiment.toLowerCase()">{{ r.sentiment }}</span>
+                <span class="sentiment" [class]="'sent-' + r.sentiment.toLowerCase()">{{
+                  r.sentiment
+                }}</span>
                 <button class="btn-xs danger" (click)="remove(r.id)">Delete</button>
               </div>
             </div>
             <p class="review-body">{{ r.reviewBody || 'No comment' }}</p>
             <div class="review-meta">
-              {{ r.reviewDate | date:'mediumDate' }} &middot; {{ r.helpfulVotes }}/{{ r.totalVotes }} found helpful
+              {{ r.reviewDate | date: 'mediumDate' }} &middot; {{ r.helpfulVotes }}/{{
+                r.totalVotes
+              }}
+              found helpful
             </div>
           </div>
         }
       </div>
       @if (reviews().length === 0) {
-        <div class="empty card">You haven't written any reviews yet. Browse products to leave a review!</div>
+        <div class="empty card">
+          You haven't written any reviews yet. Browse products to leave a review!
+        </div>
       }
     </div>
   `,
-  styles: [`
-    .page { max-width: 800px; margin: 0 auto; padding: 24px; }
-    .page-header { margin-bottom: 20px; }
-    .page-header h1 { font-size: 24px; font-weight: 700; }
-    .review-card { padding: 20px; margin-bottom: 12px; }
-    .review-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-    .review-header h3 { font-size: 15px; font-weight: 600; margin-top: 4px; }
-    .stars { font-size: 18px; color: #f59e0b; }
-    .review-actions { display: flex; align-items: center; gap: 8px; }
-    .sentiment { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; }
-    .sent-positive { background: #dcfce7; color: #16a34a; }
-    .sent-neutral { background: #fef3c7; color: #d97706; }
-    .sent-negative { background: #fee2e2; color: #dc2626; }
-    .review-body { color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
-    .review-meta { font-size: 12px; color: #9ca3af; }
-    .btn-xs { padding: 4px 10px; border: 1px solid #fecaca; border-radius: 4px; background: white; font-size: 11px; cursor: pointer; color: #dc2626; }
-    .btn-xs:hover { background: #fef2f2; }
-    .empty { padding: 40px; text-align: center; color: #9ca3af; }
-  `]
+  styles: [
+    `
+      .page {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .page-header {
+        margin-bottom: 20px;
+      }
+      .page-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a1a;
+      }
+      .review-card {
+        padding: 20px;
+        margin-bottom: 12px;
+      }
+      .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+      .review-header h3 {
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 4px;
+        color: #1a1a1a;
+      }
+      .stars {
+        font-size: 18px;
+        color: #d97706;
+      }
+      .review-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sentiment {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 12px;
+        text-transform: uppercase;
+      }
+      .sent-positive {
+        background: #dcfce7;
+        color: #16a34a;
+      }
+      .sent-neutral {
+        background: #fef3c7;
+        color: #d97706;
+      }
+      .sent-negative {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .review-body {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 10px;
+      }
+      .review-meta {
+        font-size: 12px;
+        color: #999;
+      }
+      .btn-xs {
+        padding: 4px 10px;
+        border: 1px solid rgba(220, 38, 38, 0.3);
+        border-radius: 4px;
+        background: #ffffeb;
+        font-size: 11px;
+        cursor: pointer;
+        color: #dc2626;
+      }
+      .btn-xs:hover {
+        background: #fee2e2;
+      }
+      .empty {
+        padding: 40px;
+        text-align: center;
+        color: #666;
+      }
+    `,
+  ],
 })
 export class MyReviewsComponent implements OnInit {
   reviews = signal<Review[]>([]);
 
   constructor(private reviewService: ReviewService) {}
 
-  ngOnInit() { this.reviewService.getMyReviews().subscribe(r => this.reviews.set(r)); }
+  ngOnInit() {
+    this.reviewService.getMyReviews().subscribe((r) => this.reviews.set(r));
+  }
 
-  getStars(n: number): string { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+  getStars(n: number): string {
+    return '★'.repeat(n) + '☆'.repeat(5 - n);
+  }
 
   remove(id: number) {
     if (confirm('Delete this review?')) {
       this.reviewService.deleteReview(id).subscribe(() => {
-        this.reviewService.getMyReviews().subscribe(r => this.reviews.set(r));
+        this.reviewService.getMyReviews().subscribe((r) => this.reviews.set(r));
       });
     }
   }

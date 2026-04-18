@@ -6,8 +6,10 @@ from prompts import AGENT_CONFIGS, SQL_GENERATOR_PROMPT, ROLE_CONTEXTS
 from database import DB_SCHEMA_DESCRIPTION
 from llm import call_llm
 
-# Tables that contain user_id or store_id columns for role filtering
-USER_SCOPED_TABLES = {"orders", "reviews", "customer_profiles"}
+# Tables that contain user_id for role filtering (truly personal data only)
+# Note: 'reviews' is NOT here because review aggregates (counts, ratings) are public data.
+# The LLM prompt instructs it to add user_id filter only for "my reviews" type queries.
+USER_SCOPED_TABLES = {"orders", "customer_profiles"}
 STORE_SCOPED_TABLES = {"orders", "products", "order_items", "reviews"}
 
 # Tables that non-ADMIN roles should never query directly
@@ -46,26 +48,49 @@ def _add_where_clause(sql: str, filter_clause: str) -> str:
     return sql
 
 
-def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int) -> str:
-    """Enforce role-based WHERE clauses if the LLM omitted them."""
+def _is_personal_query(question: str) -> bool:
+    """Detect if the user is asking about their own data vs platform aggregate.
+    
+    Returns True for personal queries ('my orders', 'what did I buy').
+    Returns False for aggregate/platform-wide queries ('top 5 most sold', 'total revenue').
+    """
+    q = ' ' + question.lower() + ' '
+    personal_patterns = [
+        r'\bmy\b', r'\bmine\b', r'\bi\s+have\b', r'\bi\s+bought\b',
+        r'\bi\s+ordered\b', r'\bi\s+reviewed\b', r'\bi\s+spent\b',
+        r"\bi'm\b", r"\bi've\b", r'\bmy\s+order', r'\bmy\s+review',
+        r'\bmy\s+purchase', r'\bmy\s+profile', r'\bmy\s+account',
+        r'\bmy\s+shipment', r'\bdid\s+i\b', r'\bhave\s+i\b',
+    ]
+    return any(re.search(p, q) for p in personal_patterns)
+
+
+def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, question: str = "") -> str:
+    """Enforce role-based WHERE clauses if the LLM omitted them.
+    
+    For INDIVIDUAL users, only applies user_id filtering to personal queries
+    (detected via _is_personal_query). Aggregate/platform-wide queries are
+    left unfiltered so users can see platform statistics.
+    """
     if role == "ADMIN":
         return sql
 
     sql_upper = sql.upper()
 
     if role == "INDIVIDUAL":
-        # Block direct access to users table — only allow own row
+        # Always block direct access to users table — only allow own row
         if re.search(r'\busers\b', sql, re.IGNORECASE):
             if not re.search(r'\buser_id\s*=\s*' + str(user_id), sql, re.IGNORECASE) and \
                not re.search(r'\busers\.id\s*=\s*' + str(user_id), sql, re.IGNORECASE) and \
                not re.search(r'\bid\s*=\s*' + str(user_id), sql, re.IGNORECASE):
                 sql = _add_where_clause(sql, f"users.id = {user_id}")
 
-        # Block direct access to stores table
-        if re.search(r'\bstores\b', sql, re.IGNORECASE) and not re.search(r'\border', sql, re.IGNORECASE):
-            # Individual users shouldn't query stores directly
-            pass
+        # For aggregate queries (no personal keywords), skip order/table filtering
+        # This allows platform-wide stats like "top 5 most sold products"
+        if not _is_personal_query(question):
+            return sql
 
+        # Personal query: apply user_id filter to scoped tables
         filter_col = "user_id"
         filter_val = user_id
         if re.search(r'\buser_id\s*=\s*' + str(user_id), sql, re.IGNORECASE):
@@ -249,7 +274,7 @@ def sql_generator_agent(state: AgentState) -> dict:
         # Try deterministic follow-up first (bypass LLM for common patterns)
         det_sql = _try_deterministic_followup(state["question"], last_sql, last_columns)
         if det_sql:
-            det_sql = _inject_role_filter(det_sql, role, state.get("user_id", 0), state.get("store_id"))
+            det_sql = _inject_role_filter(det_sql, role, state.get("user_id", 0), state.get("store_id"), question=state["question"])
             return {"sql_query": det_sql, "error": None}
 
         question = (
@@ -324,6 +349,6 @@ def sql_generator_agent(state: AgentState) -> dict:
         return {"sql_query": None, "error": "Multi-statement queries are not allowed."}
 
     # Enforce role-based data isolation
-    sql = _inject_role_filter(sql, role, state.get("user_id", 0), state.get("store_id"))
+    sql = _inject_role_filter(sql, role, state.get("user_id", 0), state.get("store_id"), question=state["question"])
 
     return {"sql_query": sql, "error": None}

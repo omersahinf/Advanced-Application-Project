@@ -8,83 +8,207 @@ import { AuthService } from '../../services/auth.service';
   imports: [FormsModule],
   template: `
     <div class="login-page">
-      <div class="login-card card">
-        <div class="login-header">
-          <h1>E-Commerce Analytics</h1>
-          <p>Sign in to your account</p>
+      <div class="brand">
+        <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+          <rect x="2" y="16" width="5.5" height="11" rx="1.5" fill="#1a1a1a" />
+          <rect x="10" y="9" width="5.5" height="18" rx="1.5" fill="#1a1a1a" />
+          <rect x="18" y="4" width="5.5" height="23" rx="1.5" fill="#1a1a1a" />
+          <rect x="26" y="11" width="5.5" height="16" rx="1.5" fill="#1a1a1a" />
+        </svg>
+        <span class="brand-name">Flower</span>
+      </div>
+
+      <div class="login-card">
+        <h1 class="card-title">Get started</h1>
+
+        <div class="demo-grid">
+          <button class="demo-btn" (click)="fillDemo('admin@example.com')">
+            <span class="demo-icon">🔑</span>
+            Continue as Admin
+          </button>
+          <button class="demo-btn" (click)="fillDemo('corporate1@example.com')">
+            <span class="demo-icon">🏢</span>
+            Continue as Corporate
+          </button>
+          <button class="demo-btn" (click)="fillDemo('user1@example.com')">
+            <span class="demo-icon">👤</span>
+            Continue as Individual
+          </button>
         </div>
+
+        <div class="or-divider">or</div>
 
         <form (ngSubmit)="onLogin()">
           <div class="field">
-            <label>Email</label>
-            <input type="email" [(ngModel)]="email" name="email" placeholder="Enter your email" required>
+            <input
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              placeholder="Enter your email"
+              required
+            />
           </div>
           <div class="field">
-            <label>Password</label>
-            <input type="password" [(ngModel)]="password" name="password" placeholder="Enter your password" required>
+            <input
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="Enter your password"
+              required
+            />
           </div>
 
           @if (error()) {
             <div class="error-msg">{{ error() }}</div>
           }
 
-          <button type="submit" class="btn btn-primary btn-full" [disabled]="loading()">
-            {{ loading() ? 'Signing in...' : 'Sign In' }}
+          <button type="submit" class="submit-btn" [disabled]="loading()">
+            {{ loading() ? 'Signing in...' : 'Continue' }}
           </button>
         </form>
-
-        <div class="demo-accounts">
-          <p class="demo-title">Demo Accounts</p>
-          <div class="demo-grid">
-            <button class="demo-btn admin" (click)="fillDemo('admin@example.com')">
-              <span class="demo-role">ADMIN</span>
-              <span class="demo-email">admin&#64;example.com</span>
-            </button>
-            <button class="demo-btn corporate" (click)="fillDemo('corporate1@example.com')">
-              <span class="demo-role">CORPORATE</span>
-              <span class="demo-email">corporate1&#64;example.com</span>
-            </button>
-            <button class="demo-btn individual" (click)="fillDemo('user1@example.com')">
-              <span class="demo-role">INDIVIDUAL</span>
-              <span class="demo-email">user1&#64;example.com</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   `,
-  styles: [`
-    .login-page {
-      min-height: calc(100vh - 56px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .login-card { max-width: 420px; width: 100%; padding: 40px; }
-    .login-header { text-align: center; margin-bottom: 32px; }
-    .login-header h1 { font-size: 24px; margin-bottom: 4px; }
-    .login-header p { color: #64748b; font-size: 14px; }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
-    .error-msg { margin-bottom: 16px; padding: 10px; background: #fef2f2; border-radius: 8px; text-align: center; }
-    .btn-full { width: 100%; padding: 12px; font-size: 15px; margin-top: 8px; }
-    .demo-accounts { margin-top: 28px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-    .demo-title { font-size: 12px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; text-align: center; }
-    .demo-grid { display: flex; flex-direction: column; gap: 8px; }
-    .demo-btn {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px;
-      background: white; cursor: pointer; transition: all 0.15s; text-align: left;
-    }
-    .demo-btn:hover { border-color: #4361ee; background: #f8fafc; }
-    .demo-role { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
-    .demo-email { font-size: 13px; color: #374151; }
-    .admin .demo-role { background: #fee2e2; color: #dc2626; }
-    .corporate .demo-role { background: #dbeafe; color: #2563eb; }
-    .individual .demo-role { background: #dcfce7; color: #16a34a; }
-  `]
+  styles: [
+    `
+      .login-page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 2rem;
+        padding-top: 5rem;
+        padding-bottom: 4rem;
+        background: #e4e4d0;
+        gap: 2.5rem;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        top: -1.3rem;
+      }
+      .brand-name {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        letter-spacing: -0.5px;
+      }
+
+      .login-card {
+        max-width: 34rem;
+        width: 100%;
+        padding: 2rem;
+        background: #ffffeb;
+        border: none;
+        border-radius: 32px;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+      }
+
+      .card-title {
+        font-size: 2.5rem;
+        font-weight: 400;
+        color: #1a1a1a;
+        text-align: center;
+        margin-bottom: 1.875rem;
+        font-family: Georgia, 'Times New Roman', serif;
+      }
+
+      .demo-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .demo-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 1rem;
+        border: 2px solid #1a1a1a;
+        border-radius: 8px;
+        background: transparent;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: inherit;
+        color: #1a1a1a;
+      }
+      .demo-btn:hover {
+        opacity: 0.7;
+      }
+      .demo-icon {
+        font-size: 1.1rem;
+      }
+
+      .or-divider {
+        text-align: center;
+        color: #1a1a1a;
+        font-size: 0.9rem;
+        padding: 1.875rem 0;
+      }
+
+      .field {
+        margin-bottom: 0;
+      }
+      .field input {
+        width: 100%;
+        padding: 12px 0;
+        border: none;
+        border-bottom: 2px solid #1a1a1a;
+        border-radius: 0;
+        background: transparent;
+        font-size: 1rem;
+        font-family: inherit;
+        color: #1a1a1a;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .field input::placeholder {
+        color: #999;
+      }
+      .field input:focus {
+        border-bottom-color: #034f46;
+        box-shadow: none;
+      }
+
+      .error-msg {
+        margin-top: 12px;
+        padding: 10px;
+        background: #fef2f2;
+        border-radius: 10px;
+        text-align: center;
+        color: #dc2626;
+        font-size: 14px;
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 1.875rem;
+        border-radius: 8px;
+        border: none;
+        background: #034f46;
+        color: #ffffeb;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.2s;
+      }
+      .submit-btn:hover {
+        background: #e4c4f7;
+      }
+      .submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    `,
+  ],
 })
 export class LoginComponent {
   email = '';
@@ -92,7 +216,10 @@ export class LoginComponent {
   error = signal('');
   loading = signal(false);
 
-  constructor(private auth: AuthService, private router: Router) {
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+  ) {
     if (this.auth.isLoggedIn()) {
       this.router.navigate([this.auth.getDashboardRoute()]);
     }
@@ -121,7 +248,7 @@ export class LoginComponent {
       error: (err) => {
         this.error.set(err.error?.error || 'Invalid credentials');
         this.loading.set(false);
-      }
+      },
     });
   }
 }

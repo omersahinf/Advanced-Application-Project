@@ -6,179 +6,411 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-navbar',
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <nav class="navbar" role="navigation" aria-label="Main navigation">
-      <div class="nav-inner">
+    <aside class="sidebar" [class.collapsed]="collapsed()">
+      <div class="sidebar-header">
         <a class="logo" routerLink="/" aria-label="Home">
-          <span class="logo-icon">📊</span> E-Commerce Analytics
+          <span class="logo-icon">
+            <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+              <rect x="2" y="14" width="5" height="10" rx="1.5" fill="#1a1a1a" />
+              <rect x="9" y="8" width="5" height="16" rx="1.5" fill="#1a1a1a" />
+              <rect x="16" y="4" width="5" height="20" rx="1.5" fill="#1a1a1a" />
+              <rect x="23" y="10" width="5" height="14" rx="1.5" fill="#1a1a1a" />
+            </svg>
+          </span>
+          @if (!collapsed()) {
+            <span class="logo-text">Flower</span>
+          }
+        </a>
+        <button class="collapse-btn" (click)="toggleCollapse()" aria-label="Toggle sidebar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            @if (collapsed()) {
+              <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" />
+            } @else {
+              <path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="2" fill="none" />
+            }
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        @if (!collapsed()) {
+          <div class="nav-section-label">MAIN MENU</div>
+        }
+
+        @if (auth.isAdmin()) {
+          <a
+            routerLink="/admin"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="nav-item"
+          >
+            <span class="nav-icon">🏠</span>
+            @if (!collapsed()) {
+              <span>Dashboard</span>
+            }
+          </a>
+        }
+        @if (auth.isCorporate()) {
+          <a
+            routerLink="/corporate"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="nav-item"
+          >
+            <span class="nav-icon">🏠</span>
+            @if (!collapsed()) {
+              <span>Dashboard</span>
+            }
+          </a>
+        }
+        @if (auth.isIndividual()) {
+          <a
+            routerLink="/dashboard"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="nav-item"
+          >
+            <span class="nav-icon">🏠</span>
+            @if (!collapsed()) {
+              <span>Dashboard</span>
+            }
+          </a>
+        }
+
+        <a routerLink="/chat" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon">🤖</span>
+          @if (!collapsed()) {
+            <span>AI Assistant</span>
+            <span class="badge-new">New</span>
+          }
         </a>
 
-        @if (auth.isLoggedIn()) {
-          <button class="hamburger" (click)="toggleMenu()" [class.open]="menuOpen()" aria-label="Toggle navigation menu">
-            <span></span><span></span><span></span>
-          </button>
-          <div class="nav-links" [class.show]="menuOpen()">
-            <!-- Shared -->
-            <a routerLink="/products" routerLinkActive="active">Products</a>
-            <a routerLink="/chat" routerLinkActive="active">AI Chat</a>
-
-            <!-- Admin links -->
-            @if (auth.isAdmin()) {
-              <span class="separator">|</span>
-              <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
-              <a routerLink="/admin/users" routerLinkActive="active">Users</a>
-              <a routerLink="/admin/stores" routerLinkActive="active">Stores</a>
-              <a routerLink="/admin/categories" routerLinkActive="active">Categories</a>
-              <a routerLink="/admin/analytics" routerLinkActive="active">Analytics</a>
+        @if (auth.isAdmin()) {
+          <a routerLink="/admin/analytics" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📊</span>
+            @if (!collapsed()) {
+              <span>Analytics</span>
             }
-
-            <!-- Corporate links -->
-            @if (auth.isCorporate()) {
-              <span class="separator">|</span>
-              <a routerLink="/corporate" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
-              <a routerLink="/corporate/products" routerLinkActive="active">My Products</a>
-              <a routerLink="/corporate/orders" routerLinkActive="active">Orders</a>
-              <a routerLink="/corporate/reviews" routerLinkActive="active">Reviews</a>
-            }
-
-            <!-- Individual links -->
-            @if (auth.isIndividual()) {
-              <span class="separator">|</span>
-              <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
-              <a routerLink="/cart" routerLinkActive="active">Cart</a>
-              <a routerLink="/orders" routerLinkActive="active">My Orders</a>
-              <a routerLink="/reviews" routerLinkActive="active">My Reviews</a>
-            }
-          </div>
-
-          <div class="user-info" [class.show]="menuOpen()">
-            <span class="role-badge" [class]="'role-' + (auth.currentRole() || '').toLowerCase()">
-              {{ auth.currentRole() }}
-            </span>
-            <a class="btn-profile" routerLink="/profile">{{ auth.currentEmail() }}</a>
-            <button class="btn-logout" (click)="auth.logout()" aria-label="Logout">Logout</button>
-          </div>
+          </a>
         }
+
+        @if (auth.isCorporate()) {
+          <a routerLink="/corporate/orders" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">🛒</span>
+            @if (!collapsed()) {
+              <span>Orders</span>
+            }
+          </a>
+          <a routerLink="/corporate/products" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📦</span>
+            @if (!collapsed()) {
+              <span>Products</span>
+            }
+          </a>
+        }
+
+        @if (auth.isIndividual()) {
+          <a routerLink="/products" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📦</span>
+            @if (!collapsed()) {
+              <span>Products</span>
+            }
+          </a>
+        }
+
+        @if (auth.isAdmin()) {
+          @if (!collapsed()) {
+            <div class="nav-section-label">MANAGEMENT</div>
+          } @else {
+            <div class="nav-divider"></div>
+          }
+          <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">👥</span>
+            @if (!collapsed()) {
+              <span>Users</span>
+            }
+          </a>
+          <a routerLink="/admin/stores" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">🏪</span>
+            @if (!collapsed()) {
+              <span>Stores</span>
+            }
+          </a>
+          <a routerLink="/admin/categories" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📁</span>
+            @if (!collapsed()) {
+              <span>Categories</span>
+            }
+          </a>
+          <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">⚙️</span>
+            @if (!collapsed()) {
+              <span>Settings</span>
+            }
+          </a>
+          <a routerLink="/products" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📦</span>
+            @if (!collapsed()) {
+              <span>Products</span>
+            }
+          </a>
+        }
+
+        @if (auth.isCorporate()) {
+          @if (!collapsed()) {
+            <div class="nav-section-label">MANAGEMENT</div>
+          } @else {
+            <div class="nav-divider"></div>
+          }
+          <a routerLink="/corporate/reviews" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">⭐</span>
+            @if (!collapsed()) {
+              <span>Reviews</span>
+            }
+          </a>
+          <a routerLink="/products" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">🛍️</span>
+            @if (!collapsed()) {
+              <span>Browse Store</span>
+            }
+          </a>
+        }
+
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" (click)="auth.logout()" [attr.aria-label]="'Logout'">
+          <span class="nav-icon">🚪</span>
+          @if (!collapsed()) {
+            <span>Logout</span>
+          }
+        </button>
       </div>
-    </nav>
+    </aside>
   `,
-  styles: [`
-    .navbar {
-      background: white;
-      border-bottom: 1px solid #e5e7eb;
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .nav-inner {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      height: 56px;
-      gap: 24px;
-    }
-    .logo {
-      font-weight: 700;
-      font-size: 16px;
-      color: #1a1a2e;
-      text-decoration: none;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .logo-icon { font-size: 20px; }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      flex: 1;
-      overflow-x: auto;
-    }
-    .nav-links a {
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      color: #64748b;
-      text-decoration: none;
-      white-space: nowrap;
-      transition: all 0.15s;
-    }
-    .nav-links a:hover { color: #1a1a2e; background: #f1f5f9; }
-    .nav-links a.active { color: #4361ee; background: #eef2ff; }
-    .separator { color: #e5e7eb; font-size: 14px; margin: 0 4px; }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      white-space: nowrap;
-    }
-    .role-badge {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .role-admin { background: #fee2e2; color: #dc2626; }
-    .role-corporate { background: #dbeafe; color: #2563eb; }
-    .role-individual { background: #dcfce7; color: #16a34a; }
-    .btn-profile { font-size: 13px; color: #64748b; text-decoration: none; }
-    .btn-profile:hover { color: #4361ee; }
-    .btn-logout {
-      background: none;
-      border: 1px solid #e5e7eb;
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      color: #64748b;
-      transition: all 0.15s;
-    }
-    .btn-logout:hover { background: #f1f5f9; color: #1a1a2e; }
-    .hamburger {
-      display: none;
-      flex-direction: column;
-      gap: 4px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 6px;
-      margin-left: auto;
-    }
-    .hamburger span {
-      display: block;
-      width: 20px;
-      height: 2px;
-      background: #374151;
-      border-radius: 1px;
-      transition: all 0.25s;
-    }
-    .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
-    .hamburger.open span:nth-child(2) { opacity: 0; }
-    .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
-    @media (max-width: 768px) {
-      .nav-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 0; }
-      .hamburger { display: flex; }
-      .nav-links, .user-info { display: none; width: 100%; }
-      .nav-links.show, .user-info.show { display: flex; }
-      .nav-links.show { flex-direction: column; gap: 2px; padding: 8px 0; }
-      .nav-links.show a { padding: 10px 12px; }
-      .separator { display: none; }
-      .user-info.show { flex-wrap: wrap; padding: 8px 0; border-top: 1px solid #e5e7eb; }
-    }
-  `]
+  styles: [
+    `
+      .sidebar {
+        width: 250px;
+        min-height: 100vh;
+        background: #ffffeb;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #d5d5c0;
+        transition: width 0.2s ease;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .sidebar.collapsed {
+        width: 68px;
+      }
+
+      .sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 16px 16px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: #1a1a1a;
+      }
+      .logo-text {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: #1a1a1a;
+      }
+      .collapse-btn {
+        background: none;
+        border: none;
+        color: #a8a29e;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        transition: color 0.15s;
+      }
+      .collapse-btn:hover {
+        color: #1a1a1a;
+      }
+
+      .sidebar-nav {
+        flex: 1;
+        padding: 0 12px;
+        overflow-y: auto;
+      }
+
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #a8a29e;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        padding: 20px 12px 8px;
+      }
+      .nav-divider {
+        height: 1px;
+        background: #d5d5c0;
+        margin: 12px 8px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #666;
+        text-decoration: none;
+        transition: all 0.15s;
+        margin-bottom: 2px;
+        white-space: nowrap;
+      }
+      .nav-item:hover {
+        color: #1a1a1a;
+        background: #e4e4d0;
+      }
+      .nav-item.active {
+        color: #034f46;
+        background: rgba(3, 79, 70, 0.08);
+        font-weight: 600;
+      }
+      .nav-icon {
+        font-size: 18px;
+        width: 24px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      .badge-new {
+        margin-left: auto;
+        background: #034f46;
+        color: #ffffeb;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+        letter-spacing: 0.3px;
+      }
+
+      .sidebar-footer {
+        padding: 12px;
+        border-top: 1px solid #d5d5c0;
+      }
+      .user-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        margin-bottom: 8px;
+      }
+      .user-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #034f46, #1c6056);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .user-details {
+        min-width: 0;
+      }
+      .user-email {
+        font-size: 12px;
+        color: #1a1a1a;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+      }
+      .user-role {
+        font-size: 11px;
+        color: #a8a29e;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .role-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .dot-admin {
+        background: #e63946;
+      }
+      .dot-corporate {
+        background: #034f46;
+      }
+      .dot-individual {
+        background: #16a34a;
+      }
+
+      .logout-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #a8a29e;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .logout-btn:hover {
+        color: #e63946;
+        background: rgba(230, 57, 70, 0.06);
+      }
+
+      .sidebar.collapsed .sidebar-header {
+        justify-content: center;
+        padding: 20px 8px 16px;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .sidebar.collapsed .collapse-btn {
+        /* Keep visible so user can re-expand */
+      }
+      .sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding: 10px;
+      }
+      .sidebar.collapsed .logout-btn {
+        justify-content: center;
+        padding: 10px;
+      }
+      .sidebar.collapsed .sidebar-footer {
+        padding: 8px;
+      }
+    `,
+  ],
 })
 export class NavbarComponent {
-  menuOpen = signal(false);
+  collapsed = signal(false);
   constructor(public auth: AuthService) {}
 
-  toggleMenu() {
-    this.menuOpen.update(v => !v);
+  toggleCollapse() {
+    this.collapsed.update((v) => !v);
   }
 }

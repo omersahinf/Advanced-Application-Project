@@ -79,11 +79,7 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
               <div class="reply-body">{{ r.corporateReply }}</div>
             </div>
           } @else {
-            <button
-              type="button"
-              class="btn btn-sm btn-primary reply-btn"
-              (click)="openReply(r)"
-            >
+            <button type="button" class="btn btn-sm btn-primary reply-btn" (click)="openReply(r)">
               Reply
             </button>
           }
@@ -99,10 +95,7 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
       }
 
       @if (replyFor(); as current) {
-        <flower-dialog
-          [title]="'Reply to ' + current.userName"
-          (closed)="closeReply()"
-        >
+        <flower-dialog [title]="'Reply to ' + current.userName" (closed)="closeReply()">
           <div class="reply-preview">
             <b>{{ current.productName }}</b>
             <flower-stars [value]="current.starRating" [size]="12" />

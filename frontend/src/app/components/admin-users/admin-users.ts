@@ -44,13 +44,7 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [
-    DatePipe,
-    FormsModule,
-    FlowerIconComponent,
-    StatusPillComponent,
-    FlowerDialogComponent,
-  ],
+  imports: [DatePipe, FormsModule, FlowerIconComponent, StatusPillComponent, FlowerDialogComponent],
   template: `
     <div class="page">
       <!-- Toolbar row ————————————————————————————————— -->
@@ -119,11 +113,7 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
                   <td class="joined">{{ u.createdAt | date: 'MMM d, y' }}</td>
                   <td class="actions-col">
                     @if (u.role !== 'ADMIN') {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-ghost"
-                        (click)="toggleSuspend(u)"
-                      >
+                      <button type="button" class="btn btn-sm btn-ghost" (click)="toggleSuspend(u)">
                         {{ u.suspended ? 'Unsuspend' : 'Suspend' }}
                       </button>
                       <button
@@ -158,31 +148,15 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
           <form class="invite-grid" (ngSubmit)="createUser()">
             <div class="field">
               <label class="label">First name</label>
-              <input
-                class="input"
-                [(ngModel)]="form.firstName"
-                name="firstName"
-                required
-              />
+              <input class="input" [(ngModel)]="form.firstName" name="firstName" required />
             </div>
             <div class="field">
               <label class="label">Last name</label>
-              <input
-                class="input"
-                [(ngModel)]="form.lastName"
-                name="lastName"
-                required
-              />
+              <input class="input" [(ngModel)]="form.lastName" name="lastName" required />
             </div>
             <div class="field field-span-2">
               <label class="label">Email</label>
-              <input
-                class="input"
-                [(ngModel)]="form.email"
-                name="email"
-                type="email"
-                required
-              />
+              <input class="input" [(ngModel)]="form.email" name="email" type="email" required />
             </div>
             <div class="field field-span-2">
               <label class="label">Password</label>
@@ -214,20 +188,11 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
             @if (form.role === 'CORPORATE') {
               <div class="field field-span-2">
                 <label class="label">Store name</label>
-                <input
-                  class="input"
-                  [(ngModel)]="form.storeName"
-                  name="storeName"
-                  required
-                />
+                <input class="input" [(ngModel)]="form.storeName" name="storeName" required />
               </div>
               <div class="field field-span-2">
                 <label class="label">Store description</label>
-                <input
-                  class="input"
-                  [(ngModel)]="form.storeDescription"
-                  name="storeDescription"
-                />
+                <input class="input" [(ngModel)]="form.storeDescription" name="storeDescription" />
               </div>
             }
             @if (createError()) {
@@ -337,9 +302,7 @@ export class AdminUsersComponent implements OnInit {
         this.loadUsers(this.roleFilter);
       },
       error: (err) => {
-        this.createError.set(
-          err?.error?.message || err?.error?.error || 'Could not create user.',
-        );
+        this.createError.set(err?.error?.message || err?.error?.error || 'Could not create user.');
         this.saving.set(false);
       },
     });

@@ -38,13 +38,7 @@ import { Order } from '../../models/product.model';
 import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
 import { StatusPillComponent } from '../../shared/status-pill/status-pill';
 
-type StatusFilter =
-  | 'ALL'
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'SHIPPED'
-  | 'DELIVERED'
-  | 'CANCELLED';
+type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
 type TimeFilter = 'ALL' | '7D' | '30D' | '90D';
 
@@ -62,13 +56,7 @@ const AVATAR_COLORS = [
 @Component({
   selector: 'app-corporate-orders',
   standalone: true,
-  imports: [
-    DatePipe,
-    DecimalPipe,
-    FormsModule,
-    FlowerIconComponent,
-    StatusPillComponent,
-  ],
+  imports: [DatePipe, DecimalPipe, FormsModule, FlowerIconComponent, StatusPillComponent],
   template: `
     <div class="page">
       <!-- Page header ————————————————————————————————— -->
@@ -132,10 +120,7 @@ const AVATAR_COLORS = [
                   <td class="c-order-id">#ORD-{{ padId(o.id) }}</td>
                   <td>
                     <div class="customer-cell">
-                      <span
-                        class="avatar"
-                        [style.background]="avatarColor(o.userName)"
-                      >
+                      <span class="avatar" [style.background]="avatarColor(o.userName)">
                         {{ initials(o.userName) }}
                       </span>
                       <span class="customer-name">{{ o.userName }}</span>

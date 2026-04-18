@@ -50,12 +50,7 @@ interface StoreRow {
 @Component({
   selector: 'app-admin-stores',
   standalone: true,
-  imports: [
-    CommonModule,
-    FlowerIconComponent,
-    FlowerStarsComponent,
-    StatusPillComponent,
-  ],
+  imports: [CommonModule, FlowerIconComponent, FlowerStarsComponent, StatusPillComponent],
   template: `
     <div class="page">
       <div class="stores-grid">
@@ -93,7 +88,9 @@ interface StoreRow {
             </div>
 
             <div class="store-foot">
-              <div class="owner">Owner: <b>{{ s.ownerName }}</b></div>
+              <div class="owner">
+                Owner: <b>{{ s.ownerName }}</b>
+              </div>
               <div class="foot-spacer"></div>
               @if (s.status === 'PENDING_APPROVAL') {
                 <button
@@ -103,27 +100,15 @@ interface StoreRow {
                 >
                   Approve
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  (click)="updateStatus(s.id, 'CLOSED')"
-                >
+                <button type="button" class="btn btn-sm" (click)="updateStatus(s.id, 'CLOSED')">
                   Reject
                 </button>
               } @else if (s.status === 'ACTIVE') {
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  (click)="updateStatus(s.id, 'CLOSED')"
-                >
+                <button type="button" class="btn btn-sm" (click)="updateStatus(s.id, 'CLOSED')">
                   Close store
                 </button>
               } @else {
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  (click)="updateStatus(s.id, 'ACTIVE')"
-                >
+                <button type="button" class="btn btn-sm" (click)="updateStatus(s.id, 'ACTIVE')">
                   Reactivate
                 </button>
               }

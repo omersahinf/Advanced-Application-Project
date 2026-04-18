@@ -53,11 +53,7 @@ import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
 import { AdminService } from '../../services/admin.service';
 import { ProductService } from '../../services/product.service';
-import {
-  CustomerSegmentation,
-  Product,
-  StoreComparison,
-} from '../../models/product.model';
+import { CustomerSegmentation, Product, StoreComparison } from '../../models/product.model';
 import { StatusPillComponent } from '../../shared/status-pill/status-pill';
 import { FlowerStarsComponent } from '../../shared/flower-stars/flower-stars';
 
@@ -293,17 +289,13 @@ export class AdminAnalyticsComponent implements OnInit, AfterViewInit, OnDestroy
     const entries = Object.entries(seg.byMembership || {});
     const labels = entries.map(([k]) => k);
     const values = entries.map(([, v]) => v);
-    const colors = labels.map(
-      (k) => MEMBERSHIP_PALETTE[(k || '').toUpperCase()] ?? '#8a8a7c',
-    );
+    const colors = labels.map((k) => MEMBERSHIP_PALETTE[(k || '').toUpperCase()] ?? '#8a8a7c');
     this.charts.push(
       new Chart(canvas, {
         type: 'doughnut',
         data: {
           labels,
-          datasets: [
-            { data: values, backgroundColor: colors, borderWidth: 0, spacing: 2 },
-          ],
+          datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, spacing: 2 }],
         },
         options: {
           responsive: true,

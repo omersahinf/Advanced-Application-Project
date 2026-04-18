@@ -65,11 +65,7 @@ import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { DashboardService } from '../../services/dashboard.service';
 import { AdminService } from '../../services/admin.service';
-import {
-  AdminDashboard,
-  AuditLog,
-  StoreComparison,
-} from '../../models/product.model';
+import { AdminDashboard, AuditLog, StoreComparison } from '../../models/product.model';
 import { Chart, registerables } from 'chart.js';
 import { KpiCardComponent } from '../../shared/kpi-card/kpi-card';
 import { FlowerIconComponent, FlowerIconName } from '../../shared/flower-icon/flower-icon';
@@ -177,9 +173,7 @@ const STORE_PALETTE = ['#034f46', '#dfe9e5', '#ffa946', '#d5d5c0'];
                     </td>
                     <td><status-pill [status]="s.status" /></td>
                     <td>{{ s.totalOrders }}</td>
-                    <td class="right bold">
-                      \${{ s.totalRevenue | number: '1.2-2' }}
-                    </td>
+                    <td class="right bold">\${{ s.totalRevenue | number: '1.2-2' }}</td>
                   </tr>
                 }
                 @if (storeComparison().length === 0) {
@@ -199,10 +193,7 @@ const STORE_PALETTE = ['#034f46', '#dfe9e5', '#ffa946', '#d5d5c0'];
             <div class="audit-list">
               @for (a of recentAudits(); track a.id) {
                 <div class="audit-row">
-                  <div
-                    class="audit-icon"
-                    [class.danger]="isDangerAction(a.action)"
-                  >
+                  <div class="audit-icon" [class.danger]="isDangerAction(a.action)">
                     <flower-icon [name]="iconForAction(a.action)" [size]="14" />
                   </div>
                   <div class="audit-body">
@@ -372,7 +363,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   isDangerAction(a: string): boolean {
     const up = a.toUpperCase();
-    return up.includes('FAIL') || up.includes('SUSPEND') || up.includes('CLOSE') || up.includes('DELETE');
+    return (
+      up.includes('FAIL') || up.includes('SUSPEND') || up.includes('CLOSE') || up.includes('DELETE')
+    );
   }
 
   iconForAction(a: string): FlowerIconName {

@@ -132,7 +132,7 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
             [disabled]="loading()"
             [attr.aria-busy]="loading()"
           >
-            {{ loading() ? 'Signing in\u2026' : 'Continue' }}
+            {{ loading() ? 'Signing in…' : 'Continue' }}
           </button>
         </form>
 

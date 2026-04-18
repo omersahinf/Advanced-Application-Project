@@ -90,9 +90,7 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
               <div class="card-name">{{ p.name }}</div>
               <div class="card-meta">
                 <span class="card-price">\${{ p.price | number: '1.2-2' }}</span>
-                <span class="card-stock" [class.low]="p.stock < 40">
-                  {{ p.stock }} in stock
-                </span>
+                <span class="card-stock" [class.low]="p.stock < 40"> {{ p.stock }} in stock </span>
               </div>
               <div class="card-actions">
                 <button type="button" class="btn btn-sm btn-ghost edit-btn" (click)="openEdit(p)">

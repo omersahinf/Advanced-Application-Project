@@ -125,11 +125,26 @@ interface PipelineRow {
 
 /** 5 fixed pipeline rows, copied verbatim from Flower Prototype.html §PIPELINE. */
 const PIPELINE: PipelineRow[] = [
-  { key: 'guardrails', label: 'Guardrails',    icon: 'shield',   desc: 'Is the question in scope? Any prompt injection?' },
-  { key: 'sql',        label: 'SQL Generator', icon: 'database', desc: 'Translate natural language to SQL + inject role filter' },
-  { key: 'exec',       label: 'Executor',      icon: 'bolt',     desc: 'Run SELECT against read-only database' },
-  { key: 'analyst',    label: 'Analyst',       icon: 'book',     desc: 'Explain results in natural language' },
-  { key: 'viz',        label: 'Visualizer',    icon: 'chart',    desc: 'Build Plotly chart (AST-validated, sandboxed)' },
+  {
+    key: 'guardrails',
+    label: 'Guardrails',
+    icon: 'shield',
+    desc: 'Is the question in scope? Any prompt injection?',
+  },
+  {
+    key: 'sql',
+    label: 'SQL Generator',
+    icon: 'database',
+    desc: 'Translate natural language to SQL + inject role filter',
+  },
+  { key: 'exec', label: 'Executor', icon: 'bolt', desc: 'Run SELECT against read-only database' },
+  { key: 'analyst', label: 'Analyst', icon: 'book', desc: 'Explain results in natural language' },
+  {
+    key: 'viz',
+    label: 'Visualizer',
+    icon: 'chart',
+    desc: 'Build Plotly chart (AST-validated, sandboxed)',
+  },
 ];
 
 /** Backend step -> pipeline row index mapping. */
@@ -198,17 +213,13 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
     return SUGGESTED_PROMPTS[role] ?? SUGGESTED_PROMPTS['INDIVIDUAL'];
   });
 
-  readonly turnCount = computed(
-    () => this.messages().filter((m) => m.role === 'user').length,
-  );
+  readonly turnCount = computed(() => this.messages().filter((m) => m.role === 'user').length);
 
   readonly currentStepIndex = computed(() => this.activeStep());
 
   /* Intro avatar / role labels */
   readonly firstName = computed(
-    () =>
-      this.auth.currentFirstName() ||
-      (this.auth.currentEmail() ?? 'there').split('@')[0],
+    () => this.auth.currentFirstName() || (this.auth.currentEmail() ?? 'there').split('@')[0],
   );
 
   readonly userInitial = computed(() =>
@@ -256,10 +267,7 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
     const text = this.userInput.trim();
     if (!text) return;
 
-    this.messages.update((msgs) => [
-      ...msgs,
-      this.createMessage('user', text),
-    ]);
+    this.messages.update((msgs) => [...msgs, this.createMessage('user', text)]);
     this.userInput = '';
     this.loading.set(true);
 
@@ -299,11 +307,9 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
       onFinal: (payload: Record<string, any>) => {
         updatePlaceholder((m) => {
           m.streaming = false;
-          const answer =
-            typeof payload['answer'] === 'string' ? payload['answer'].trim() : '';
+          const answer = typeof payload['answer'] === 'string' ? payload['answer'].trim() : '';
           m.text = answer || 'No answer generated.';
-          const refused =
-            payload['is_in_scope'] === false && payload['is_greeting'] !== true;
+          const refused = payload['is_in_scope'] === false && payload['is_greeting'] !== true;
           m.refused = refused;
           m.sqlQuery = payload['sql_query'] ?? undefined;
           m.data = payload['data'] ?? undefined;
@@ -434,9 +440,7 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
         return p['sql_query'] ? 'SQL ready' : undefined;
       case 'execute':
         if (p['error']) return `error — retrying`;
-        return typeof p['row_count'] === 'number'
-          ? `${p['row_count']} rows`
-          : undefined;
+        return typeof p['row_count'] === 'number' ? `${p['row_count']} rows` : undefined;
       case 'error_handler':
         return `retry #${p['iteration_count'] ?? '?'}`;
       case 'visualize':

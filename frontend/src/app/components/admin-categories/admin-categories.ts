@@ -66,11 +66,7 @@ import { FlowerDialogComponent } from '../../shared/flower-dialog/flower-dialog'
               >
                 <flower-icon name="edit" [size]="12" />
               </button>
-              <button
-                type="button"
-                class="btn btn-ghost btn-sm"
-                (click)="openChild(root)"
-              >
+              <button type="button" class="btn btn-ghost btn-sm" (click)="openChild(root)">
                 <flower-icon name="plus" [size]="12" />
                 Add child
               </button>

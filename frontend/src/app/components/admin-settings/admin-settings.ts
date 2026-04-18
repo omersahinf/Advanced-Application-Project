@@ -96,12 +96,7 @@ export interface PlatformSettings {
             </div>
             <div class="row">
               <span class="k">Low-stock threshold</span>
-              <input
-                class="v-input num"
-                type="number"
-                [(ngModel)]="s.lowStockThreshold"
-                min="1"
-              />
+              <input class="v-input num" type="number" [(ngModel)]="s.lowStockThreshold" min="1" />
             </div>
           </div>
 

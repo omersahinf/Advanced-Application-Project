@@ -16,6 +16,14 @@ chatbot/__pycache__/
 chatbot/agents/__pycache__/
 chatbot/*.db
 chatbot/.chainlit/
+chatbot/=1.3.0
+
+# Analytics Platform
+analytics-platform/venv/
+analytics-platform/__pycache__/
+
+# Maven local repo
+backend/.m2repo/
 
 # IDE
 .idea/
@@ -36,6 +44,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# PDFs (professor's assignment documents — not project deliverables)
+*.pdf
 
 # Claude/Cursor
 .claude/

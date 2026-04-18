@@ -11,7 +11,8 @@ import com.demo.ecommerce.exception.BadRequestException;
 import com.demo.ecommerce.exception.ResourceNotFoundException;
 import com.demo.ecommerce.repository.CustomerProfileRepository;
 import com.demo.ecommerce.repository.UserRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,9 +23,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 public class UserManagementService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserManagementService.class);
 
     private final UserRepository userRepository;
     private final CustomerProfileRepository customerProfileRepository;

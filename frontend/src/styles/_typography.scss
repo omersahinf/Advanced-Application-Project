@@ -1,0 +1,84 @@
+/* ============================================================
+   Typography — type scale + base heading rules.
+   Fonts (Inter, JetBrains Mono) are loaded via Google Fonts in
+   src/index.html. Georgia is a system font.
+   ============================================================ */
+
+body {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Raw headings default to serif, bold. Components can override via
+   the .t-* helpers below when a specific role size is needed. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+  text-wrap: pretty;
+}
+
+h1 { font-size: 32px; line-height: 1.15; letter-spacing: -0.3px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+
+p { margin: 0; }
+
+code, pre, kbd, samp {
+  font-family: var(--mono);
+  font-size: 0.95em;
+}
+
+/* --- Type scale helpers ------------------------------------ */
+
+.t-page-title {
+  font: 700 32px/1.15 var(--serif);
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.t-section-title {
+  font: 700 20px/1.2 var(--serif);
+  color: var(--text);
+}
+
+.t-body {
+  font: 400 14px/1.5 var(--sans);
+  color: var(--text);
+}
+
+.t-ui {
+  font: 600 14px/1 var(--sans);
+  color: var(--text);
+}
+
+.t-label {
+  font: 500 12px/1.3 var(--sans);
+  color: var(--text-2);
+}
+
+.t-caption {
+  font: 400 11px/1.3 var(--sans);
+  color: var(--text-3);
+}
+
+.t-kpi {
+  font: 700 28px/1 var(--sans);
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.t-mono {
+  font: 500 12px/1 var(--mono);
+  color: var(--text);
+}
+
+.t-muted   { color: var(--text-2); }
+.t-muted-2 { color: var(--text-3); }

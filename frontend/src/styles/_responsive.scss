@@ -1,0 +1,21 @@
+/* ============================================================
+   Responsive breakpoints + mixins.
+   Import via: @use 'responsive' as r;  then @include r.md-up { ... }
+   ============================================================ */
+
+$bp-sm: 480px;   // small phone → large phone
+$bp-md: 768px;   // tablet portrait
+$bp-lg: 1024px;  // tablet landscape / small laptop
+$bp-xl: 1280px;  // desktop
+
+/* Mobile-first: min-width mixins */
+@mixin sm-up { @media (min-width: #{$bp-sm}) { @content; } }
+@mixin md-up { @media (min-width: #{$bp-md}) { @content; } }
+@mixin lg-up { @media (min-width: #{$bp-lg}) { @content; } }
+@mixin xl-up { @media (min-width: #{$bp-xl}) { @content; } }
+
+/* Max-width for targeted fallbacks (mobile-only, tablet-only) */
+@mixin mobile-only { @media (max-width: #{$bp-md - 1px}) { @content; } }
+@mixin tablet-only { @media (min-width: #{$bp-md}) and (max-width: #{$bp-lg - 1px}) { @content; } }
+@mixin lt-md       { @media (max-width: #{$bp-md - 1px}) { @content; } }
+@mixin lt-sm       { @media (max-width: #{$bp-sm}) { @content; } }

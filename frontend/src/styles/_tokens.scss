@@ -1,0 +1,77 @@
+/* ============================================================
+   Flower Design Tokens
+   Single source of truth — colors, fonts, spacing, radius.
+   All values are exposed as CSS custom properties so they are
+   available at runtime (for theme previews, JS access, etc.).
+   Never hard-code hex values in component SCSS — use the token.
+   ============================================================ */
+
+:root {
+  /* Fathom green — primary brand */
+  --fathom:        #034f46;
+  --fathom-dark:   #023a34;
+  --fathom-light:  #dfe9e5;
+
+  /* Background / surface */
+  --bg:            #e4e4d0;
+  --bg-2:          #f1f1dc;
+  --lumen:         #faf8ea;
+
+  /* Text */
+  --text:          #1a1a1a;
+  --text-2:        #5a5a52;
+  --text-3:        #8a8a7c;
+
+  /* Borders */
+  --border:        #d5d5c0;
+  --border-2:      #c0c0a8;
+
+  /* Semantic (state only, never brand) */
+  --ok:            #16a34a;
+  --warn:          #ffa946;
+  --err:           #dc2626;
+  --info:          #2563eb;
+
+  /* Semantic tints (for pill / badge backgrounds) */
+  --ok-tint:       rgba(22, 163, 74, 0.12);
+  --warn-tint:     rgba(255, 169, 70, 0.18);
+  --err-tint:      rgba(220, 38, 38, 0.12);
+  --info-tint:     rgba(37, 99, 235, 0.12);
+  --fathom-tint:   rgba(3, 79, 70, 0.08);
+  --focus-ring:    rgba(3, 79, 70, 0.25);
+  --focus-ring-soft: rgba(3, 79, 70, 0.12);
+
+  /* Pending / amber text override (design system 1.5 Status Pills) */
+  --pending-text:  #b45309;
+
+  /* Shadows */
+  --shadow-card:   0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.02);
+  --shadow-modal:  0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* Radii */
+  --radius-card:   12px;
+  --radius-ctrl:   8px;
+  --radius-pill:   999px;
+
+  /* Spacing scale (token aliases; stick to 4/8/10/12/14/16/20/24/32/40) */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  10px;
+  --sp-4:  12px;
+  --sp-5:  14px;
+  --sp-6:  16px;
+  --sp-7:  20px;
+  --sp-8:  24px;
+  --sp-9:  32px;
+  --sp-10: 40px;
+
+  /* Page content padding (top, sides, bottom) */
+  --page-pad-top:    12px;
+  --page-pad-side:   32px;
+  --page-pad-bottom: 40px;
+
+  /* Fonts */
+  --sans:  'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --serif: 'Georgia', 'Times New Roman', serif;
+  --mono:  'JetBrains Mono', ui-monospace, 'Menlo', monospace;
+}

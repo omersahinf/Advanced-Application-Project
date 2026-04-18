@@ -1,0 +1,346 @@
+<!--
+  Analytics Chat — pixel-parity with Flower Prototype.html §ChatbotPage.
+  Left column: intro + message stream + composer.
+  Right rail: agent pipeline, session context, try-asking prompts.
+-->
+<div class="chat-shell">
+  <!-- ============================================================
+       Left column
+       ============================================================ -->
+  <div class="chat-main">
+    <div class="scroll" #scroll>
+      <!-- Intro assistant block (always visible; prototype parity). -->
+      <div class="intro">
+        <span class="avatar" aria-hidden="true">AI</span>
+        <div class="intro-body">
+          <div class="intro-greet">
+            Hi <b>{{ firstName() }}</b>, I'm Flower's analytics assistant. I translate
+            natural-language questions into SQL queries, run them against the read-only
+            replica, and explain the results in plain English.
+          </div>
+          <div class="intro-notice">
+            <div class="title-row">
+              <flower-icon name="shield" [size]="13" />
+              <b>Role-scoped access</b>
+            </div>
+            You're authenticated as <b>{{ auth.currentRole() || '—' }}</b>. Every SQL
+            query I run has a role filter injected deterministically — I physically
+            cannot see another user's private data, even if the LLM is tricked.
+          </div>
+        </div>
+      </div>
+
+      <!-- Message stream -->
+      @for (m of messages(); track m.id) {
+        @if (m.role === 'user') {
+          <div class="msg-user">
+            <div class="bubble">{{ m.text }}</div>
+            <span class="avatar avatar-sm avatar-user" aria-hidden="true">
+              {{ userInitial() }}
+            </span>
+          </div>
+        } @else if (m.kind === 'streaming' || m.streaming) {
+          <!-- Thinking / pipeline in-progress -->
+          <div class="thinking">
+            <span class="avatar" aria-hidden="true">AI</span>
+            <div class="thinking-card">
+              <div class="title-row">
+                <flower-icon
+                  [name]="pipeline[m.currentStep ?? 0].icon"
+                  [size]="14"
+                />
+                <span class="label">{{ pipeline[m.currentStep ?? 0].label }}</span>
+                <span class="dots"><span></span><span></span><span></span></span>
+              </div>
+              <div class="desc">{{ pipeline[m.currentStep ?? 0].desc }}</div>
+            </div>
+          </div>
+        } @else if (m.kind === 'blocked') {
+          <div class="blocked">
+            <span class="avatar avatar-err" aria-hidden="true">AI</span>
+            <div class="blocked-card">
+              <div class="title-row">
+                <flower-icon name="shield" [size]="14" />
+                Request blocked
+              </div>
+              <div class="body-text">{{ m.text }}</div>
+              <div class="caught">
+                Caught by: Guardrails Agent + InputValidator (Spring Boot)
+              </div>
+            </div>
+          </div>
+        } @else if (m.kind === 'error') {
+          <div class="blocked">
+            <span class="avatar avatar-err" aria-hidden="true">AI</span>
+            <div class="blocked-card">
+              <div class="title-row">
+                <flower-icon name="shield" [size]="14" />
+                Stream error
+              </div>
+              <div class="body-text">{{ m.text }}</div>
+            </div>
+          </div>
+        } @else if (m.kind === 'result') {
+          <div class="result">
+            <span class="avatar" aria-hidden="true">AI</span>
+            <div class="body">
+              <div class="answer">{{ m.text }}</div>
+
+              <div class="result-card">
+                <div class="tabs">
+                  <button
+                    type="button"
+                    class="tab"
+                    [class.active]="m.activeTab === 'chart'"
+                    (click)="setTab(m, 'chart')"
+                  >
+                    <flower-icon name="chart" [size]="12" />
+                    Chart
+                  </button>
+                  <button
+                    type="button"
+                    class="tab"
+                    [class.active]="m.activeTab === 'table'"
+                    (click)="setTab(m, 'table')"
+                  >
+                    <flower-icon name="layers" [size]="12" />
+                    Table
+                  </button>
+                  <button
+                    type="button"
+                    class="tab"
+                    [class.active]="m.activeTab === 'sql'"
+                    (click)="setTab(m, 'sql')"
+                  >
+                    <flower-icon name="database" [size]="12" />
+                    SQL
+                  </button>
+                  <div class="tab-spacer"></div>
+                  <div class="tab-actions">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      title="Copy"
+                      [disabled]="!m.sqlQuery"
+                      (click)="m.sqlQuery ? null : null"
+                    >
+                      <flower-icon name="edit" [size]="13" />
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      title="Download"
+                      [disabled]="!m.data"
+                    >
+                      <flower-icon name="download" [size]="13" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chart tab -->
+                @if (m.activeTab === 'chart') {
+                  <div class="tab-pane">
+                    <div class="chart-meta">
+                      <span>plotly · sandboxed iframe</span>
+                      <span>rendered read-only</span>
+                    </div>
+                    @if (m.vizUrl) {
+                      <iframe
+                        class="chart-iframe"
+                        [src]="m.vizUrl"
+                        sandbox="allow-scripts"
+                        width="100%"
+                        frameborder="0"
+                        title="Analytics visualization"
+                      ></iframe>
+                    } @else {
+                      <div class="chart-empty">
+                        No chart was generated for this answer.
+                      </div>
+                    }
+                    @if (m.data?.columns?.length) {
+                      <div class="chart-caption">
+                        {{ (m.data?.columns ?? []).join(' · ').toUpperCase() }}
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Table tab -->
+                @if (m.activeTab === 'table') {
+                  <div class="tab-pane">
+                    @if (m.data && m.data.rows.length > 0) {
+                      <div class="table-scroll">
+                        <table>
+                          <thead>
+                            <tr>
+                              @for (col of m.data.columns; track col) {
+                                <th>{{ col }}</th>
+                              }
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (row of m.data.rows.slice(0, 50); track $index) {
+                              <tr>
+                                @for (col of m.data.columns; track col) {
+                                  <td
+                                    [class.num]="isNumericCol(m.data!.columns, m.data!.rows, col)"
+                                  >
+                                    {{ formatCell(col, row[col]) }}
+                                  </td>
+                                }
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                        @if (m.data.row_count > 50) {
+                          <div class="truncated">
+                            Showing 50 of {{ m.data.row_count }} rows
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <div class="chart-empty">No rows returned.</div>
+                    }
+                  </div>
+                }
+
+                <!-- SQL tab -->
+                @if (m.activeTab === 'sql') {
+                  <div class="tab-pane">
+                    @if (m.sqlQuery) {
+                      <pre class="sql-pre">{{ m.sqlQuery }}</pre>
+                    } @else {
+                      <div class="chart-empty">No SQL was generated for this turn.</div>
+                    }
+                    <div class="sql-note">
+                      <flower-icon name="shield" [size]="14" />
+                      <div>
+                        <b>Role filter injected deterministically.</b> The
+                        <code>:store_id</code> / <code>:user_id</code> bind parameters
+                        come from the JWT's verified claims — never from the LLM output
+                        or conversation history.
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        } @else {
+          <!-- Plain text assistant turn -->
+          <div class="msg-assistant">
+            <span class="avatar" aria-hidden="true">AI</span>
+            <div class="body">
+              <div class="plain-text">{{ m.text }}</div>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Composer ------------------------------------------------- -->
+    <div class="composer">
+      <div class="chip-row">
+        @for (p of suggestedPrompts().slice(0, 4); track p) {
+          <button
+            type="button"
+            class="chip-btn"
+            [disabled]="loading()"
+            (click)="askSuggestion(p)"
+          >
+            <flower-icon name="sparkle" [size]="11" />
+            {{ p }}
+          </button>
+        }
+      </div>
+
+      <div class="input-row">
+        <textarea
+          rows="1"
+          [(ngModel)]="userInput"
+          (keydown)="onKeydown($event)"
+          [disabled]="loading()"
+          [placeholder]="
+            'Ask Flower AI · authenticated as ' + (auth.currentRole() || 'GUEST')
+          "
+          aria-label="Chat message input"
+        ></textarea>
+        <button
+          type="button"
+          class="btn btn-primary send"
+          [disabled]="loading() || !userInput.trim()"
+          (click)="send()"
+          aria-label="Send message"
+        >
+          <flower-icon name="send" [size]="14" />
+        </button>
+      </div>
+
+      <div class="composer-footer">
+        <span><flower-icon name="shield" [size]="11" /> Role-scoped via JWT</span>
+        <span
+          ><flower-icon name="database" [size]="11" /> SELECT-only · READ ONLY txn</span
+        >
+        <span><flower-icon name="bolt" [size]="11" /> Gemini · LangGraph</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       Right rail: Agent pipeline · Session context · Try asking
+       ============================================================ -->
+  <aside class="rail" aria-label="Agent pipeline and session context">
+    <div class="section-label" style="margin-bottom: 10px">Agent pipeline</div>
+    <div class="pipeline-list">
+      @for (step of pipeline; track step.key; let i = $index) {
+        <div
+          class="pipeline-item"
+          [class.active]="pipelineState(i) === 'active'"
+          [class.done]="pipelineState(i) === 'done'"
+        >
+          <div class="pipe-icon">
+            @if (pipelineState(i) === 'done') {
+              <flower-icon name="check" [size]="13" />
+            } @else {
+              <flower-icon [name]="step.icon" [size]="13" />
+            }
+          </div>
+          <div class="pipe-body">
+            <div class="pipe-label">
+              {{ step.label }}
+              @if (pipelineState(i) === 'active') {
+                <span class="dots"><span></span><span></span><span></span></span>
+              }
+            </div>
+            <div class="pipe-desc">{{ step.desc }}</div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="section-label" style="margin-bottom: 10px">Session context</div>
+    <div class="session-box">
+      <div class="div">user_role = <b>{{ auth.currentRole() || '—' }}</b></div>
+      <div class="div">user_id &nbsp; = {{ userIdLine() }}</div>
+      <div class="div">store_id &nbsp;= {{ storeIdLine() }}</div>
+      <div class="div">session &nbsp; = {{ sessionShort }}</div>
+      <div class="div">turns &nbsp; &nbsp;= {{ turnCount() }} / 10</div>
+      <div class="rate">rate_limit: 20 req / min</div>
+    </div>
+
+    <div class="section-label" style="margin: 20px 0 10px">Try asking</div>
+    <div class="try-list">
+      @for (p of suggestedPrompts(); track p) {
+        <button
+          type="button"
+          class="try-btn"
+          [disabled]="loading()"
+          (click)="askSuggestion(p)"
+        >
+          {{ p }}
+        </button>
+      }
+    </div>
+  </aside>
+</div>

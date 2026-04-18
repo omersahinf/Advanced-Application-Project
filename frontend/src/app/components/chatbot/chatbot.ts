@@ -1,15 +1,87 @@
+/**
+ * Analytics Chat — pixel-parity replica of Flower Prototype.html
+ * §ChatbotPage.
+ *
+ * Inventory (verbatim from prototype):
+ *   Layout: two columns, `1fr 300px`, height `calc(100vh - topbar)`,
+ *   no page padding. Right rail has `Agent pipeline` · `Session
+ *   context` · `Try asking`.
+ *
+ *   Intro message (assistant, first turn):
+ *     "Hi <first>, I'm Flower's analytics assistant. I translate
+ *      natural-language questions into SQL queries, run them
+ *      against the read-only replica, and explain the results in
+ *      plain English."
+ *     Notice card: "Role-scoped access" + "You're authenticated as
+ *      <ROLE>. Every SQL query I run has a role filter injected
+ *      deterministically — I physically cannot see another user's
+ *      private data, even if the LLM is tricked."
+ *
+ *   Pipeline rows (5 fixed):
+ *     Guardrails    — "Is the question in scope? Any prompt injection?"
+ *     SQL Generator — "Translate natural language to SQL + inject role filter"
+ *     Executor      — "Run SELECT against read-only database"
+ *     Analyst       — "Explain results in natural language"
+ *     Visualizer    — "Build Plotly chart (AST-validated, sandboxed)"
+ *
+ *   Result card tabs: Chart · Table · SQL (+ edit / download icon buttons)
+ *   SQL pane footer: "Role filter injected deterministically. The
+ *     :store_id / :user_id bind parameters come from the JWT's
+ *     verified claims — never from the LLM output or conversation
+ *     history."
+ *   Composer footer chips (fixed):
+ *     "Role-scoped via JWT" · "SELECT-only · READ ONLY txn" · "Gemini · LangGraph"
+ *
+ *   Prototype suggestedPrompts verbatim per role:
+ *     ADMIN      : Show me sales by category for last month / Compare
+ *                  this month vs last month / What's the trend in order
+ *                  cancellations? / Which stores have the most orders?
+ *     CORPORATE  : What are my top 5 customers by revenue? / Which
+ *                  products have the lowest ratings? / How many orders
+ *                  were shipped by air? / What's my revenue trend over
+ *                  the last 6 months?
+ *     INDIVIDUAL : How much have I spent this year? / What categories
+ *                  do I buy from the most? / Show my order history
+ *                  with delivery status / Which of my reviews got the
+ *                  most helpful votes?
+ *
+ * Adaptations (backend-backed, no API changes):
+ *   - Prototype "CANNED" answers are replaced by the real streaming
+ *     `/api/chat/stream` SSE pipeline (ChatService). Pipeline events
+ *     from the backend (`guardrails` / `generate_sql` / `execute` /
+ *     `error_handler` / `analyze` / `decide_graph` / `visualize`) are
+ *     mapped to the 5 prototype steps for rail highlighting.
+ *   - Blocked/refused turns render the prototype's red "Request
+ *     blocked" card when the final payload has `is_in_scope=false`
+ *     (and it's not a greeting).
+ *   - Chart is rendered via the sandboxed Plotly iframe produced by
+ *     the Visualizer agent. When `data` rows come back but no
+ *     visualization_html, we still render the table + SQL tabs.
+ *   - Session context box shows what auth actually exposes:
+ *       user_role = auth.currentRole()
+ *       user_id   = current email (proxy) or —
+ *       store_id  = current company or — (non-corporate)
+ *       session   = short id hashed from chat sessionId
+ *       turns     = user-turns count / 10 cap from prototype
+ *     No backend or schema changes.
+ */
 import {
-  Component,
-  signal,
-  ViewChild,
-  ElementRef,
   AfterViewChecked,
+  Component,
+  ElementRef,
   OnDestroy,
+  ViewChild,
+  computed,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+
 import { ChatService, StreamStepEvent } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
+import { FlowerIconComponent, FlowerIconName } from '../../shared/flower-icon/flower-icon';
+
+/* -------------------- Types -------------------- */
 
 interface TimelineStep {
   step: string;
@@ -19,500 +91,132 @@ interface TimelineStep {
   detail?: string;
 }
 
+type AssistantKind = 'streaming' | 'text' | 'blocked' | 'result' | 'error';
+
 interface ChatMessage {
   id: number;
   role: 'user' | 'assistant';
   text: string;
+  kind?: AssistantKind;
   refused?: boolean;
   sqlQuery?: string;
   data?: { columns: string[]; rows: Record<string, any>[]; row_count: number };
   vizUrl?: SafeResourceUrl;
+  hasChart?: boolean;
   showSql?: boolean;
   showData?: boolean;
   timeline?: TimelineStep[];
   showTimeline?: boolean;
   streaming?: boolean;
+  /** Which of prototype's 5 pipeline steps is highlighted right now. */
+  currentStep?: number;
+  /** Selected tab on the result card (prototype default: "answer"). */
+  activeTab?: 'chart' | 'table' | 'sql';
 }
+
+type PipelineKey = 'guardrails' | 'sql' | 'exec' | 'analyst' | 'viz';
+
+interface PipelineRow {
+  key: PipelineKey;
+  label: string;
+  icon: FlowerIconName;
+  desc: string;
+}
+
+/** 5 fixed pipeline rows, copied verbatim from Flower Prototype.html §PIPELINE. */
+const PIPELINE: PipelineRow[] = [
+  { key: 'guardrails', label: 'Guardrails',    icon: 'shield',   desc: 'Is the question in scope? Any prompt injection?' },
+  { key: 'sql',        label: 'SQL Generator', icon: 'database', desc: 'Translate natural language to SQL + inject role filter' },
+  { key: 'exec',       label: 'Executor',      icon: 'bolt',     desc: 'Run SELECT against read-only database' },
+  { key: 'analyst',    label: 'Analyst',       icon: 'book',     desc: 'Explain results in natural language' },
+  { key: 'viz',        label: 'Visualizer',    icon: 'chart',    desc: 'Build Plotly chart (AST-validated, sandboxed)' },
+];
+
+/** Backend step -> pipeline row index mapping. */
+const STEP_TO_PIPELINE: Record<string, number> = {
+  guardrails: 0,
+  generate_sql: 1,
+  execute: 2,
+  error_handler: 2,
+  analyze: 3,
+  decide_graph: 3,
+  visualize: 4,
+};
+
+/** Suggested prompts by role (verbatim, Flower Prototype.html §suggestedPrompts). */
+const SUGGESTED_PROMPTS: Record<string, string[]> = {
+  ADMIN: [
+    'Show me sales by category for last month',
+    'Compare this month vs last month',
+    "What's the trend in order cancellations?",
+    'Which stores have the most orders?',
+  ],
+  CORPORATE: [
+    'What are my top 5 customers by revenue?',
+    'Which products have the lowest ratings?',
+    'How many orders were shipped by air?',
+    "What's my revenue trend over the last 6 months?",
+  ],
+  INDIVIDUAL: [
+    'How much have I spent this year?',
+    'What categories do I buy from the most?',
+    'Show my order history with delivery status',
+    'Which of my reviews got the most helpful votes?',
+  ],
+};
+
+/* -------------------- Component -------------------- */
 
 @Component({
   selector: 'app-chatbot',
-  imports: [FormsModule],
-  template: `
-    <div class="container page">
-      <div class="chat-container card">
-        <div class="chat-header">
-          <div class="header-row">
-            <div>
-              <h2>AI Analytics Chatbot</h2>
-              <p class="subtitle">
-                Multi-Agent Text2SQL &mdash; ask anything about your e-commerce data
-              </p>
-            </div>
-            <span class="role-badge" [class]="'badge-' + (auth.currentRole() || '').toLowerCase()">
-              {{ auth.currentRole() }}
-            </span>
-          </div>
-        </div>
-
-        <div class="messages" #messagesContainer>
-          @if (messages().length === 0) {
-            <div class="welcome">
-              <div class="welcome-icon">🤖</div>
-              <p><strong>I can query your e-commerce database using natural language!</strong></p>
-              <p class="hint">Try one of these suggestions:</p>
-              <div class="suggestions">
-                <button (click)="askSuggestion('What is the total revenue by store?')">
-                  Revenue by store
-                </button>
-                <button (click)="askSuggestion('Show me the top 5 best selling products')">
-                  Top products
-                </button>
-                <button (click)="askSuggestion('How many orders are in each status?')">
-                  Orders by status
-                </button>
-                <button (click)="askSuggestion('What are the average ratings by product?')">
-                  Avg ratings
-                </button>
-                <button (click)="askSuggestion('Show low stock products')">Low stock alert</button>
-                <button (click)="askSuggestion('Customer spending by city')">Spend by city</button>
-              </div>
-            </div>
-          }
-          @for (msg of messages(); track msg.id) {
-            <div
-              class="message"
-              [class.user]="msg.role === 'user'"
-              [class.assistant]="msg.role === 'assistant'"
-              [class.refused]="msg.refused"
-            >
-              <div class="message-label">{{ msg.role === 'user' ? 'You' : 'AI Assistant' }}</div>
-
-              @if (msg.role === 'assistant' && msg.timeline && msg.timeline.length > 0) {
-                <button class="toggle-btn" (click)="msg.showTimeline = !msg.showTimeline">
-                  {{ msg.showTimeline ? 'Hide' : 'Show' }} execution steps ({{ msg.timeline.length }})
-                </button>
-                @if (msg.showTimeline) {
-                  <ul class="timeline">
-                    @for (s of msg.timeline; track s.step + $index) {
-                      <li class="timeline-item" [class]="'status-' + s.status">
-                        <span class="timeline-icon">{{ s.icon }}</span>
-                        <span class="timeline-label">{{ s.label }}</span>
-                        @if (s.status === 'running') {
-                          <span class="timeline-spinner"></span>
-                        } @else if (s.status === 'done') {
-                          <span class="timeline-check">✓</span>
-                        } @else {
-                          <span class="timeline-err">✗</span>
-                        }
-                        @if (s.detail) {
-                          <span class="timeline-detail">{{ s.detail }}</span>
-                        }
-                      </li>
-                    }
-                  </ul>
-                }
-              }
-
-              @if (msg.text) {
-                <div class="message-text">{{ msg.text }}</div>
-              }
-
-              @if (auth.isAdmin()) {
-                @if (msg.sqlQuery) {
-                  <button class="toggle-btn" (click)="msg.showSql = !msg.showSql">
-                    {{ msg.showSql ? 'Hide' : 'Show' }} SQL
-                  </button>
-                  @if (msg.showSql) {
-                    <pre class="sql-block">{{ msg.sqlQuery }}</pre>
-                  }
-                }
-
-                @if (msg.data && msg.data.rows.length > 0) {
-                  <button class="toggle-btn" (click)="msg.showData = !msg.showData">
-                    {{ msg.showData ? 'Hide' : 'Show' }} Data ({{ msg.data.row_count }} rows)
-                  </button>
-                  @if (msg.showData) {
-                    <div class="data-table-wrapper">
-                      <table class="data-table">
-                        <thead>
-                          <tr>
-                            @for (col of msg.data.columns; track col) {
-                              <th>{{ col }}</th>
-                            }
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (row of msg.data.rows.slice(0, 20); track $index) {
-                            <tr>
-                              @for (col of msg.data.columns; track col) {
-                                <td>{{ row[col] }}</td>
-                              }
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                      @if (msg.data.rows.length > 20) {
-                        <p class="truncated">Showing 20 of {{ msg.data.row_count }} rows</p>
-                      }
-                    </div>
-                  }
-                }
-              }
-
-              @if (msg.vizUrl) {
-                <div class="viz-container">
-                  <iframe
-                    [src]="msg.vizUrl"
-                    sandbox="allow-scripts"
-                    width="100%"
-                    height="420"
-                    frameborder="0"
-                  ></iframe>
-                </div>
-              }
-            </div>
-          }
-          @if (loading()) {
-            <div class="message assistant">
-              <div class="message-label">AI Assistant</div>
-              <div class="message-text typing">
-                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                Analyzing your question...
-              </div>
-            </div>
-          }
-        </div>
-
-        <form class="input-area" (ngSubmit)="send()">
-          <input
-            type="text"
-            [(ngModel)]="userInput"
-            name="message"
-            placeholder="Ask about sales, products, orders, customers..."
-            [disabled]="loading()"
-            maxlength="500"
-            autocomplete="off"
-            aria-label="Chat message input"
-          />
-          <button type="submit" class="btn btn-primary" [disabled]="loading() || !userInput.trim()">
-            {{ loading() ? '...' : 'Send' }}
-          </button>
-        </form>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      .page {
-        padding-top: 20px;
-        padding-bottom: 20px;
-      }
-      .chat-container {
-        max-width: 900px;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 60px);
-        padding: 0;
-        overflow: hidden;
-        background: #ffffeb;
-        border: 1px solid #d5d5c0;
-        border-radius: 16px;
-      }
-      .chat-header {
-        padding: 16px 24px;
-        border-bottom: 1px solid #d5d5c0;
-      }
-      .header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .chat-header h2 {
-        margin-bottom: 2px;
-        font-size: 20px;
-        color: #1a1a1a;
-      }
-      .subtitle {
-        color: #666;
-        font-size: 13px;
-      }
-      .role-badge {
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .badge-admin {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .badge-corporate {
-        background: #034f46;
-        color: #ffffeb;
-      }
-      .badge-individual {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 20px 24px;
-      }
-      .welcome {
-        text-align: center;
-        padding: 30px 0;
-      }
-      .welcome-icon {
-        font-size: 48px;
-        margin-bottom: 12px;
-      }
-      .welcome p {
-        margin-bottom: 8px;
-        color: #666;
-      }
-      .hint {
-        font-size: 13px;
-        color: #999;
-      }
-      .suggestions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        margin-top: 12px;
-      }
-      .suggestions button {
-        background: #034f46;
-        border: 1px solid #034f46;
-        border-radius: 20px;
-        padding: 8px 16px;
-        font-size: 13px;
-        cursor: pointer;
-        color: #ffffeb;
-        transition: all 0.2s;
-      }
-      .suggestions button:hover {
-        background: rgba(3, 79, 70, 0.15);
-        border-color: #034f46;
-      }
-      .message {
-        margin-bottom: 16px;
-        max-width: 90%;
-      }
-      .message.user {
-        margin-left: auto;
-      }
-      .message-label {
-        font-size: 11px;
-        color: #999;
-        margin-bottom: 4px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-      }
-      .message.user .message-label {
-        text-align: right;
-      }
-      .message-text {
-        padding: 12px 16px;
-        border-radius: 12px;
-        font-size: 14px;
-        line-height: 1.6;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-      .message.user .message-text {
-        background: #034f46;
-        color: white;
-        border-bottom-right-radius: 4px;
-      }
-      .message.assistant .message-text {
-        background: #e4e4d0;
-        color: #1a1a1a;
-        border-bottom-left-radius: 4px;
-      }
-      .message.refused .message-text {
-        background: #fef3c7;
-        color: #92400e;
-      }
-      .typing {
-        font-style: italic;
-        color: #666;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #999;
-        animation: bounce 1.4s infinite ease-in-out both;
-      }
-      .dot:nth-child(1) {
-        animation-delay: -0.32s;
-      }
-      .dot:nth-child(2) {
-        animation-delay: -0.16s;
-      }
-      @keyframes bounce {
-        0%,
-        80%,
-        100% {
-          transform: scale(0);
-        }
-        40% {
-          transform: scale(1);
-        }
-      }
-      .toggle-btn {
-        background: none;
-        border: 1px solid #c8c8b4;
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 11px;
-        color: #666;
-        cursor: pointer;
-        margin-top: 6px;
-        margin-right: 6px;
-        transition: all 0.2s;
-      }
-      .toggle-btn:hover {
-        border-color: #034f46;
-        color: #034f46;
-      }
-      .sql-block {
-        background: #1e1e2e;
-        color: #a6e3a1;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-family: 'JetBrains Mono', 'Fira Code', monospace;
-        font-size: 12px;
-        margin-top: 8px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-      }
-      .data-table-wrapper {
-        margin-top: 8px;
-        overflow-x: auto;
-        border-radius: 8px;
-        border: 1px solid #d5d5c0;
-      }
-      .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-      }
-      .data-table th {
-        background: #f5f5e1;
-        padding: 8px 12px;
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 1px solid #d5d5c0;
-        white-space: nowrap;
-        color: #666;
-      }
-      .data-table td {
-        padding: 6px 12px;
-        border-bottom: 1px solid #d5d5c0;
-        color: #1a1a1a;
-      }
-      .data-table tr:hover td {
-        background: #f5f5e1;
-      }
-      .truncated {
-        font-size: 11px;
-        color: #999;
-        text-align: center;
-        padding: 6px;
-      }
-      .viz-container {
-        margin-top: 12px;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      .input-area {
-        display: flex;
-        gap: 10px;
-        padding: 16px 24px;
-        border-top: 1px solid #d5d5c0;
-        background: #ffffeb;
-      }
-      .input-area input {
-        flex: 1;
-      }
-      .input-area input:focus {
-        outline: none;
-        border-color: #034f46;
-      }
-      .timeline {
-        list-style: none;
-        padding: 10px 14px;
-        margin: 8px 0;
-        background: #f5f5e1;
-        border-radius: 10px;
-        border: 1px solid #d5d5c0;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .timeline-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        color: #444;
-      }
-      .timeline-icon {
-        font-size: 14px;
-      }
-      .timeline-label {
-        font-weight: 600;
-      }
-      .timeline-detail {
-        color: #777;
-        font-style: italic;
-        margin-left: 4px;
-      }
-      .timeline-check {
-        color: #16a34a;
-        font-weight: 700;
-      }
-      .timeline-err {
-        color: #dc2626;
-        font-weight: 700;
-      }
-      .timeline-spinner {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        border: 2px solid #034f46;
-        border-right-color: transparent;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .timeline-item.status-running {
-        color: #034f46;
-      }
-    `,
-  ],
+  standalone: true,
+  imports: [FormsModule, FlowerIconComponent],
+  templateUrl: './chatbot.html',
+  styleUrls: ['./chatbot.scss'],
 })
 export class ChatbotComponent implements AfterViewChecked, OnDestroy {
-  @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
+  @ViewChild('scroll') private scrollEl?: ElementRef<HTMLDivElement>;
 
-  messages = signal<ChatMessage[]>([]);
+  readonly pipeline = PIPELINE;
+  readonly messages = signal<ChatMessage[]>([]);
+  readonly loading = signal(false);
   userInput = '';
-  loading = signal(false);
+
+  private readonly nextIdSeed = signal(1);
+  private readonly activeStep = signal<number | null>(null);
   private blobUrls: string[] = [];
   private activeStream?: AbortController;
-  private nextMessageId = 1;
+
+  private readonly chatSessionId: string = this.safeUuid();
+
+  readonly sessionShort = this.chatSessionId
+    ? `sess_${this.chatSessionId.slice(0, 4)}…${this.chatSessionId.slice(-4)}`
+    : 'sess_—';
+
+  readonly suggestedPrompts = computed(() => {
+    const role = this.auth.currentRole() || 'INDIVIDUAL';
+    return SUGGESTED_PROMPTS[role] ?? SUGGESTED_PROMPTS['INDIVIDUAL'];
+  });
+
+  readonly turnCount = computed(
+    () => this.messages().filter((m) => m.role === 'user').length,
+  );
+
+  readonly currentStepIndex = computed(() => this.activeStep());
+
+  /* Intro avatar / role labels */
+  readonly firstName = computed(
+    () =>
+      this.auth.currentFirstName() ||
+      (this.auth.currentEmail() ?? 'there').split('@')[0],
+  );
+
+  readonly userInitial = computed(() =>
+    (this.auth.currentFirstName() || this.auth.currentEmail() || 'U')
+      .trim()
+      .charAt(0)
+      .toUpperCase(),
+  );
 
   constructor(
     private chatService: ChatService,
@@ -520,36 +224,56 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
     private sanitizer: DomSanitizer,
   ) {}
 
-  ngAfterViewChecked() {
-    this.scrollToBottom();
+  ngAfterViewChecked(): void {
+    // Keep the conversation pinned to the latest message after each
+    // change-detection cycle — mirrors the prototype's useEffect on
+    // [messages, thinking].
+    const el = this.scrollEl?.nativeElement;
+    if (el) el.scrollTop = el.scrollHeight;
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.blobUrls.forEach((url) => URL.revokeObjectURL(url));
     this.blobUrls = [];
     this.activeStream?.abort();
   }
 
-  askSuggestion(text: string) {
+  /* -------------------- Actions -------------------- */
+
+  askSuggestion(text: string): void {
     this.userInput = text;
     this.send();
   }
 
-  send() {
+  onKeydown(ev: KeyboardEvent): void {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault();
+      this.send();
+    }
+  }
+
+  send(): void {
     const text = this.userInput.trim();
     if (!text) return;
 
-    this.messages.update((msgs) => [...msgs, this.createMessage('user', text)]);
+    this.messages.update((msgs) => [
+      ...msgs,
+      this.createMessage('user', text),
+    ]);
     this.userInput = '';
     this.loading.set(true);
 
-    // Seed an assistant placeholder that will fill in as events arrive.
+    // Seed an assistant placeholder — fills in as stream events arrive.
     const placeholder = this.createMessage('assistant', '', {
+      kind: 'streaming',
       timeline: [],
       showTimeline: true,
       streaming: true,
+      currentStep: 0,
+      activeTab: 'chart',
     });
     this.messages.update((msgs) => [...msgs, placeholder]);
+    this.activeStep.set(0);
 
     const updatePlaceholder = (mutate: (m: ChatMessage) => void) => {
       this.updateMessage(placeholder.id, mutate);
@@ -557,6 +281,8 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
 
     this.activeStream = this.chatService.streamMessage(text, {
       onStep: (event: StreamStepEvent) => {
+        const idx = STEP_TO_PIPELINE[event.step];
+        if (typeof idx === 'number') this.activeStep.set(idx);
         updatePlaceholder((m) => {
           const timeline = [...(m.timeline ?? [])];
           timeline.push({
@@ -567,24 +293,43 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
             detail: this.describePayload(event),
           });
           m.timeline = timeline;
+          if (typeof idx === 'number') m.currentStep = idx;
         });
       },
       onFinal: (payload: Record<string, any>) => {
         updatePlaceholder((m) => {
           m.streaming = false;
-          const answer = typeof payload['answer'] === 'string' ? payload['answer'].trim() : '';
+          const answer =
+            typeof payload['answer'] === 'string' ? payload['answer'].trim() : '';
           m.text = answer || 'No answer generated.';
-          m.refused = payload['is_in_scope'] === false && payload['is_greeting'] !== true;
+          const refused =
+            payload['is_in_scope'] === false && payload['is_greeting'] !== true;
+          m.refused = refused;
           m.sqlQuery = payload['sql_query'] ?? undefined;
           m.data = payload['data'] ?? undefined;
           m.showTimeline = false;
+
           if (payload['visualization_html']) {
-            const blob = new Blob([payload['visualization_html']], { type: 'text/html' });
+            const blob = new Blob([payload['visualization_html']], {
+              type: 'text/html',
+            });
             const url = URL.createObjectURL(blob);
             this.blobUrls.push(url);
             m.vizUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+            m.hasChart = true;
+          }
+
+          // Decide final rendering kind.
+          if (refused) {
+            m.kind = 'blocked';
+          } else if (m.sqlQuery || m.data || m.hasChart) {
+            m.kind = 'result';
+            m.activeTab = m.hasChart ? 'chart' : m.data ? 'table' : 'sql';
+          } else {
+            m.kind = 'text';
           }
         });
+        this.activeStep.set(null);
         this.loading.set(false);
       },
       onError: (message: string) => {
@@ -593,23 +338,79 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
           m.text = `Sorry, an error occurred: ${message}`;
           m.refused = true;
           m.showTimeline = false;
+          m.kind = 'error';
         });
+        this.activeStep.set(null);
         this.loading.set(false);
       },
     });
   }
+
+  setTab(msg: ChatMessage, tab: 'chart' | 'table' | 'sql'): void {
+    this.updateMessage(msg.id, (m) => (m.activeTab = tab));
+  }
+
+  /* -------------------- Rail ----------------------- */
+
+  pipelineState(index: number): 'idle' | 'active' | 'done' {
+    const cur = this.currentStepIndex();
+    if (cur === null || cur === undefined) return 'idle';
+    if (index === cur) return 'active';
+    if (index < cur) return 'done';
+    return 'idle';
+  }
+
+  /* -------------------- Helpers -------------------- */
+
+  /** Prototype user_id/store_id fields — adapted to what auth exposes. */
+  userIdLine(): string {
+    return this.auth.currentEmail() || '—';
+  }
+
+  storeIdLine(): string {
+    return this.auth.isCorporate() ? this.auth.currentCompany() || '—' : '—';
+  }
+
+  iconForColumn(col: string): boolean {
+    return /revenue|spent|total|price|rate|rating|count|orders|row_count/i.test(col);
+  }
+
+  formatCell(col: string, value: unknown): string {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'number') {
+      if (/revenue|spent|total|price|amount/i.test(col)) {
+        return (
+          '$' +
+          value.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
+      }
+      if (/rate/i.test(col) && Math.abs(value) <= 1) {
+        return (value * 100).toFixed(1) + '%';
+      }
+      if (/rating/i.test(col)) return value.toFixed(2) + '★';
+      return value.toLocaleString('en-US');
+    }
+    return String(value);
+  }
+
+  isNumericCol(columns: string[], rows: Record<string, any>[], col: string): boolean {
+    const sample = rows.find((r) => r[col] !== null && r[col] !== undefined);
+    return typeof sample?.[col] === 'number';
+  }
+
+  /* -------------------- internals ------------------ */
 
   private createMessage(
     role: 'user' | 'assistant',
     text: string,
     extras: Partial<ChatMessage> = {},
   ): ChatMessage {
-    return {
-      id: this.nextMessageId++,
-      role,
-      text,
-      ...extras,
-    };
+    const id = this.nextIdSeed();
+    this.nextIdSeed.set(id + 1);
+    return { id, role, text, ...extras };
   }
 
   private updateMessage(id: number, mutate: (m: ChatMessage) => void) {
@@ -633,7 +434,9 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
         return p['sql_query'] ? 'SQL ready' : undefined;
       case 'execute':
         if (p['error']) return `error — retrying`;
-        return typeof p['row_count'] === 'number' ? `${p['row_count']} rows` : undefined;
+        return typeof p['row_count'] === 'number'
+          ? `${p['row_count']} rows`
+          : undefined;
       case 'error_handler':
         return `retry #${p['iteration_count'] ?? '?'}`;
       case 'visualize':
@@ -643,10 +446,14 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
     }
   }
 
-  private scrollToBottom() {
-    if (this.messagesContainer) {
-      const el = this.messagesContainer.nativeElement;
-      el.scrollTop = el.scrollHeight;
+  private safeUuid(): string {
+    try {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch {
+      /* fall through */
     }
+    return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   }
 }

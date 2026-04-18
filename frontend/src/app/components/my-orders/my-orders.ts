@@ -1,195 +1,212 @@
+/*
+ * Prototype inventory (Flower Prototype.html §IndOrders):
+ *  Toolbar row (flex, gap 8, flex-wrap):
+ *    6 filter pills in exact order: ALL · PENDING · CONFIRMED ·
+ *    SHIPPED · DELIVERED · CANCELLED  (active = btn-dark)
+ *    <spacer>
+ *    "[download] CSV export"
+ *  Card (padding 0) containing a table:
+ *    columns: Order | Date | Items | Status | Payment | Total(right) | (chevron)
+ *    row data: #id (mono, 500) · fmtDate (text-2) · "N item(s)" (text-2)
+ *              · StatusPill · paymentMethod (text-2 12.5px) · total (right bold)
+ *              · chevron_down / chevron_up
+ *    click row → expand as full-width colspan row (bg --hover, padding 20)
+ *      grid 1fr 280px:
+ *        left  : section-label "Items" + lines (thumb 44, name, SKU·Qty, price)
+ *        right : section-label "Shipment"
+ *                card (lumen bg, radius 10, border): truck icon + carrier + pill
+ *                meta rows: Mode · Warehouse · Destination · Tracking (mono)
+ *                OR italic "No shipment yet."
+ *                if PENDING → "Complete payment →" primary btn-sm (full-width)
+ *
+ * Backend reality:
+ *  - Order.status ranges include OUT_FOR_DELIVERY — the prototype's 6-pill
+ *    filter set covers the common cases; OUT_FOR_DELIVERY rows still show
+ *    under ALL and render a status pill with neutral fallback.
+ *  - Shipment has trackingNumber (not `tracking`) and no `destination`
+ *    sometimes — we guard with truthiness when showing meta rows.
+ */
 import { Component, OnInit, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { OrderService } from '../../services/order.service';
 import { Order } from '../../models/product.model';
+import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { StatusPillComponent } from '../../shared/status-pill/status-pill';
+import { ProductHeroComponent } from '../../shared/product-hero/product-hero';
 
-type StepState = 'done' | 'current' | 'todo';
-const FLOW = ['PENDING', 'CONFIRMED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'] as const;
-const FLOW_LABELS: Record<(typeof FLOW)[number], string> = {
-  PENDING: 'Ordered',
-  CONFIRMED: 'Confirmed',
-  SHIPPED: 'Shipped',
-  OUT_FOR_DELIVERY: 'Out for delivery',
-  DELIVERED: 'Delivered',
-};
+const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const;
 
 @Component({
   selector: 'app-my-orders',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [
+    DecimalPipe,
+    DatePipe,
+    RouterLink,
+    FlowerIconComponent,
+    StatusPillComponent,
+    ProductHeroComponent,
+  ],
   template: `
-    <div class="page">
-      <div class="toolbar">
-        <div class="filter-bar" role="tablist" aria-label="Filter orders">
-          <button
-            class="filter-btn"
-            role="tab"
-            [class.active]="filter() === ''"
-            (click)="loadOrders('')"
-          >
-            All
-          </button>
-          <button
-            class="filter-btn"
-            role="tab"
-            [class.active]="filter() === 'PENDING'"
-            (click)="loadOrders('PENDING')"
-          >
-            Pending
-          </button>
-          <button
-            class="filter-btn"
-            role="tab"
-            [class.active]="filter() === 'CONFIRMED'"
-            (click)="loadOrders('CONFIRMED')"
-          >
-            Confirmed
-          </button>
-          <button
-            class="filter-btn"
-            role="tab"
-            [class.active]="filter() === 'SHIPPED'"
-            (click)="loadOrders('SHIPPED')"
-          >
-            Shipped
-          </button>
-          <button
-            class="filter-btn"
-            role="tab"
-            [class.active]="filter() === 'DELIVERED'"
-            (click)="loadOrders('DELIVERED')"
-          >
-            Delivered
-          </button>
-        </div>
-
-        <button class="btn btn-export btn-sm" type="button" (click)="exportCSV()">
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Export CSV
+    <div class="toolbar">
+      @for (s of filters; track s) {
+        <button
+          type="button"
+          class="btn btn-sm"
+          [class.btn-dark]="filter() === s"
+          (click)="setFilter(s)"
+        >
+          {{ s }}
         </button>
-      </div>
-
-      @for (o of orders(); track o.id) {
-        <div class="order-card card">
-          <div class="order-header">
-            <div>
-              <h3>Order #{{ o.id }}</h3>
-              <span class="order-date">{{ o.orderDate | date: 'medium' }}</span>
-            </div>
-            <div class="order-right">
-              <span class="status-pill" [class]="'status-' + o.status">{{ o.status }}</span>
-              <span class="order-total">\${{ o.grandTotal | number: '1.2-2' }}</span>
-            </div>
-          </div>
-
-          <div class="order-store">
-            {{ o.storeName }}<span class="dot">·</span>{{ o.paymentMethod }}
-          </div>
-
-          <div class="items-list">
-            @for (item of o.items; track item.id) {
-              <div class="item-row">
-                <span class="item-name">{{ item.productName }}</span>
-                <span class="item-qty">×{{ item.quantity }}</span>
-                <span class="item-price">\${{ item.price | number: '1.2-2' }}</span>
-              </div>
-            }
-          </div>
-
-          @if (o.shipment) {
-            <div class="shipment-info">
-              <div class="shipment-head">
-                <span>{{ o.shipment.carrier }} · {{ o.shipment.mode }}</span>
-                <span class="shipment-track">#{{ o.shipment.trackingNumber }}</span>
-              </div>
-              <div class="timeline">
-                @for (step of steps(o); track step.key) {
-                  <div
-                    class="timeline-step"
-                    [class.done]="step.state === 'done'"
-                    [class.current]="step.state === 'current'"
-                  >
-                    <span class="step-dot" aria-hidden="true"></span>
-                    <span>{{ step.label }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          @if (o.status === 'PENDING') {
-            <div class="order-actions">
-              <a [routerLink]="['/checkout', o.id]" class="btn btn-primary btn-sm">
-                Pay with Stripe
-              </a>
-              <button class="btn btn-danger btn-sm" type="button" (click)="cancel(o.id)">
-                Cancel order
-              </button>
-            </div>
-          }
-        </div>
       }
-
-      @if (orders().length === 0) {
-        <div class="empty-state card">
-          <div class="empty-icon" aria-hidden="true">📦</div>
-          <div class="empty-title">No orders found</div>
-          <div>When you place an order, it'll appear here.</div>
-        </div>
-      }
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-sm export-btn" (click)="exportCSV()">
+        <flower-icon name="download" [size]="13" />
+        CSV export
+      </button>
     </div>
+
+    @if (orders().length > 0) {
+      <div class="card table-card">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Date</th>
+              <th>Items</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th class="th-right">Total</th>
+              <th class="th-chev"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of orders(); track o.id) {
+              <tr class="order-row" (click)="toggle(o.id)">
+                <td class="c-id">#{{ o.id }}</td>
+                <td class="c-muted">{{ o.orderDate | date: 'mediumDate' }}</td>
+                <td class="c-muted">
+                  {{ o.items.length }} item{{ o.items.length === 1 ? '' : 's' }}
+                </td>
+                <td><status-pill [status]="o.status" /></td>
+                <td class="c-payment">{{ o.paymentMethod }}</td>
+                <td class="c-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
+                <td class="c-chev">
+                  <flower-icon [name]="openId() === o.id ? 'chevron_up' : 'chevron_down'" [size]="14" />
+                </td>
+              </tr>
+              @if (openId() === o.id) {
+                <tr class="detail-row">
+                  <td colspan="7">
+                    <div class="detail-grid">
+                      <div class="detail-items">
+                        <div class="section-label">Items</div>
+                        @for (it of o.items; track it.id) {
+                          <div class="item-line">
+                            <div class="item-thumb">
+                              <product-hero
+                                [name]="it.productName"
+                                [ratio]="1"
+                                [size]="24"
+                              />
+                            </div>
+                            <div class="item-info">
+                              <div class="item-name">{{ it.productName }}</div>
+                              <div class="item-sub">
+                                SKU {{ it.productSku }} · Qty {{ it.quantity }}
+                              </div>
+                            </div>
+                            <div class="item-price">
+                              \${{ it.price * it.quantity | number: '1.2-2' }}
+                            </div>
+                          </div>
+                        }
+                      </div>
+
+                      <div class="detail-shipment">
+                        <div class="section-label">Shipment</div>
+                        @if (o.shipment) {
+                          <div class="ship-card">
+                            <div class="ship-head">
+                              <flower-icon name="truck" [size]="14" [stroke]="1.8" />
+                              <b>{{ o.shipment.carrier }}</b>
+                              <status-pill [status]="o.shipment.status" />
+                            </div>
+                            <div class="meta-row">
+                              <span>Mode</span><span>{{ o.shipment.mode }}</span>
+                            </div>
+                            <div class="meta-row">
+                              <span>Warehouse</span><span>{{ o.shipment.warehouse }}</span>
+                            </div>
+                            @if (o.shipment.destination) {
+                              <div class="meta-row">
+                                <span>Destination</span
+                                ><span>{{ o.shipment.destination }}</span>
+                              </div>
+                            }
+                            <div class="meta-row">
+                              <span>Tracking</span>
+                              <span class="mono">{{ o.shipment.trackingNumber }}</span>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="no-ship">No shipment yet.</div>
+                        }
+
+                        @if (o.status === 'PENDING') {
+                          <a
+                            [routerLink]="['/checkout', o.id]"
+                            class="btn btn-primary btn-sm complete-btn"
+                          >
+                            Complete payment
+                            <flower-icon name="arrow_right" [size]="12" />
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state card">
+        <div class="empty-icon" aria-hidden="true">📦</div>
+        <div class="empty-title">No orders found</div>
+        <div>When you place an order, it'll appear here.</div>
+      </div>
+    }
   `,
   styleUrls: ['./my-orders.scss'],
 })
 export class MyOrdersComponent implements OnInit {
+  readonly filters = FILTER_LIST;
   orders = signal<Order[]>([]);
-  filter = signal('');
+  filter = signal<(typeof FILTER_LIST)[number]>('ALL');
+  openId = signal<number | null>(null);
 
   constructor(private orderService: OrderService) {}
 
   ngOnInit() {
-    this.loadOrders('');
+    this.load();
   }
 
-  loadOrders(status: string) {
-    this.filter.set(status);
-    this.orderService.getMyOrders(status || undefined).subscribe((o) => this.orders.set(o));
+  setFilter(s: (typeof FILTER_LIST)[number]) {
+    this.filter.set(s);
+    this.openId.set(null);
+    this.load();
   }
 
-  cancel(orderId: number) {
-    if (confirm('Cancel this order?')) {
-      this.orderService.cancelOrder(orderId).subscribe(() => this.loadOrders(this.filter()));
-    }
+  private load() {
+    const s = this.filter();
+    this.orderService.getMyOrders(s === 'ALL' ? undefined : s).subscribe((o) => this.orders.set(o));
   }
 
-  /**
-   * Derive the 5-step shipment timeline state from the order status.
-   * Anything at or before the current flow index is `done`; the order's
-   * own status is `current`; everything after is `todo`.
-   * CANCELLED orders never reach shipment so we don't show this timeline.
-   */
-  steps(o: Order): { key: string; label: string; state: StepState }[] {
-    const idx = FLOW.indexOf(o.status as (typeof FLOW)[number]);
-    return FLOW.map((key, i) => ({
-      key,
-      label: FLOW_LABELS[key],
-      state: idx === -1 ? 'todo' : i < idx ? 'done' : i === idx ? 'current' : 'todo',
-    }));
+  toggle(id: number) {
+    this.openId.update((curr) => (curr === id ? null : id));
   }
 
   exportCSV() {

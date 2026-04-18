@@ -54,6 +54,21 @@
   &:hover:not(:disabled) { background: var(--err-tint); opacity: 1; }
 }
 
+/* Prototype §IndOrders uses .btn-dark for the active filter pill — a
+   high-contrast dark chip mirroring the prototype's --vast / --lumen. */
+.btn-dark {
+  background: var(--vast);
+  border-color: var(--vast);
+  color: var(--lumen);
+
+  &:hover:not(:disabled) {
+    background: #333;
+    border-color: #333;
+    color: var(--lumen);
+    opacity: 1;
+  }
+}
+
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 
 .btn-block { width: 100%; justify-content: center; }

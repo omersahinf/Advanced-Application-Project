@@ -1,195 +1,252 @@
 @use '../../../styles/responsive' as r;
 
-:host { display: block; }
+:host {
+  display: block;
+  padding: 12px 0 40px;
+}
 
-.page { max-width: 1100px; }
-
+/* ── Toolbar: filter pills + CSV export (prototype §IndOrders) ── */
 .toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
-
-  .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
-}
-
-.filter-btn {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-ctrl);
-  background: var(--lumen);
-  font-size: 12.5px;
-  cursor: pointer;
-  font-weight: 500;
-  color: var(--text-2);
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-
-  &:hover:not(.active) {
-    border-color: var(--fathom);
-    color: var(--text);
-  }
-
-  &.active {
-    background: var(--fathom);
-    color: #fff;
-    border-color: var(--fathom);
-  }
-}
-
-/* ── Order card ────────────────────────────────────────────── */
-.order-card {
-  padding: 18px 20px;
-  margin-bottom: 12px;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 8px;
-
-  h3 {
-    font-family: var(--sans);
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    margin: 0;
-  }
-}
-
-.order-date {
-  font-size: 12px;
-  color: var(--text-3);
-}
-
-.order-right {
-  display: flex;
   align-items: center;
-  gap: 12px;
 
-  .order-total {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
+  .spacer {
+    flex: 1;
+  }
+
+  .export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 }
 
-.order-store {
-  font-size: 12.5px;
-  color: var(--text-2);
-  margin-bottom: 12px;
-
-  .dot { margin: 0 6px; color: var(--text-3); }
+/* ── Orders table card ──────────────────────────────────────── */
+.table-card {
+  padding: 0;
+  overflow: hidden;
 }
 
-.items-list {
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
 
-.item-row {
-  display: flex;
-  align-items: center;
-  padding: 5px 0;
-  font-size: 13px;
-  color: var(--text);
+  thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    background: var(--lumen);
+  }
 
-  .item-name { flex: 1; font-weight: 500; }
-  .item-qty  { width: 44px; text-align: center; color: var(--text-3); font-size: 12px; }
-  .item-price {
-    width: 84px;
+  .th-right {
+    text-align: right;
+  }
+  .th-chev {
+    width: 36px;
+  }
+
+  tbody tr.order-row {
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover {
+      background: var(--hover);
+    }
+
+    > td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+  }
+
+  .c-id {
+    font-family: var(--mono);
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.2px;
+  }
+  .c-muted {
+    color: var(--text-2);
+  }
+  .c-payment {
+    color: var(--text-2);
+    font-size: 12.5px;
+  }
+  .c-total {
     text-align: right;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
-}
-
-/* ── Shipment timeline ─────────────────────────────────────── */
-.shipment-info {
-  margin-top: 12px;
-  padding: 12px 14px;
-  background: var(--fathom-tint);
-  border-radius: var(--radius-ctrl);
-  color: var(--fathom);
-
-  .shipment-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12.5px;
-    margin-bottom: 10px;
-    font-weight: 500;
-  }
-
-  .shipment-track {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--fathom-dark);
+  .c-chev {
+    color: var(--text-3);
+    text-align: center;
   }
 }
 
-.timeline {
+/* ── Expanded detail row ────────────────────────────────────── */
+.detail-row > td {
+  background: var(--hover);
+  padding: 20px !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  position: relative;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
 
-  @include r.lt-sm {
-    grid-template-columns: repeat(2, 1fr);
+  @include r.lt-md {
+    grid-template-columns: 1fr;
   }
 }
 
-.timeline-step {
+/* ── Items list ─────────────────────────────────────────────── */
+.detail-items .section-label {
+  margin-bottom: 10px;
+}
+
+.item-line {
   display: flex;
-  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
   align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  color: var(--text-3);
-  position: relative;
-  padding-top: 4px;
 
-  .step-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--border);
-    border: 2px solid var(--lumen);
-  }
-
-  &.done {
-    color: var(--fathom);
-    font-weight: 600;
-    .step-dot { background: var(--fathom); }
-  }
-
-  &.current {
-    color: var(--fathom);
-    font-weight: 700;
-    .step-dot { background: var(--fathom); box-shadow: 0 0 0 3px var(--focus-ring-soft); }
+  &:last-child {
+    border-bottom: none;
   }
 }
 
-.order-actions {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+.item-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-sub {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.item-price {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ── Shipment card ──────────────────────────────────────────── */
+.detail-shipment .section-label {
+  margin-bottom: 10px;
+}
+
+.ship-card {
+  padding: 14px;
+  background: var(--lumen);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.ship-head {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 8px;
+
+  b {
+    font-size: 13px;
+    color: var(--text);
+  }
 }
 
-.btn-export {
-  background: var(--lumen);
-  border: 1px solid var(--border);
-  color: var(--text);
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 3px 0;
 
-  &:hover { background: var(--hover); }
+  > span:first-child {
+    color: var(--text-3);
+  }
+  > span:last-child {
+    color: var(--text);
+  }
+
+  .mono {
+    font-family: var(--mono);
+  }
+}
+
+.no-ship {
+  padding: 14px;
+  color: var(--text-3);
+  font-size: 12.5px;
+  font-style: italic;
+}
+
+.complete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-2);
+
+  .empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--hover);
+    color: var(--text-3);
+    margin-bottom: 12px;
+    font-size: 22px;
+  }
+
+  .empty-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
 }

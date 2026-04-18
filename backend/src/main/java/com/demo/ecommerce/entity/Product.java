@@ -36,15 +36,18 @@ public class Product {
     @Column(length = 1000)
     private String description;
 
-    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2,
+        columnDefinition = "DECIMAL(10,2) CHECK (unit_price >= 0)")
     private BigDecimal unitPrice;
 
     // DS3 (E-Commerce Shipping Data) -> CostOfProduct: supplier/production cost in USD.
     // Enables gross-margin analytics (unit_price - cost_price).
-    @Column(name = "cost_price", precision = 10, scale = 2)
+    @Column(name = "cost_price", precision = 10, scale = 2,
+        columnDefinition = "DECIMAL(10,2) CHECK (cost_price IS NULL OR cost_price >= 0)")
     private BigDecimal costPrice;
 
-    @Column(nullable = false)
+    @Column(nullable = false,
+        columnDefinition = "INTEGER CHECK (stock >= 0)")
     private Integer stock;
 
     @Column(name = "created_at")

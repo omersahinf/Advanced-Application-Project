@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 @Table(name = "reviews", indexes = {
     @Index(name = "idx_review_user", columnList = "user_id"),
     @Index(name = "idx_review_product", columnList = "product_id"),
-    @Index(name = "idx_review_rating", columnList = "star_rating")
+    @Index(name = "idx_review_rating", columnList = "star_rating"),
+    @Index(name = "idx_review_sentiment", columnList = "sentiment")
 })
 public class Review {
 
@@ -23,7 +24,8 @@ public class Review {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "star_rating", nullable = false)
+    @Column(name = "star_rating", nullable = false,
+        columnDefinition = "INTEGER CHECK (star_rating BETWEEN 1 AND 5)")
     private Integer starRating; // 1-5
 
     @Column(length = 2000)

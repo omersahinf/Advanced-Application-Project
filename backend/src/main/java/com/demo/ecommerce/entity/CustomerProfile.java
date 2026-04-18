@@ -15,6 +15,7 @@ public class CustomerProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User owner;
 
+    @Column(columnDefinition = "INTEGER CHECK (age IS NULL OR (age >= 0 AND age <= 120))")
     private Integer age;
 
     private String city;
@@ -27,7 +28,8 @@ public class CustomerProfile {
 
     private Integer itemsPurchased;
 
-    @Column(precision = 3, scale = 2)
+    @Column(precision = 3, scale = 2,
+        columnDefinition = "DECIMAL(3,2) CHECK (avg_rating IS NULL OR (avg_rating >= 0 AND avg_rating <= 5))")
     private BigDecimal avgRating;
 
     private Boolean discountApplied;

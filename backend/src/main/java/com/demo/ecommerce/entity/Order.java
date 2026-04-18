@@ -11,7 +11,9 @@ import java.util.List;
     @Index(name = "idx_order_user", columnList = "user_id"),
     @Index(name = "idx_order_store", columnList = "store_id"),
     @Index(name = "idx_order_status", columnList = "status"),
-    @Index(name = "idx_order_date", columnList = "order_date")
+    @Index(name = "idx_order_date", columnList = "order_date"),
+    @Index(name = "idx_order_user_date", columnList = "user_id, order_date"),
+    @Index(name = "idx_order_store_date", columnList = "store_id, order_date")
 })
 public class Order {
 
@@ -31,7 +33,8 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
-    @Column(name = "grand_total", nullable = false, precision = 12, scale = 2)
+    @Column(name = "grand_total", nullable = false, precision = 12, scale = 2,
+        columnDefinition = "DECIMAL(12,2) CHECK (grand_total >= 0)")
     private BigDecimal grandTotal;
 
     private String paymentMethod; // CREDIT_CARD, DEBIT_CARD, PAYPAL, BANK_TRANSFER
@@ -44,6 +47,7 @@ public class Order {
     private LocalDateTime orderDate;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private List<OrderItem> orderItems = new ArrayList<>();
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)

@@ -19,13 +19,16 @@ public class OrderItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(nullable = false)
+    @Column(nullable = false,
+        columnDefinition = "INTEGER CHECK (quantity > 0)")
     private Integer quantity;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false, precision = 10, scale = 2,
+        columnDefinition = "DECIMAL(10,2) CHECK (price >= 0)")
     private BigDecimal price;
 
-    @Column(precision = 5, scale = 2)
+    @Column(precision = 5, scale = 2,
+        columnDefinition = "DECIMAL(5,2) CHECK (discount_percent IS NULL OR (discount_percent >= 0 AND discount_percent <= 100))")
     private BigDecimal discountPercent;
 
     // --- Getters and Setters ---

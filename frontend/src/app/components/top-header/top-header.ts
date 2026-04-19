@@ -191,7 +191,7 @@ export class TopHeaderComponent implements OnInit, OnDestroy {
   /**
    * Prototype hides the topbar title on pages that render their own big
    * in-page header (corporate Products + Orders). Keeps the topbar itself
-   * visible — role switcher, bell, AI chip, avatar all stay. Mirrors
+   * visible — bell, AI chip, avatar all stay. Mirrors
    * `hideTopbarTitle` in Flower Prototype.html §Topbar.
    */
   readonly hideTopbarTitle = computed(() => {

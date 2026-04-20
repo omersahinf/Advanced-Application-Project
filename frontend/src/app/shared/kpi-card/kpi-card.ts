@@ -75,7 +75,7 @@ import { FlowerIconComponent, FlowerIconName } from '../flower-icon/flower-icon'
         justify-content: center;
       }
       .value {
-        font-family: var(--serif);
+        font-family: var(--sans);
         font-weight: 700;
         font-size: 28px;
         line-height: 1;

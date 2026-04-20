@@ -62,6 +62,13 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, OrderStatus.CANCELLED, p.getUserId(), p.getRole()));
     }
 
+    @PatchMapping("/my/{orderId}/return")
+    @PreAuthorize("hasAuthority('INDIVIDUAL')")
+    public ResponseEntity<OrderDto> returnOrder(@PathVariable Long orderId, Authentication auth) {
+        UserPrincipal p = getPrincipal(auth);
+        return ResponseEntity.ok(orderService.updateOrderStatus(orderId, OrderStatus.RETURNED, p.getUserId(), p.getRole()));
+    }
+
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<?> getAllOrders(@RequestParam(required = false) String status,

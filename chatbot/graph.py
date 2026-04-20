@@ -35,17 +35,33 @@ def decide_graph_need(state: AgentState) -> str:
     """
     result = state.get("query_result", {})
     row_count = result.get("row_count", 0)
+    rows = result.get("rows", [])
+    columns = result.get("columns", [])
 
-    # Scalar results or single rows don't need charts
-    if row_count <= 1:
+    if row_count <= 0:
         return "no_graph"
 
-    # Too many rows makes charts unreadable
-    if row_count > 50:
+    # Allow a single-row chart when the result is a label + numeric metric.
+    if row_count == 1:
+        if len(columns) < 2 or not rows:
+            return "no_graph"
+        row = rows[0]
+        has_numeric = False
+        has_label = False
+        for col in columns:
+            value = row.get(col)
+            try:
+                float(value)
+                has_numeric = True
+            except (TypeError, ValueError):
+                has_label = True
+        return "graph_needed" if has_numeric and has_label else "no_graph"
+
+    # Very large datasets: skip unless we have aggregatable columns
+    if row_count > 200:
         return "no_graph"
 
     # Check if there are at least 2 columns (label + value) for meaningful viz
-    columns = result.get("columns", [])
     if len(columns) < 2:
         return "no_graph"
 
@@ -89,8 +105,18 @@ def build_graph() -> StateGraph:
         {"end": END, "generate_sql": "generate_sql"}
     )
 
-    # After SQL generation, execute
-    graph.add_edge("generate_sql", "execute")
+    # After SQL generation: if we got a direct answer (role mismatch), end immediately
+    # Otherwise proceed to execute
+    def should_execute_or_end(state: AgentState) -> str:
+        if state.get("final_answer") and not state.get("sql_query"):
+            return "end"
+        return "execute"
+
+    graph.add_conditional_edges(
+        "generate_sql",
+        should_execute_or_end,
+        {"end": END, "execute": "execute"}
+    )
 
     # After execution, either retry, give up, or analyze
     graph.add_conditional_edges(

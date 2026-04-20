@@ -4,6 +4,7 @@ import { AuthService } from '../../services/auth.service';
 import { LayoutService } from '../../services/layout.service';
 import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
 import { FlowerIconComponent, FlowerIconName } from '../../shared/flower-icon/flower-icon';
+import { BouqbotAvatarComponent } from '../../shared/bouqbot-avatar/bouqbot-avatar';
 
 type NavItem = {
   label: string;
@@ -11,6 +12,7 @@ type NavItem = {
   route: string;
   exact?: boolean;
   badge?: string;
+  bouqbot?: boolean;
 };
 
 type NavSection = {
@@ -21,7 +23,13 @@ type NavSection = {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, FlowerLogoComponent, FlowerIconComponent],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    FlowerLogoComponent,
+    FlowerIconComponent,
+    BouqbotAvatarComponent,
+  ],
   template: `
     @if (layout.mobileDrawerOpen()) {
       <div class="mobile-backdrop" (click)="layout.closeMobileDrawer()" aria-hidden="true"></div>
@@ -36,11 +44,11 @@ type NavSection = {
       <div class="sidebar-header">
         <a
           class="brand-link"
-          routerLink="/"
+          [routerLink]="auth.getDashboardRoute()"
           (click)="layout.closeMobileDrawer()"
           aria-label="Flower home"
         >
-          <flower-logo [size]="24" />
+          <flower-logo [size]="26" />
           <span class="brand-name">Flower</span>
         </a>
         <button
@@ -90,7 +98,11 @@ type NavSection = {
               [attr.title]="item.label"
             >
               <span class="nav-icon" aria-hidden="true">
-                <flower-icon [name]="item.icon" [size]="17" />
+                @if (item.bouqbot) {
+                  <bouqbot-avatar state="idle" [size]="22" />
+                } @else {
+                  <flower-icon [name]="item.icon" [size]="17" />
+                }
               </span>
               <span class="nav-label">{{ item.label }}</span>
               @if (item.badge) {
@@ -174,7 +186,9 @@ export class NavbarComponent {
     },
     {
       title: 'AI',
-      items: [{ label: 'Analytics Chat', icon: 'sparkle', route: '/chat', badge: 'Text2SQL' }],
+      items: [
+        { label: 'Flower AI', icon: 'sparkle', route: '/chat', badge: 'New!', bouqbot: true },
+      ],
     },
   ];
 
@@ -185,12 +199,16 @@ export class NavbarComponent {
         { label: 'Dashboard', icon: 'dashboard', route: '/corporate', exact: true },
         { label: 'Products', icon: 'store', route: '/corporate/products' },
         { label: 'Orders', icon: 'package', route: '/corporate/orders' },
+        { label: 'Customers', icon: 'users', route: '/corporate/customers' },
+        { label: 'Shipments', icon: 'truck', route: '/corporate/shipments' },
         { label: 'Reviews', icon: 'review', route: '/corporate/reviews' },
       ],
     },
     {
       title: 'AI',
-      items: [{ label: 'Analytics Chat', icon: 'sparkle', route: '/chat', badge: 'Text2SQL' }],
+      items: [
+        { label: 'Flower AI', icon: 'sparkle', route: '/chat', badge: 'New!', bouqbot: true },
+      ],
     },
   ];
 
@@ -208,7 +226,7 @@ export class NavbarComponent {
       title: 'Insight',
       items: [
         { label: 'Analytics', icon: 'chart', route: '/admin/analytics' },
-        { label: 'Analytics Chat', icon: 'sparkle', route: '/chat', badge: 'Text2SQL' },
+        { label: 'Flower AI', icon: 'sparkle', route: '/chat', badge: 'New!', bouqbot: true },
         { label: 'Audit Logs', icon: 'shield', route: '/admin/audit' },
       ],
     },

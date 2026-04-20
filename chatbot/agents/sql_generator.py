@@ -5,6 +5,7 @@ from state import AgentState
 from prompts import AGENT_CONFIGS, SQL_GENERATOR_PROMPT, ROLE_CONTEXTS
 from database import DB_SCHEMA_DESCRIPTION
 from llm import call_llm
+import datetime
 
 # Tables that contain user_id for role filtering (truly personal data only)
 # Note: 'reviews' is NOT here because review aggregates (counts, ratings) are public data.
@@ -58,9 +59,13 @@ def _is_personal_query(question: str) -> bool:
     personal_patterns = [
         r'\bmy\b', r'\bmine\b', r'\bi\s+have\b', r'\bi\s+bought\b',
         r'\bi\s+ordered\b', r'\bi\s+reviewed\b', r'\bi\s+spent\b',
+        r'\bi\s+buy\b', r'\bi\s+shop\b', r'\bi\s+spend\b',
         r"\bi'm\b", r"\bi've\b", r'\bmy\s+order', r'\bmy\s+review',
         r'\bmy\s+purchase', r'\bmy\s+profile', r'\bmy\s+account',
-        r'\bmy\s+shipment', r'\bdid\s+i\b', r'\bhave\s+i\b',
+        r'\bmy\s+shipment', r'\bmy\s+categor', r'\bmy\s+spend',
+        r'\bdid\s+i\b', r'\bhave\s+i\b', r'\bdo\s+i\b',
+        r'\bi\s+buy\s+from\b', r'\bi\s+purchased\b',
+        r'\bhow\s+much\s+have\s+i\b', r'\bhow\s+many.*\bi\b',
     ]
     return any(re.search(p, q) for p in personal_patterns)
 
@@ -85,9 +90,24 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
                not re.search(r'\bid\s*=\s*' + str(user_id), sql, re.IGNORECASE):
                 sql = _add_where_clause(sql, f"users.id = {user_id}")
 
-        # For aggregate queries (no personal keywords), skip order/table filtering
-        # This allows platform-wide stats like "top 5 most sold products"
-        if not _is_personal_query(question):
+        # Tables that contain user-specific data — ALWAYS filter for INDIVIDUAL users
+        always_personal_tables = {'orders', 'order_items', 'reviews', 'shipments', 'customer_profiles'}
+        has_personal_table = any(re.search(r'\b' + t + r'\b', sql, re.IGNORECASE) for t in always_personal_tables)
+
+        # Platform-wide aggregate queries should NOT be user-filtered
+        # (e.g. "top 5 products", "best selling", "most popular products", "product performance")
+        platform_patterns = [
+            r'\btop\s+\d', r'\bbest\s+sell', r'\bmost\s+(popular|sold|ordered|reviewed)',
+            r'\bproduct\s+performance', r'\bproduct\s+ranking', r'\bhighest\s+rated',
+            r'\blowest\s+rated', r'\bbest\s+product', r'\bworst\s+product',
+            r'\btotal\s+revenue', r'\bplatform\s+', r'\ball\s+products',
+            r'\boverall\s+', r'\bstore\s+performance', r'\bcategory\s+performance',
+        ]
+        is_platform_query = any(re.search(p, question.lower()) for p in platform_patterns)
+
+        # For aggregate queries on general tables (products, categories, stores), skip filtering
+        # Also skip for platform-wide analytics queries even if they touch order_items/reviews
+        if not _is_personal_query(question) and (not has_personal_table or is_platform_query):
             return sql
 
         # Personal query: apply user_id filter to scoped tables
@@ -110,6 +130,50 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
             break
 
     elif role == "CORPORATE" and store_id:
+        # ── DEFENSE-IN-DEPTH: strip any reference to other stores ──
+        # 1) Remove store_id = <other_id> conditions injected by LLM
+        sql = re.sub(
+            r'\bstore_id\s*=\s*(\d+)',
+            lambda m: f'store_id = {store_id}' if int(m.group(1)) != store_id else m.group(0),
+            sql, flags=re.IGNORECASE
+        )
+        # 2) Remove stores.id = <other_id> conditions
+        sql = re.sub(
+            r'\bstores\.id\s*=\s*(\d+)',
+            lambda m: f'stores.id = {store_id}' if int(m.group(1)) != store_id else m.group(0),
+            sql, flags=re.IGNORECASE
+        )
+
+        # 3) Find the alias used for the stores table (e.g., "stores s" → alias "s")
+        stores_alias_match = re.search(r'\bstores\s+(?:AS\s+)?(\w+)', sql, re.IGNORECASE)
+        stores_aliases = ['stores', 'store']
+        if stores_alias_match:
+            candidate = stores_alias_match.group(1)
+            if candidate.upper() not in _SQL_KEYWORDS:
+                stores_aliases.append(candidate)
+
+        # 4) Strip .name = '...' or LIKE '...' for ALL aliases of the stores table
+        for alias in stores_aliases:
+            # Direct: alias.name = 'SomeName'
+            sql = re.sub(
+                rf"\b{re.escape(alias)}\.name\s*(=|LIKE|ILIKE)\s*'[^']*'",
+                f"stores.id = {store_id}",
+                sql, flags=re.IGNORECASE
+            )
+            # Wrapped: LOWER(alias.name) = 'somename'
+            sql = re.sub(
+                rf"\b(LOWER|UPPER)\s*\(\s*{re.escape(alias)}\.name\s*\)\s*(=|LIKE|ILIKE)\s*'[^']*'",
+                f"stores.id = {store_id}",
+                sql, flags=re.IGNORECASE
+            )
+            # Also catch alias.id = <other_id>
+            if alias not in ('stores', 'store'):
+                sql = re.sub(
+                    rf'\b{re.escape(alias)}\.id\s*=\s*(\d+)',
+                    lambda m, sid=store_id: f'{alias}.id = {sid}' if int(m.group(1)) != sid else m.group(0),
+                    sql, flags=re.IGNORECASE
+                )
+
         # Block direct access to users table
         if re.search(r'\busers\b', sql, re.IGNORECASE):
             # Corporate can only see users through orders/reviews on their store
@@ -127,17 +191,29 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
         filter_val = store_id
         if re.search(r'\bstore_id\s*=\s*' + str(store_id), sql, re.IGNORECASE):
             return sql
-        tables_used = [t for t in STORE_SCOPED_TABLES if re.search(r'\b' + t + r'\b', sql, re.IGNORECASE)]
+
+        # Use priority order: prefer tables that have store_id directly
+        _STORE_FILTER_PRIORITY = ["orders", "products", "reviews", "order_items"]
+        tables_used = [t for t in _STORE_FILTER_PRIORITY if re.search(r'\b' + t + r'\b', sql, re.IGNORECASE)]
         if not tables_used:
             return sql
+
         for table in tables_used:
             # Reviews don't have store_id directly; filter via product_id JOIN
-            if table == "reviews" and "store_id" not in sql.lower():
+            if table == "reviews":
                 sql = _add_where_clause(
                     sql,
                     f"product_id IN (SELECT id FROM products WHERE store_id = {filter_val})"
                 )
                 break
+            # order_items don't have store_id; filter via order_id → orders
+            if table == "order_items":
+                sql = _add_where_clause(
+                    sql,
+                    f"order_id IN (SELECT id FROM orders WHERE store_id = {filter_val})"
+                )
+                break
+            # orders and products HAVE store_id — apply directly
             alias_match = re.search(r'\b(' + table + r')\s+(?:AS\s+)?(\w+)', sql, re.IGNORECASE)
             prefix = ""
             if alias_match:
@@ -161,6 +237,304 @@ _LOWEST_PATTERN = re.compile(
 _SECOND_PATTERN = re.compile(
     r'\b(second|2nd)\b', re.IGNORECASE
 )
+
+
+def _build_category_sales_timeframe_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for category sales queries with explicit time windows.
+
+    This avoids LLM drift on questions like "sales by category last month",
+    where missing the orders join or order_date filter silently turns the
+    answer into an all-time total instead of the requested period.
+    """
+    q = question.lower()
+    if not any(word in q for word in ["sales", "revenue"]):
+        return None
+    if "categor" not in q:
+        return None
+
+    timeframe_clause = None
+    if "last month" in q or "previous month" in q:
+        timeframe_clause = (
+            "o.order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') "
+            "AND o.order_date < DATE_TRUNC('month', CURRENT_DATE)"
+        )
+    elif "this month" in q:
+        timeframe_clause = "o.order_date >= DATE_TRUNC('month', CURRENT_DATE)"
+    elif "this year" in q:
+        timeframe_clause = "o.order_date >= DATE_TRUNC('year', CURRENT_DATE)"
+    elif "last year" in q or "previous year" in q:
+        timeframe_clause = (
+            "o.order_date >= DATE_TRUNC('year', CURRENT_DATE - INTERVAL '1 year') "
+            "AND o.order_date < DATE_TRUNC('year', CURRENT_DATE)"
+        )
+
+    if not timeframe_clause:
+        return None
+
+    where_clauses = [
+        "o.status != 'CANCELLED'",
+        timeframe_clause,
+    ]
+
+    if role == "CORPORATE" and store_id:
+        where_clauses.append(f"p.store_id = {store_id}")
+    elif role == "INDIVIDUAL" and user_id:
+        where_clauses.append(f"o.user_id = {user_id}")
+
+    where_sql = " AND ".join(where_clauses)
+
+    return (
+        "SELECT c.name AS category_name, "
+        "ROUND(SUM(oi.quantity * oi.price), 2) AS total_sales "
+        "FROM orders o "
+        "JOIN order_items oi ON o.id = oi.order_id "
+        "JOIN products p ON oi.product_id = p.id "
+        "JOIN categories c ON p.category_id = c.id "
+        f"WHERE {where_sql} "
+        "GROUP BY c.id, c.name "
+        "ORDER BY total_sales DESC"
+    )
+
+
+def _build_month_over_month_comparison_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for month-over-month comparison questions."""
+    q = question.lower()
+    if "compare" not in q and " vs " not in q:
+        return None
+    if "month" not in q:
+        return None
+    if "this month" not in q or "last month" not in q:
+        return None
+
+    filters = ["o.status != 'CANCELLED'"]
+    if role == "CORPORATE" and store_id:
+        filters.append(f"o.store_id = {store_id}")
+    elif role == "INDIVIDUAL" and user_id and _is_personal_query(question):
+        filters.append(f"o.user_id = {user_id}")
+
+    filter_sql = " AND ".join(filters)
+
+    return (
+        "SELECT p.period AS period, "
+        "COUNT(o.id) AS order_count, "
+        "ROUND(COALESCE(SUM(o.grand_total), 0), 2) AS total_revenue "
+        "FROM (VALUES "
+        "('Last Month', DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month'), DATE_TRUNC('month', CURRENT_DATE), 1), "
+        "('This Month', DATE_TRUNC('month', CURRENT_DATE), DATE_TRUNC('month', CURRENT_DATE + INTERVAL '1 month'), 2)"
+        ") AS p(period, start_date, end_date, sort_order) "
+        "LEFT JOIN orders o "
+        "ON o.order_date >= p.start_date "
+        "AND o.order_date < p.end_date "
+        f"AND {filter_sql} "
+        "GROUP BY p.period, p.sort_order "
+        "ORDER BY p.sort_order"
+    )
+
+
+def _build_shipped_by_air_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for 'how many orders were shipped by air' style questions."""
+    q = question.lower()
+    if "shipped" not in q and "shipping" not in q:
+        return None
+    if "air" not in q and "flight" not in q:
+        return None
+
+    where_clauses = ["o.status != 'CANCELLED'"]
+    if role == "CORPORATE" and store_id:
+        where_clauses.append(f"o.store_id = {store_id}")
+    elif role == "INDIVIDUAL" and user_id and _is_personal_query(question):
+        where_clauses.append(f"o.user_id = {user_id}")
+
+    where_sql = " AND ".join(where_clauses)
+
+    return (
+        "SELECT 'Air' AS shipment_mode, "
+        "COUNT(DISTINCT CASE WHEN UPPER(COALESCE(s.mode, '')) = 'FLIGHT' THEN o.id END) AS air_order_count "
+        "FROM orders o "
+        "LEFT JOIN shipments s ON o.id = s.order_id "
+        f"WHERE {where_sql}"
+    )
+
+
+def _build_order_listing_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for order listing/filtering queries.
+    
+    Handles:
+      - "show my last 5 orders"
+      - "show 5 cancelled orders"
+      - "list all pending orders"
+      - "how many delivered orders"
+      - "show orders this month"
+      - "show my orders by order id"
+      - "list returned orders"
+    """
+    q = question.lower()
+    if "order" not in q:
+        return None
+
+    # Must be a listing/show/count request
+    listing_triggers = [
+        "show", "list", "display", "get", "give", "last", "recent",
+        "latest", "newest", "how many", "count", "all",
+    ]
+    if not any(kw in q for kw in listing_triggers):
+        return None
+
+    # Avoid matching aggregate/revenue queries that happen to mention 'orders'
+    aggregate_signals = ["revenue", "sales total", "total sales", "average", "top customer",
+                         "by category", "per category", "by store", "compare"]
+    if any(sig in q for sig in aggregate_signals):
+        return None
+
+    # ── Status filter ──
+    _STATUS_MAP = {
+        "cancelled": "CANCELLED", "canceled": "CANCELLED",
+        "pending": "PENDING",
+        "confirmed": "CONFIRMED",
+        "shipped": "SHIPPED",
+        "delivered": "DELIVERED",
+        "returned": "RETURNED",
+        "out for delivery": "OUT_FOR_DELIVERY",
+    }
+    status_filter = None
+    for keyword, status_val in _STATUS_MAP.items():
+        if keyword in q:
+            status_filter = status_val
+            break
+
+    # ── Count vs listing ──
+    is_count = any(kw in q for kw in ["how many", "count", "number of", "total number"])
+
+    # ── Extract LIMIT number ──
+    import re as _re
+    # Pattern 1: "last 5 orders", "show 10 orders"
+    n_match = _re.search(r'(?:last|recent|latest|newest|show|list|get|display)\s+(\d+)', q)
+    # Pattern 2: "list the 5 most recent", "show the 5 latest"
+    if not n_match:
+        n_match = _re.search(r'(?:last|recent|latest|newest|show|list|get|display)\s+\w+\s+(\d+)', q)
+    # Pattern 3: "5 cancelled orders", "3 pending orders"
+    if not n_match:
+        n_match = _re.search(r'(\d+)\s+(?:most\s+recent|order|cancelled|pending|confirmed|shipped|delivered|returned)', q)
+    # Pattern 4: any standalone number in the question
+    if not n_match:
+        n_match = _re.search(r'\b(\d+)\b', q)
+        # Only use if it's a reasonable limit (1-100)
+        if n_match and not (1 <= int(n_match.group(1)) <= 100):
+            n_match = None
+    limit = int(n_match.group(1)) if n_match else (None if is_count or status_filter else 10)
+
+    # ── Time filter ──
+    time_clause = None
+    if "this month" in q:
+        time_clause = "o.order_date >= DATE_TRUNC('month', CURRENT_DATE)"
+    elif "last month" in q or "previous month" in q:
+        time_clause = ("o.order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') "
+                       "AND o.order_date < DATE_TRUNC('month', CURRENT_DATE)")
+    elif "this week" in q:
+        time_clause = "o.order_date >= DATE_TRUNC('week', CURRENT_DATE)"
+    elif "today" in q:
+        time_clause = "o.order_date >= DATE_TRUNC('day', CURRENT_DATE)"
+    elif "this year" in q:
+        time_clause = "o.order_date >= DATE_TRUNC('year', CURRENT_DATE)"
+
+    # ── Build WHERE ──
+    where_clauses = []
+    if role == "CORPORATE" and store_id:
+        where_clauses.append(f"o.store_id = {store_id}")
+    elif role == "INDIVIDUAL" and user_id:
+        where_clauses.append(f"o.user_id = {user_id}")
+    if status_filter:
+        where_clauses.append(f"o.status = '{status_filter}'")
+    if time_clause:
+        where_clauses.append(time_clause)
+
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+    # ── Count query ──
+    if is_count:
+        return (
+            f"SELECT COUNT(*) AS order_count "
+            f"FROM orders o "
+            f"{where_sql}"
+        )
+
+    # ── Listing query — always include order_id ──
+    limit_sql = f"LIMIT {limit}" if limit else "LIMIT 50"
+    return (
+        "SELECT o.id AS order_id, o.order_date, o.status, "
+        "o.grand_total, o.payment_method "
+        "FROM orders o "
+        f"{where_sql} "
+        f"ORDER BY o.order_date DESC {limit_sql}"
+    )
+
+
+def _shipment_timeframe_clause(question: str) -> Optional[str]:
+    """Return a shipped_date timeframe clause for shipment-focused questions."""
+    q = question.lower()
+
+    if "this week" in q:
+        return (
+            "s.shipped_date >= DATE_TRUNC('week', CURRENT_DATE) "
+            "AND s.shipped_date < DATE_TRUNC('week', CURRENT_DATE + INTERVAL '1 week')"
+        )
+    if "last week" in q or "previous week" in q:
+        return (
+            "s.shipped_date >= DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 week') "
+            "AND s.shipped_date < DATE_TRUNC('week', CURRENT_DATE)"
+        )
+    if "this month" in q:
+        return (
+            "s.shipped_date >= DATE_TRUNC('month', CURRENT_DATE) "
+            "AND s.shipped_date < DATE_TRUNC('month', CURRENT_DATE + INTERVAL '1 month')"
+        )
+    if "last month" in q or "previous month" in q:
+        return (
+            "s.shipped_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') "
+            "AND s.shipped_date < DATE_TRUNC('month', CURRENT_DATE)"
+        )
+    if "today" in q:
+        return (
+            "s.shipped_date >= DATE_TRUNC('day', CURRENT_DATE) "
+            "AND s.shipped_date < DATE_TRUNC('day', CURRENT_DATE + INTERVAL '1 day')"
+        )
+
+    return None
+
+
+def _build_shipment_status_timeframe_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for shipment-status questions with an explicit timeframe."""
+    q = question.lower()
+    if not any(word in q for word in ["shipment", "shipments", "shipping", "delivery", "deliveries"]):
+        return None
+    if not any(word in q for word in ["status", "statuses", "breakdown", "state"]):
+        return None
+
+    timeframe_clause = _shipment_timeframe_clause(question)
+    if not timeframe_clause:
+        return None
+
+    where_clauses = [
+        "o.status != 'CANCELLED'",
+        timeframe_clause,
+    ]
+
+    if role == "CORPORATE" and store_id:
+        where_clauses.append(f"o.store_id = {store_id}")
+    elif role == "INDIVIDUAL" and user_id and _is_personal_query(question):
+        where_clauses.append(f"o.user_id = {user_id}")
+
+    where_sql = " AND ".join(where_clauses)
+
+    return (
+        "SELECT COALESCE(s.status, 'No Shipment Status') AS shipment_status, "
+        "COUNT(*) AS shipment_count "
+        "FROM shipments s "
+        "JOIN orders o ON o.id = s.order_id "
+        f"WHERE {where_sql} "
+        "GROUP BY COALESCE(s.status, 'No Shipment Status') "
+        "ORDER BY shipment_count DESC, shipment_status ASC"
+    )
 
 
 def _try_deterministic_followup(question: str, last_sql: str, last_columns: str) -> Optional[str]:
@@ -248,12 +622,120 @@ def _try_deterministic_followup(question: str, last_sql: str, last_columns: str)
 
 def sql_generator_agent(state: AgentState) -> dict:
     role = state["user_role"]
+
+    # Early detection: CORPORATE user asking INDIVIDUAL-only questions
+    if role == "CORPORATE" and _is_personal_query(state["question"]):
+        q = state["question"].lower()
+        # These are order/purchase questions that only make sense for INDIVIDUAL users
+        personal_order_keywords = ['my order', 'my purchase', 'i bought', 'i ordered',
+                                   'my spending', 'have i spent', 'i buy', 'my delivery',
+                                   'my shipment', 'my review', 'did i']
+        if any(k in q for k in personal_order_keywords):
+            return {
+                "sql_query": None,
+                "error": None,
+                "final_answer": (
+                    "As a **corporate** user, you don't have personal orders or purchases. "
+                    "Your account is linked to your store.\n\n"
+                    "Here are some things you can ask instead:\n"
+                    "- 📊 *\"What are my store's total sales?\"*\n"
+                    "- 👥 *\"Who are my top customers?\"*\n"
+                    "- 📦 *\"Show my store's order history\"*\n"
+                    "- ⭐ *\"What's the average rating of my products?\"*\n"
+                    "- 📈 *\"What's the revenue trend for my store?\"*"
+                )
+            }
+
     role_context = ROLE_CONTEXTS.get(role, ROLE_CONTEXTS["ADMIN"])
 
     if role == "CORPORATE" and state.get("store_id"):
         role_context = role_context.format(store_id=state["store_id"])
     elif role == "INDIVIDUAL":
         role_context = role_context.format(user_id=state["user_id"])
+
+    # Deterministic SQL for common complex queries (LLM truncates these multi-JOIN queries)
+    q_lower = state["question"].lower()
+    user_id = state.get("user_id", 0)
+    store_id = state.get("store_id")
+
+    deterministic_category_sales_sql = _build_category_sales_timeframe_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_category_sales_sql:
+        return {"sql_query": deterministic_category_sales_sql, "error": None}
+
+    deterministic_month_compare_sql = _build_month_over_month_comparison_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_month_compare_sql:
+        return {"sql_query": deterministic_month_compare_sql, "error": None}
+
+    deterministic_shipment_status_sql = _build_shipment_status_timeframe_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_shipment_status_sql:
+        return {"sql_query": deterministic_shipment_status_sql, "error": None}
+
+    deterministic_air_shipments_sql = _build_shipped_by_air_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_air_shipments_sql:
+        return {"sql_query": deterministic_air_shipments_sql, "error": None}
+
+    deterministic_order_listing_sql = _build_order_listing_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_order_listing_sql:
+        return {"sql_query": deterministic_order_listing_sql, "error": None}
+
+    if role == "INDIVIDUAL" and user_id:
+        # "average ratings of products I bought"
+        if any(k in q_lower for k in ['rating', 'rated', 'review']) and any(k in q_lower for k in ['i bought', 'i buy', 'my product', 'products i', 'i purchased']):
+            sql = (
+                f"SELECT p.name AS product_name, ROUND(AVG(r.star_rating), 2) AS average_rating "
+                f"FROM orders o "
+                f"JOIN order_items oi ON o.id = oi.order_id "
+                f"JOIN products p ON oi.product_id = p.id "
+                f"JOIN reviews r ON p.id = r.product_id "
+                f"WHERE o.user_id = {user_id} "
+                f"GROUP BY p.id, p.name "
+                f"ORDER BY average_rating DESC"
+            )
+            return {"sql_query": sql, "error": None}
+
+        # "what categories do I buy from the most"
+        if any(k in q_lower for k in ['categor']) and any(k in q_lower for k in ['i buy', 'i bought', 'most', 'my']):
+            sql = (
+                f"SELECT c.name AS category_name, COUNT(DISTINCT oi.id) AS purchase_count "
+                f"FROM orders o "
+                f"JOIN order_items oi ON o.id = oi.order_id "
+                f"JOIN products p ON oi.product_id = p.id "
+                f"JOIN categories c ON p.category_id = c.id "
+                f"WHERE o.user_id = {user_id} "
+                f"GROUP BY c.id, c.name "
+                f"ORDER BY purchase_count DESC"
+            )
+            return {"sql_query": sql, "error": None}
+
+        # INDIVIDUAL guardrail: corporate/admin-only questions
+        corporate_keywords = ['revenue', 'store sales', 'total sales', 'weekly revenue',
+                              'monthly revenue', 'top customer', 'my customer',
+                              'customer ranking', 'store performance', 'store report',
+                              'profit', 'all users', 'all orders', 'platform revenue']
+        if any(k in q_lower for k in corporate_keywords) and not any(k in q_lower for k in ['i spent', 'my order', 'i paid', 'my spend']):
+            return {
+                "sql_query": None,
+                "error": None,
+                "final_answer": (
+                    "As an **individual** user, you don't have access to store revenue, sales reports, or customer data. "
+                    "Those are available to **corporate** and **admin** users.\n\n"
+                    "Here are some things you can ask instead:\n"
+                    "- 🛒 *\"How much have I spent this year?\"*\n"
+                    "- 📦 *\"Show my order history with delivery status\"*\n"
+                    "- ⭐ *\"What are the average ratings of products I bought?\"*\n"
+                    "- 📂 *\"What categories do I buy from the most?\"*"
+                )
+            }
 
     # Include conversation context for multi-turn follow-up questions
     question = state["question"]
@@ -271,42 +753,71 @@ def sql_generator_agent(state: AgentState) -> dict:
         if col_matches:
             last_columns = col_matches[-1].strip()
 
-        # Try deterministic follow-up first (bypass LLM for common patterns)
-        det_sql = _try_deterministic_followup(state["question"], last_sql, last_columns)
-        if det_sql:
-            det_sql = _inject_role_filter(det_sql, role, state.get("user_id", 0), state.get("store_id"), question=state["question"])
-            return {"sql_query": det_sql, "error": None}
+        # Detect if this is actually a follow-up or a completely new question
+        q_lower = state["question"].lower().strip()
 
-        question = (
-            f"=== CONVERSATION HISTORY ===\n"
-            f"{context}\n"
-            f"=== END CONVERSATION HISTORY ===\n\n"
-            f"The user is asking a FOLLOW-UP question.\n"
-        )
-        if last_sql:
-            question += f"The LAST SQL query was: {last_sql}\n"
-        if last_columns:
-            question += f"The LAST query returned these columns: {last_columns}\n"
-        question += (
-            f"\nYou MUST generate a NEW, DIFFERENT SQL query that answers the follow-up.\n"
-            f"DO NOT repeat the previous SQL query verbatim.\n"
-            f"Use the SAME tables and columns from the previous query as the basis.\n\n"
-            f"Follow-up interpretation guide:\n"
-            f"- 'which one had the highest/lowest' → use ORDER BY on a numeric column from the previous result, then LIMIT 1\n"
-            f"- 'total' usually refers to grand_total or a SUM column from the previous result\n"
-            f"- 'second highest/lowest' → use the same query with LIMIT 1 OFFSET 1\n"
-            f"- 'what about X' → modify the previous query to focus on X\n"
-            f"- 'show more details' → expand columns or remove LIMIT\n"
-            f"- 'compare with' → include both the previous subject and the new one\n"
-            f"- 'why/how' → drill down into details behind the previous result\n"
-            f"- Pronouns like 'it', 'they', 'those', 'that' refer to entities from the previous result\n\n"
+        # If the question has a clear subject noun, it's likely independent
+        has_clear_subject = any(w in q_lower for w in [
+            'product', 'order', 'store', 'customer', 'category', 'user',
+            'review', 'shipment', 'rating', 'item', 'revenue', 'sale'
+        ])
+
+        followup_indicators = [
+            r'\b(which one|which of)\b', r'\b(that|those|these|it|them)\b',
+            r'\b(the same|same thing)\b', r'\b(more detail|more info|expand)\b',
+            r'\b(second|third|2nd|3rd)\b',
+            r'\b(why|how come)\b', r'\b(what about)\b', r'\b(compare)\b',
+            r'\b(and |also |too )\b',
+        ]
+        # Superlatives are follow-ups ONLY when there's no clear subject
+        if not has_clear_subject:
+            followup_indicators.append(r'\b(highest|lowest|most|least)\b')
+
+        is_followup = any(re.search(p, q_lower) for p in followup_indicators)
+        # Short questions (< 5 words) with no clear subject are likely follow-ups
+        if len(q_lower.split()) <= 4 and not any(w in q_lower for w in ['show', 'list', 'what', 'who', 'how much']):
+            is_followup = True
+
+        # Try deterministic follow-up first (bypass LLM for common patterns)
+        if is_followup:
+            det_sql = _try_deterministic_followup(state["question"], last_sql, last_columns)
+            if det_sql:
+                det_sql = _inject_role_filter(det_sql, role, state.get("user_id", 0), state.get("store_id"), question=state["question"])
+                return {"sql_query": det_sql, "error": None}
+
+        # Only inject conversation context for actual follow-up questions
+        if is_followup and last_sql:
+            question = (
+                f"=== CONVERSATION HISTORY ===\n"
+                f"{context}\n"
+                f"=== END CONVERSATION HISTORY ===\n\n"
+                f"The user is asking a FOLLOW-UP question.\n"
+            )
+            if last_sql:
+                question += f"The LAST SQL query was: {last_sql}\n"
+            if last_columns:
+                question += f"The LAST query returned these columns: {last_columns}\n"
+            question += (
+                f"\nYou MUST generate a NEW, DIFFERENT SQL query that answers the follow-up.\n"
+                f"DO NOT repeat the previous SQL query verbatim.\n"
+                f"Use the SAME tables and columns from the previous query as the basis.\n\n"
+                f"Follow-up interpretation guide:\n"
+                f"- 'which one had the highest/lowest' → use ORDER BY on a numeric column from the previous result, then LIMIT 1\n"
+                f"- 'total' usually refers to grand_total or a SUM column from the previous result\n"
+                f"- 'second highest/lowest' → use the same query with LIMIT 1 OFFSET 1\n"
+                f"- 'what about X' → modify the previous query to focus on X\n"
+                f"- 'show more details' → expand columns or remove LIMIT\n"
+                f"- 'compare with' → include both the previous subject and the new one\n"
+                f"- 'why/how' → drill down into details behind the previous result\n"
+                f"- Pronouns like 'it', 'they', 'those', 'that' refer to entities from the previous result\n\n"
             f"CURRENT QUESTION: {state['question']}"
         )
 
     prompt = SQL_GENERATOR_PROMPT.format(
         schema=DB_SCHEMA_DESCRIPTION,
         role_context=role_context,
-        question=question
+        question=question,
+        current_date=datetime.date.today().isoformat()
     )
 
     sql = call_llm(prompt, max_tokens=1024, system_prompt=AGENT_CONFIGS["sql_agent"]["system_prompt"])
@@ -339,6 +850,25 @@ def sql_generator_agent(state: AgentState) -> dict:
         if first_word not in ("SELECT", "WITH"):
             return {"sql_query": None, "error": "Only SELECT queries are allowed."}
 
+    # Detect truncated SQL (LLM output cut off mid-query)
+    sql_trimmed = sql.rstrip().rstrip(';')
+    _TRUNCATION_SIGNS = (
+        sql_trimmed.endswith(' AS'),
+        sql_trimmed.endswith(','),
+        sql_trimmed.endswith('('),
+        sql_trimmed.endswith(' ON'),
+        sql_trimmed.endswith(' AND'),
+        sql_trimmed.endswith(' OR'),
+        sql_trimmed.endswith(' WHERE'),
+        sql_trimmed.endswith(' FROM'),
+        sql_trimmed.endswith(' JOIN'),
+        sql_trimmed.count('(') > sql_trimmed.count(')'),
+    )
+    if any(_TRUNCATION_SIGNS):
+        print(f"[SQL Generator] Truncated SQL detected, using fallback")
+        from llm import _generate_fallback_sql
+        sql = _generate_fallback_sql(prompt)
+
     # Security: block UNION/INTERSECT/EXCEPT to prevent cross-table data exfiltration
     _BANNED_SET_OPS = re.compile(r'\b(UNION\s+(ALL\s+)?SELECT|INTERSECT\s+(ALL\s+)?SELECT|EXCEPT\s+(ALL\s+)?SELECT)\b', re.IGNORECASE)
     if _BANNED_SET_OPS.search(sql):
@@ -347,6 +877,29 @@ def sql_generator_agent(state: AgentState) -> dict:
     # Security: block multi-statement SQL (semicolons)
     if ";" in sql.strip().rstrip(";"):
         return {"sql_query": None, "error": "Multi-statement queries are not allowed."}
+
+    # Security: block system catalog / schema introspection (AV-12 fix)
+    if re.search(r'\b(information_schema|pg_catalog|pg_stat|pg_class|pg_namespace|pg_attribute|'
+                 r'pg_tables|pg_columns|pg_views|pg_indexes|pg_roles|pg_user|pg_shadow|pg_auth_members)\b', sql, re.IGNORECASE):
+        return {"sql_query": None, "error": "I cannot access database system tables. Ask me about your orders, products, or reviews instead!"}
+
+    # Fix: force LEFT JOIN on shipments (LLMs often use INNER JOIN despite prompt instructions)
+    sql = re.sub(r'\bJOIN\s+shipments\b', 'LEFT JOIN shipments', sql, flags=re.IGNORECASE)
+    # Avoid double LEFT LEFT JOIN
+    sql = re.sub(r'\bLEFT\s+LEFT\s+JOIN\b', 'LEFT JOIN', sql, flags=re.IGNORECASE)
+
+    # Security: block platform-wide revenue/sales aggregations for INDIVIDUAL users
+    # BUT allow personal spending queries (SUM with user_id filter)
+    if role == "INDIVIDUAL":
+        revenue_patterns = re.compile(
+            r'\bSUM\s*\(\s*(grand_total|price\s*\*|oi\.price|order_items\.price)',
+            re.IGNORECASE
+        )
+        user_id = state.get("user_id", 0)
+        has_user_filter = bool(re.search(r'\buser_id\s*=\s*' + str(user_id), sql, re.IGNORECASE))
+        is_personal = _is_personal_query(state["question"])
+        if revenue_patterns.search(sql) and not has_user_filter and not is_personal:
+            return {"sql_query": None, "error": "Revenue data is not available for individual users. Try asking about product ratings or your order history instead."}
 
     # Enforce role-based data isolation
     sql = _inject_role_filter(sql, role, state.get("user_id", 0), state.get("store_id"), question=state["question"])

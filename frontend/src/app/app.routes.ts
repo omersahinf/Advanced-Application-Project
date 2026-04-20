@@ -142,6 +142,22 @@ export const routes: Routes = [
         (m) => m.CorporateReviewsComponent,
       ),
   },
+  {
+    path: 'corporate/customers',
+    canActivate: [roleGuard('CORPORATE')],
+    loadComponent: () =>
+      import('./components/corporate-customers/corporate-customers').then(
+        (m) => m.CorporateCustomersComponent,
+      ),
+  },
+  {
+    path: 'corporate/shipments',
+    canActivate: [roleGuard('CORPORATE')],
+    loadComponent: () =>
+      import('./components/corporate-shipments/corporate-shipments').then(
+        (m) => m.CorporateShipmentsComponent,
+      ),
+  },
 
   { path: '', redirectTo: '/products', pathMatch: 'full' },
   { path: '**', redirectTo: '/products' },

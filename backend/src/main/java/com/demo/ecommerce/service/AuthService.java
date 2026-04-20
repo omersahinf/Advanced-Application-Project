@@ -29,11 +29,18 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        String email = request.getEmail();
+        // Allow short usernames: "user1" → "user1@example.com"
+        if (!email.contains("@")) {
+            email = email + "@example.com";
+        }
+
+        final String resolvedEmail = email;
+        User user = userRepository.findByEmail(resolvedEmail)
                 .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            log.warn("Failed login attempt for email: {}", request.getEmail());
+            log.warn("Failed login attempt for email: {}", resolvedEmail);
             throw new AuthenticationException("Invalid email or password");
         }
 

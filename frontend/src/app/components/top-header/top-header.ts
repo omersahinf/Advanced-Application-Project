@@ -5,6 +5,7 @@ import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
 import { LayoutService } from '../../services/layout.service';
 import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { BouqbotAvatarComponent } from '../../shared/bouqbot-avatar/bouqbot-avatar';
 
 /** Titles/subtitles shown in the topbar, keyed by route prefix (longest match wins). */
 const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
@@ -40,7 +41,7 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
   { prefix: '/profile', title: 'Profile', sub: 'Your account details and preferences.' },
   {
     prefix: '/chat',
-    title: 'Analytics Chat',
+    title: 'Flower AI',
     sub: 'Ask in natural language — a multi-agent pipeline answers.',
   },
 ];
@@ -48,7 +49,7 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
 @Component({
   selector: 'app-top-header',
   standalone: true,
-  imports: [RouterLink, FlowerIconComponent],
+  imports: [RouterLink, FlowerIconComponent, BouqbotAvatarComponent],
   template: `
     <header class="topbar" role="banner">
       <button
@@ -75,7 +76,7 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
       </button>
 
       <button class="ai-chip" type="button" (click)="openChat()" title="Ask Flower AI (Text2SQL)">
-        <flower-icon name="sparkle" [size]="14" [stroke]="2" />
+        <bouqbot-avatar class="ai-chip-avatar" state="happy" [size]="22" />
         Ask Flower AI
       </button>
 
@@ -88,7 +89,7 @@ const ROUTE_META: Array<{ prefix: string; title: string; sub: string }> = [
         </a>
       }
 
-      <div class="avatar-wrap" (mouseleave)="menuOpen.set(false)">
+      <div class="avatar-wrap">
         <button
           type="button"
           class="avatar-trigger"

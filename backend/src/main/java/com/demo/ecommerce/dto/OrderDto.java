@@ -12,6 +12,8 @@ public class OrderDto {
     private String userName;
     private Long storeId;
     private String storeName;
+    private String userCity;
+    private String userMembership;
     private String status;
     private BigDecimal grandTotal;
     private String paymentMethod;
@@ -28,6 +30,16 @@ public class OrderDto {
         dto.userName = o.getUser().getFirstName() + " " + o.getUser().getLastName();
         dto.storeId = o.getStore().getId();
         dto.storeName = o.getStore().getName();
+        try {
+            if (o.getUser().getCustomerProfile() != null) {
+                dto.userCity = o.getUser().getCustomerProfile().getCity();
+                dto.userMembership = o.getUser().getCustomerProfile().getMembershipType() != null
+                        ? o.getUser().getCustomerProfile().getMembershipType().name()
+                        : null;
+            }
+        } catch (Exception ignored) {
+            // customerProfile lazy-load dışında erişilemedi; null bırak, akışı kesme
+        }
         dto.status = o.getStatus().name();
         dto.grandTotal = o.getGrandTotal();
         dto.paymentMethod = o.getPaymentMethod();
@@ -50,6 +62,8 @@ public class OrderDto {
     public String getUserName() { return userName; }
     public Long getStoreId() { return storeId; }
     public String getStoreName() { return storeName; }
+    public String getUserCity() { return userCity; }
+    public String getUserMembership() { return userMembership; }
     public String getStatus() { return status; }
     public BigDecimal getGrandTotal() { return grandTotal; }
     public String getPaymentMethod() { return paymentMethod; }

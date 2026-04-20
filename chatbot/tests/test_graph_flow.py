@@ -169,6 +169,38 @@ def test_run_query_stream_routes_to_visualization_when_data_is_chartable(monkeyp
     assert events[-1]["payload"]["visualization_html"] == "<div>plotly chart</div>"
 
 
+def test_run_query_stream_allows_single_row_label_metric_visualization(monkeypatch):
+    _rebuild_graph(
+        monkeypatch,
+        execute=lambda _state: {
+            "query_result": {
+                "rows": [{"shipment_mode": "Air", "air_order_count": 6}],
+                "columns": ["shipment_mode", "air_order_count"],
+                "row_count": 1,
+            },
+            "error": None,
+        },
+        analyze=lambda _state: {"final_answer": "There are 6 air-shipped orders."},
+        visualize=lambda _state: {
+            "visualization_code": "fig = ...",
+            "visualization_html": "<div>air chart</div>",
+        },
+    )
+
+    events = list(graph.run_query_stream("How many orders were shipped by air?"))
+
+    assert [event["step"] for event in events] == [
+        "guardrails",
+        "generate_sql",
+        "execute",
+        "analyze",
+        "decide_graph",
+        "visualize",
+        "final",
+    ]
+    assert events[-1]["payload"]["visualization_html"] == "<div>air chart</div>"
+
+
 def test_run_query_stream_retries_failed_execution_before_succeeding(monkeypatch):
     attempt = {"count": 0}
 

@@ -8,6 +8,7 @@ import { OrderService } from '../../services/order.service';
 import { Cart, CartItem } from '../../models/product.model';
 
 import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
+import { productEmoji } from '../../shared/product-emoji';
 
 /**
  * Individual — Cart page. Replicates `Flower Prototype.html` §IndCart:
@@ -57,7 +58,7 @@ import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
             @for (item of cart()!.items; track item.id) {
               <div class="cart-row">
                 <div class="thumb" [style.background]="thumbGradient(item.productId)">
-                  <flower-icon name="package" [size]="28" [stroke]="1.5" />
+                  <span class="thumb-emoji">{{ getEmoji(item.productName) }}</span>
                 </div>
                 <div class="item-body">
                   <div class="sku">{{ item.productSku }}</div>
@@ -205,6 +206,10 @@ export class CartComponent implements OnInit {
   thumbGradient(id: number): string {
     const [a, b] = CartComponent.PALETTES[id % CartComponent.PALETTES.length];
     return `linear-gradient(135deg, ${a}, ${b})`;
+  }
+
+  getEmoji(name: string): string {
+    return productEmoji(name);
   }
 
   ngOnInit() {

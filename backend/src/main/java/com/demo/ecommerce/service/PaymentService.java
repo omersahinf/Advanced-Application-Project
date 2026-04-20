@@ -92,9 +92,9 @@ public class PaymentService {
             String status = intent.getStatus();
 
             if ("succeeded".equals(status)) {
-                order.setStatus(OrderStatus.CONFIRMED);
+                // Payment received — order stays PENDING until store owner confirms
                 orderRepository.save(order);
-                log.info("Payment confirmed: intentId={}, orderId={}", paymentIntentId, order.getId());
+                log.info("Payment succeeded (order stays PENDING for store confirmation): intentId={}, orderId={}", paymentIntentId, order.getId());
             } else if ("requires_payment_method".equals(status) || "requires_action".equals(status)) {
                 log.info("Payment still pending: intentId={}, status={}", paymentIntentId, status);
             } else if ("canceled".equals(status)) {

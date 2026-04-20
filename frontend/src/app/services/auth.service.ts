@@ -8,14 +8,16 @@ export class AuthService {
 
   private readonly API = '/api/auth';
 
-  private _token = signal<string | null>(localStorage.getItem('jwt_token'));
-  private _refreshToken = signal<string | null>(localStorage.getItem('jwt_refresh_token'));
+  // JWT tokens are now in HttpOnly cookies (not accessible from JS).
+  // UI state stays in localStorage for display purposes only.
   private _email = signal<string | null>(localStorage.getItem('user_email'));
   private _role = signal<string | null>(localStorage.getItem('user_role'));
   private _company = signal<string | null>(localStorage.getItem('user_company'));
   private _firstName = signal<string | null>(localStorage.getItem('user_firstName'));
+  // Track login state (since we can't read HttpOnly cookie)
+  private _loggedIn = signal<boolean>(!!localStorage.getItem('user_role'));
 
-  isLoggedIn = computed(() => !!this._token() && !this.isTokenExpired());
+  isLoggedIn = computed(() => this._loggedIn());
   currentEmail = computed(() => this._email());
   currentRole = computed(() => this._role());
   currentCompany = computed(() => this._company());
@@ -25,14 +27,10 @@ export class AuthService {
   isCorporate = computed(() => this._role() === 'CORPORATE');
   isIndividual = computed(() => this._role() === 'INDIVIDUAL');
 
-  constructor(private http: HttpClient, private router: Router) {
-    if (this._token() && this.isTokenExpired()) {
-      this.tryRefresh();
-    }
-  }
+  constructor(private http: HttpClient, private router: Router) {}
 
   login(req: LoginRequest) {
-    return this.http.post<LoginResponse>(`${this.API}/login`, req);
+    return this.http.post<LoginResponse>(`${this.API}/login`, req, { withCredentials: true });
   }
 
   register(req: RegisterRequest) {
@@ -40,9 +38,8 @@ export class AuthService {
   }
 
   refreshAccessToken() {
-    const refreshToken = this._refreshToken();
-    if (!refreshToken) return null;
-    return this.http.post<LoginResponse>(`${this.API}/refresh`, { refreshToken });
+    // Refresh token is in HttpOnly cookie — browser sends it automatically
+    return this.http.post<LoginResponse>(`${this.API}/refresh`, {}, { withCredentials: true });
   }
 
   updateProfile(req: UpdateProfileRequest) {
@@ -50,41 +47,36 @@ export class AuthService {
   }
 
   saveToken(response: LoginResponse) {
-    localStorage.setItem('jwt_token', response.token);
-    localStorage.setItem('jwt_refresh_token', response.refreshToken);
+    // JWT cookies are set by the server (HttpOnly, not accessible here).
+    // We only store UI display data in localStorage.
     localStorage.setItem('user_email', response.email);
     localStorage.setItem('user_role', response.role);
     localStorage.setItem('user_company', response.companyName);
     localStorage.setItem('user_firstName', response.firstName || '');
-    this._token.set(response.token);
-    this._refreshToken.set(response.refreshToken);
     this._email.set(response.email);
     this._role.set(response.role);
     this._company.set(response.companyName);
     this._firstName.set(response.firstName || '');
-  }
-
-  getToken(): string | null {
-    if (this.isTokenExpired()) {
-      this.tryRefresh();
-      return this._token();
-    }
-    return this._token();
+    this._loggedIn.set(true);
   }
 
   logout() {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('jwt_refresh_token');
+    // Tell server to clear HttpOnly cookies
+    this.http.post(`${this.API}/logout`, {}, { withCredentials: true }).subscribe({ error: () => {} });
+    // Clear UI state from localStorage
     localStorage.removeItem('user_email');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_company');
     localStorage.removeItem('user_firstName');
-    this._token.set(null);
-    this._refreshToken.set(null);
+    // Also clear legacy keys if present
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('jwt_refresh_token');
+    localStorage.removeItem('user_refreshToken');
     this._email.set(null);
     this._role.set(null);
     this._company.set(null);
     this._firstName.set(null);
+    this._loggedIn.set(false);
     this.router.navigate(['/login']);
   }
 
@@ -98,27 +90,5 @@ export class AuthService {
     if (role === 'CORPORATE') return '/corporate';
     return '/dashboard';
   }
-
-  private tryRefresh() {
-    const obs = this.refreshAccessToken();
-    if (obs) {
-      obs.subscribe({
-        next: (res) => this.saveToken(res),
-        error: () => this.logout()
-      });
-    } else {
-      this.logout();
-    }
-  }
-
-  private isTokenExpired(): boolean {
-    const token = this._token();
-    if (!token) return true;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.exp * 1000 < Date.now();
-    } catch {
-      return true;
-    }
-  }
 }
+

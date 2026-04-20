@@ -120,3 +120,21 @@ def test_example_end_to_end_top_customers_produces_chart(monkeypatch):
     assert "limit 5" in result["sql_query"].lower()
     assert result["final_answer"]
     assert result["visualization_html"] is not None
+
+
+def test_example_end_to_end_compare_months_produces_chart(monkeypatch):
+    rows = [
+        {"period": "Last Month", "order_count": 12, "total_revenue": 980.50},
+        {"period": "This Month", "order_count": 18, "total_revenue": 1420.75},
+    ]
+    result = _run(
+        "Compare this month vs last month",
+        monkeypatch,
+        {"rows": rows, "columns": ["period", "order_count", "total_revenue"], "row_count": 2},
+    )
+
+    assert result["is_in_scope"] is True
+    assert result["sql_query"]
+    assert "period" in result["sql_query"].lower() or "this_month" in result["sql_query"].lower()
+    assert result["final_answer"]
+    assert result["visualization_html"] is not None

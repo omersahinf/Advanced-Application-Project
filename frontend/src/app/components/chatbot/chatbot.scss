@@ -6,18 +6,14 @@
 /* Reset the default route padding: this page is full-bleed. */
 :host {
   display: block;
-  background: var(--lumen);
+  background: var(--lumen-dark);
 }
 
 .chat-shell {
-  display: grid;
-  grid-template-columns: 1fr 300px;
+  display: block;
   height: calc(100vh - 60px); /* topbar sits above */
   min-height: 0;
-  background: var(--lumen);
-
-  @include r.lt-lg { grid-template-columns: 1fr 260px; }
-  @include r.lt-md { grid-template-columns: 1fr; }
+  background: var(--lumen-dark);
 }
 
 /* -------- Left column: messages + composer ------------------ */
@@ -25,16 +21,17 @@
 .chat-main {
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
-  border-right: 1px solid var(--border);
-
-  @include r.lt-md { border-right: none; }
+  width: 100%;
 }
 
+/* Horizontal padding collapses to a centered 960px column on wide screens
+   but the scrollbar stays pinned to the window's right edge. */
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 32px 0;
+  padding: 24px max(32px, calc((100% - 960px) / 2)) 0;
 
   @include r.lt-md { padding: 16px 20px 0; }
 }
@@ -152,7 +149,23 @@
 
   &.avatar-sm { width: 30px; height: 30px; font-size: 11px; }
   &.avatar-err { background: linear-gradient(135deg, #7f1c34, #a42244); }
-  &.avatar-user { background: linear-gradient(135deg, #5a5a52, #8a8a7c); }
+  &.avatar-user { background: linear-gradient(135deg, #034f46, #1c6056); }
+}
+
+// Bouqbot avatar — transparent, no background, just the pixel art.
+bouqbot-avatar.avatar {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+
+  &.avatar-err {
+    background: transparent;
+    border: none;
+  }
 }
 
 /* -------- Thinking block (pipeline in-progress card) -------- */
@@ -306,10 +319,11 @@
 
   .chart-iframe {
     width: 100%;
-    height: 360px;
+    height: 460px;
     border: none;
     background: #fff;
     border-radius: 8px;
+    display: block;
   }
 
   .chart-empty {
@@ -394,9 +408,9 @@
 /* -------- Composer (prompt chips + textarea + footer) ------- */
 
 .composer {
-  padding: 16px 32px 24px;
+  padding: 16px max(32px, calc((100% - 960px) / 2)) 24px;
   border-top: 1px solid var(--border);
-  background: var(--lumen);
+  background: var(--lumen-dark);
 
   @include r.lt-md { padding: 14px 20px 20px; }
 }
@@ -476,7 +490,6 @@
   padding: 20px 20px 28px;
   background: var(--lumen);
   overflow-y: auto;
-  border-left: 1px solid var(--border);
 
   @include r.lt-md { display: none; }
 }

@@ -3,9 +3,9 @@ import type { HttpClient } from '@angular/common/http';
 import type { AuthService } from './auth.service';
 import { ChatService, type StreamHandlers } from './chat.service';
 
-function makeService(token = 'jwt-token') {
+function makeService() {
   const http = { post: vi.fn() } as unknown as HttpClient;
-  const auth = { getToken: () => token } as unknown as AuthService;
+  const auth = {} as unknown as AuthService;
   return new ChatService(http, auth);
 }
 

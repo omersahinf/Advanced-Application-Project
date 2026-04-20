@@ -4,8 +4,8 @@ export interface LoginRequest {
   password: string;
 }
 export interface LoginResponse {
-  token: string;
-  refreshToken: string;
+  token?: string;        // no longer in body (HttpOnly cookie)
+  refreshToken?: string; // no longer in body (HttpOnly cookie)
   email: string;
   role: string;
   companyName: string;

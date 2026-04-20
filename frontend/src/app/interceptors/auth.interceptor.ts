@@ -5,24 +5,20 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 /**
- * Attaches JWT to all API requests.
+ * Attaches HttpOnly cookie credentials to all API requests.
  * Handles HTTP error responses globally.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  const token = auth.getToken();
 
-  let authReq = req;
-  if (token) {
-    authReq = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` }
-    });
-  }
+  // Cookie-based auth: browser sends HttpOnly cookie automatically
+  // when withCredentials is true
+  const authReq = req.clone({ withCredentials: true });
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/auth/login')) {
+      if (error.status === 401 && !req.url.includes('/auth/login') && !req.url.includes('/auth/logout')) {
         auth.logout();
       } else if (error.status === 403) {
         console.error('Access denied:', req.url);

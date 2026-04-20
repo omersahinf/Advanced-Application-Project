@@ -28,26 +28,26 @@
  */
 import { Component, OnInit, signal } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { OrderService } from '../../services/order.service';
 import { Order } from '../../models/product.model';
 import { FlowerIconComponent } from '../../shared/flower-icon/flower-icon';
 import { StatusPillComponent } from '../../shared/status-pill/status-pill';
 import { ProductHeroComponent } from '../../shared/product-hero/product-hero';
 
-const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const;
+const FILTER_LIST = [
+  'ALL',
+  'PENDING',
+  'CONFIRMED',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+  'RETURNED',
+] as const;
 
 @Component({
   selector: 'app-my-orders',
   standalone: true,
-  imports: [
-    DecimalPipe,
-    DatePipe,
-    RouterLink,
-    FlowerIconComponent,
-    StatusPillComponent,
-    ProductHeroComponent,
-  ],
+  imports: [DecimalPipe, DatePipe, FlowerIconComponent, StatusPillComponent, ProductHeroComponent],
   template: `
     <div class="toolbar">
       @for (s of filters; track s) {
@@ -90,7 +90,7 @@ const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CAN
                   {{ o.items.length }} item{{ o.items.length === 1 ? '' : 's' }}
                 </td>
                 <td><status-pill [status]="o.status" /></td>
-                <td class="c-payment">{{ o.paymentMethod }}</td>
+                <td class="c-payment">{{ formatPayment(o.paymentMethod) }}</td>
                 <td class="c-total">\${{ o.grandTotal | number: '1.2-2' }}</td>
                 <td class="c-chev">
                   <flower-icon
@@ -153,13 +153,39 @@ const FILTER_LIST = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CAN
                         }
 
                         @if (o.status === 'PENDING') {
-                          <a
-                            [routerLink]="['/checkout', o.id]"
-                            class="btn btn-primary btn-sm complete-btn"
-                          >
-                            Complete payment
-                            <flower-icon name="arrow_right" [size]="12" />
-                          </a>
+                          <div class="pending-actions">
+                            <div class="pending-note">
+                              <flower-icon name="refresh" [size]="14" />
+                              Awaiting store confirmation
+                            </div>
+                            <button
+                              type="button"
+                              class="btn btn-sm cancel-btn"
+                              (click)="cancelOrder(o.id, $event)"
+                            >
+                              <flower-icon name="close" [size]="12" />
+                              Cancel Order
+                            </button>
+                          </div>
+                        } @else if (
+                          o.status === 'CONFIRMED' ||
+                          o.status === 'SHIPPED' ||
+                          o.status === 'DELIVERED'
+                        ) {
+                          <div class="pending-actions">
+                            <div class="pending-note">
+                              <flower-icon name="refresh" [size]="14" />
+                              Not happy with this order? Start a return and get a refund.
+                            </div>
+                            <button
+                              type="button"
+                              class="btn btn-sm cancel-btn"
+                              (click)="returnOrder(o.id, $event)"
+                            >
+                              <flower-icon name="refresh" [size]="12" />
+                              Return &amp; Refund
+                            </button>
+                          </div>
                         }
                       </div>
                     </div>
@@ -205,6 +231,40 @@ export class MyOrdersComponent implements OnInit {
 
   toggle(id: number) {
     this.openId.update((curr) => (curr === id ? null : id));
+  }
+
+  cancelOrder(id: number, event: Event) {
+    event.stopPropagation();
+    if (!confirm('Are you sure you want to cancel this order?')) return;
+    this.orderService.cancelOrder(id).subscribe(() => this.load());
+  }
+
+  returnOrder(id: number, event: Event) {
+    event.stopPropagation();
+    if (!confirm('Return this order and issue a refund?')) return;
+    this.orderService.returnOrder(id).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        console.error('Return failed:', err);
+        alert(
+          'Return failed: ' +
+            (err?.error?.message || err?.message || err?.status || 'unknown error'),
+        );
+      },
+    });
+  }
+
+  private static readonly PAYMENT_LABELS: Record<string, string> = {
+    CREDIT_CARD: 'Credit Card (via Stripe)',
+    DEBIT_CARD: 'Debit Card',
+    PAYPAL: 'PayPal',
+    BANK_TRANSFER: 'Bank Transfer',
+    COD: 'Cash on Delivery',
+    STRIPE: 'Credit Card',
+  };
+
+  formatPayment(method: string): string {
+    return MyOrdersComponent.PAYMENT_LABELS[method] ?? method;
   }
 
   exportCSV() {

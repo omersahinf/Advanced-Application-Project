@@ -51,12 +51,11 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
   template: `
     <div class="login-page">
       <div class="brand" aria-label="Flower">
-        <flower-logo [size]="40" />
+        <flower-logo [size]="48" />
         <span class="brand-name">Flower</span>
       </div>
 
       <div class="login-card">
-        <h1 class="card-title">Get started</h1>
         <p class="card-subtitle">E-commerce analytics with a multi-agent AI assistant.</p>
 
         <div class="demo-grid">
@@ -65,7 +64,7 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
             class="demo-btn"
             aria-label="Continue as Admin"
             [disabled]="loading()"
-            (click)="fillDemo('admin@example.com')"
+            (click)="fillDemo('admin')"
           >
             <span class="demo-icon" aria-hidden="true">🔑</span>
             Continue as Admin
@@ -75,7 +74,7 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
             class="demo-btn"
             aria-label="Continue as Corporate"
             [disabled]="loading()"
-            (click)="fillDemo('corporate1@example.com')"
+            (click)="fillDemo('corporate1')"
           >
             <span class="demo-icon" aria-hidden="true">💼</span>
             Continue as Corporate
@@ -85,7 +84,7 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
             class="demo-btn"
             aria-label="Continue as Individual"
             [disabled]="loading()"
-            (click)="fillDemo('user1@example.com')"
+            (click)="fillDemo('user1')"
           >
             <span class="demo-icon" aria-hidden="true">👤</span>
             Continue as Individual
@@ -100,10 +99,10 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
             <input
               id="login-email"
               class="flat-input"
-              type="email"
+              type="text"
               [(ngModel)]="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder="Enter username or email"
               autocomplete="email"
               required
               aria-required="true"
@@ -137,11 +136,11 @@ import { FlowerLogoComponent } from '../../shared/flower-logo/flower-logo';
         </form>
 
         <div class="demo-footer">
-          Demo accounts · password is <b>password</b>
+          Demo accounts · password is <b>123</b>
           <div class="demo-emails">
-            <span>admin&#64;example.com</span>
-            <span>corporate1&#64;example.com</span>
-            <span>user1&#64;example.com</span>
+            <span>admin</span>
+            <span>corporate1</span>
+            <span>user1</span>
           </div>
         </div>
       </div>
@@ -168,7 +167,7 @@ export class LoginComponent {
 
   fillDemo(email: string) {
     this.email = email;
-    this.password = 'password';
+    this.password = '123';
     this.onLogin();
   }
 

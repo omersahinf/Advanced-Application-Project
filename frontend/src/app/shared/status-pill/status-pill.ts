@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, Input } from '@angular/core';
 
 /**
  * Status pill — copied character-for-character from
@@ -16,7 +16,7 @@ import { Component, Input, computed, signal } from '@angular/core';
 @Component({
   selector: 'status-pill',
   standalone: true,
-  template: `<span class="pill" [style.background]="style().bg" [style.color]="style().fg">{{
+  template: `<span class="pill" [style.background]="bg" [style.color]="fg">{{
     label || status
   }}</span>`,
   styles: [
@@ -37,14 +37,16 @@ import { Component, Input, computed, signal } from '@angular/core';
   ],
 })
 export class StatusPillComponent {
-  @Input() set status(value: string) {
-    this.statusSig.set(value ?? '');
-  }
+  @Input() status: string = '';
   @Input() label: string = '';
 
-  private readonly statusSig = signal<string>('');
+  get bg(): string {
+    return (STATUS_STYLES[this.status] ?? FALLBACK).bg;
+  }
 
-  readonly style = computed(() => STATUS_STYLES[this.statusSig()] ?? FALLBACK);
+  get fg(): string {
+    return (STATUS_STYLES[this.status] ?? FALLBACK).fg;
+  }
 }
 
 type PillStyle = { bg: string; fg: string };
@@ -61,6 +63,7 @@ const STATUS_STYLES: Record<string, PillStyle> = {
   PROCESSING: { bg: '#fef3c7', fg: '#d97706' },
   CANCELLED: { bg: '#fce5e5', fg: '#dc2626' },
   CANCELED: { bg: '#fce5e5', fg: '#dc2626' },
+  RETURNED: { bg: '#fce5e5', fg: '#dc2626' },
   ACTIVE: { bg: '#dcfce7', fg: '#16a34a' },
   CLOSED: { bg: '#fce5e5', fg: '#dc2626' },
   PENDING_APPROVAL: { bg: '#fef3c7', fg: '#d97706' },

@@ -40,10 +40,26 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
+        // 1) Try HttpOnly cookie first
+        String token = null;
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie c : request.getCookies()) {
+                if ("jwt_token".equals(c.getName())) {
+                    token = c.getValue();
+                    break;
+                }
+            }
+        }
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        // 2) Fallback: Authorization Bearer header (Swagger, API clients)
+        if (token == null) {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (token != null && !token.isEmpty()) {
             try {
                 Claims claims = jwtUtil.parseToken(token);
                 Long userId = jwtUtil.getUserId(claims);

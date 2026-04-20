@@ -36,15 +36,14 @@ export class ChatService {
    */
   streamMessage(message: string, handlers: StreamHandlers): AbortController {
     const controller = new AbortController();
-    const token = this.auth.getToken();
 
     fetch(this.STREAM_API, {
       method: 'POST',
       signal: controller.signal,
+      credentials: 'include',  // sends HttpOnly cookies automatically
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ message, sessionId: this.sessionId }),
     })

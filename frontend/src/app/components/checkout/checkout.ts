@@ -75,16 +75,11 @@ declare const Stripe: any;
           <div class="done-icon" aria-hidden="true">
             <flower-icon name="check" [size]="26" [stroke]="2" />
           </div>
-          <h1>Payment confirmed</h1>
+          <h1>Payment received</h1>
           <p>
-            Order <b class="mono">#{{ order.id }}</b> is now <b>CONFIRMED</b>. You'll get a tracking
-            number once {{ order.storeName }} ships.
+            Order <b class="mono">#{{ order.id }}</b> payment was successful. Your order is now
+            awaiting confirmation from <b>{{ order.storeName }}</b>.
           </p>
-          <div class="mock-api">
-            <div>POST /api/payments/confirm → 200 OK</div>
-            <div>payment_intent_id = {{ paymentIntentId || 'pi_—' }}</div>
-            <div>status = succeeded · amount = {{ amountCents() }} (USD cents)</div>
-          </div>
           <div class="done-actions">
             <button type="button" class="btn" (click)="goToOrders()">View orders</button>
             <button type="button" class="btn btn-primary" (click)="goShopping()">
@@ -114,11 +109,6 @@ declare const Stripe: any;
               @if (cardError) {
                 <p class="card-error">{{ cardError }}</p>
               }
-            </div>
-
-            <div class="mock-api">
-              <div>POST /api/payments/create-intent &#123; orderId: {{ order.id }} &#125;</div>
-              <div>← client_secret = {{ clientSecretPreview() }} (4242-test-card ready)</div>
             </div>
 
             <button
@@ -336,16 +326,6 @@ export class CheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   total(): number {
     return this.subtotal() + this.tax() + this.shipping();
-  }
-
-  clientSecretPreview(): string {
-    if (!this.clientSecret) return 'pi_—';
-    const s = this.clientSecret;
-    return s.length > 18 ? `${s.slice(0, 10)}…${s.slice(-8)}` : s;
-  }
-
-  amountCents(): number {
-    return Math.round(this.total() * 100);
   }
 
   ngOnDestroy() {

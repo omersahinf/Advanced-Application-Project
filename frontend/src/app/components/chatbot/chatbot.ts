@@ -42,8 +42,8 @@
  *                  the last 6 months?
  *     INDIVIDUAL : How much have I spent this year? / What categories
  *                  do I buy from the most? / Show my order history
- *                  with delivery status / Which of my reviews got the
- *                  most helpful votes?
+ *                  with delivery status / What are the average ratings
+ *                  of products I bought?
  *
  * Adaptations (backend-backed, no API changes):
  *   - Prototype "CANNED" answers are replaced by the real streaming
@@ -80,6 +80,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ChatService, StreamStepEvent } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { FlowerIconComponent, FlowerIconName } from '../../shared/flower-icon/flower-icon';
+import { BouqbotAvatarComponent, BouqbotState } from '../../shared/bouqbot-avatar/bouqbot-avatar';
 
 /* -------------------- Types -------------------- */
 
@@ -169,14 +170,14 @@ const SUGGESTED_PROMPTS: Record<string, string[]> = {
   CORPORATE: [
     'What are my top 5 customers by revenue?',
     'Which products have the lowest ratings?',
-    'How many orders were shipped by air?',
+    "What are my store's total sales?",
     "What's my revenue trend over the last 6 months?",
   ],
   INDIVIDUAL: [
     'How much have I spent this year?',
     'What categories do I buy from the most?',
     'Show my order history with delivery status',
-    'Which of my reviews got the most helpful votes?',
+    'What are the average ratings of products I bought?',
   ],
 };
 
@@ -185,7 +186,7 @@ const SUGGESTED_PROMPTS: Record<string, string[]> = {
 @Component({
   selector: 'app-chatbot',
   standalone: true,
-  imports: [FormsModule, FlowerIconComponent],
+  imports: [FormsModule, FlowerIconComponent, BouqbotAvatarComponent],
   templateUrl: './chatbot.html',
   styleUrls: ['./chatbot.scss'],
 })
@@ -405,6 +406,20 @@ export class ChatbotComponent implements AfterViewChecked, OnDestroy {
   isNumericCol(columns: string[], rows: Record<string, any>[], col: string): boolean {
     const sample = rows.find((r) => r[col] !== null && r[col] !== undefined);
     return typeof sample?.[col] === 'number';
+  }
+
+  /**
+   * Avatar mood for a plain-text assistant turn. Detects soft-refusals
+   * (role-limit apologies that the LLM returned as normal text) so the
+   * Bouqbot stays calm/neutral instead of "talking happily" about them.
+   */
+  plainTextAvatar(m: ChatMessage): BouqbotState {
+    const text = (m.text ?? '').toLowerCase();
+    const softRefusal =
+      /don'?t have access|not available to|only available to|cannot (help|access|show)|can'?t (help|show|access)|not authorized|out of scope/.test(
+        text,
+      );
+    return softRefusal ? 'idle' : 'talking';
   }
 
   /* -------------------- internals ------------------ */

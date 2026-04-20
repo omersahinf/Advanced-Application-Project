@@ -97,6 +97,33 @@ class OrderServiceTest {
     }
 
     @Test
+    void placeOrder_stripeStartsPending() {
+        CreateOrderRequest req = new CreateOrderRequest();
+        req.setStoreId(1L);
+        req.setPaymentMethod("STRIPE");
+        CreateOrderRequest.ItemRequest item = new CreateOrderRequest.ItemRequest();
+        item.setProductId(1L);
+        item.setQuantity(1);
+        req.setItems(List.of(item));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(testStore));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
+            Order o = inv.getArgument(0);
+            o.setId(2L);
+            o.setOrderDate(LocalDateTime.now());
+            return o;
+        });
+
+        OrderDto result = orderService.placeOrder(1L, req);
+
+        assertEquals("STRIPE", result.getPaymentMethod());
+        assertEquals("PENDING", result.getStatus());
+        verify(orderRepository).save(any(Order.class));
+    }
+
+    @Test
     void placeOrder_inactiveStore_throws() {
         testStore.setStatus(StoreStatus.CLOSED);
         CreateOrderRequest req = new CreateOrderRequest();

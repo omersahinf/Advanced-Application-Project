@@ -79,12 +79,14 @@ def _fallback_response(prompt: str) -> str:
         ecommerce_keywords = [
             "product", "order", "sale", "revenue", "customer", "review",
             "shipment", "store", "stock", "price", "category", "total",
-            "average", "count", "how many", "rating", "spend", "delivery",
-            "ship", "buy", "sell", "income", "profit", "inventory",
-            "discount", "payment", "refund",
+            "average", "count", "how many", "how much", "rating", "spend", "spent",
+            "delivery", "ship", "buy", "bought", "sell", "sold", "income",
+            "profit", "inventory", "discount", "payment", "refund",
             "second", "third", "highest", "lowest", "more", "detail",
             "about that", "about the", "show me", "tell me",
             "expensive", "cheapest", "best selling", "top",
+            "compare", "month", "year", "history", "status", "cancel",
+            "trend", "cost", "my order", "my review", "my purchase",
         ]
         if any(k in question_text for k in ecommerce_keywords):
             return "IN_SCOPE"
@@ -161,6 +163,63 @@ def _generate_fallback_viz(prompt: str) -> str:
     import json
     p = prompt.lower()
 
+    def is_id_column(name: str) -> bool:
+        n = name.lower()
+        return n == "id" or n.endswith("_id")
+
+    def is_numeric_column(name: str, data: list) -> bool:
+        for row in data:
+            value = row.get(name)
+            if value is None:
+                continue
+            try:
+                float(value)
+                return True
+            except (TypeError, ValueError):
+                return False
+        return False
+
+    def pick_label_and_value(keys, data):
+        label_hints = ("name", "category", "status", "month", "date", "week", "customer", "product", "store")
+        money_hints = ("revenue", "sales", "spent", "amount", "grand_total", "subtotal", "price", "cost", "value")
+        count_hints = ("count", "qty", "quantity", "orders", "reviews", "num")
+
+        label_col = None
+        for key in keys:
+            if is_id_column(key):
+                continue
+            if any(hint in key.lower() for hint in label_hints):
+                label_col = key
+                break
+        if not label_col:
+            for key in keys:
+                if is_id_column(key):
+                    continue
+                for row in data:
+                    value = row.get(key)
+                    if isinstance(value, str):
+                        label_col = key
+                        break
+                if label_col:
+                    break
+        if not label_col:
+            label_col = next((key for key in keys if not is_id_column(key)), None)
+
+        numeric_keys = [key for key in keys if key != label_col and not is_id_column(key) and is_numeric_column(key, data)]
+        if not numeric_keys:
+            return label_col, None
+
+        def metric_priority(name: str) -> tuple[int, int]:
+            lower = name.lower()
+            if any(hint in lower for hint in money_hints) or ("total" in lower and "count" not in lower):
+                return (3, -keys.index(name))
+            if any(hint in lower for hint in count_hints):
+                return (2, -keys.index(name))
+            return (1, -keys.index(name))
+
+        value_col = max(numeric_keys, key=metric_priority)
+        return label_col, value_col
+
     try:
         results_start = prompt.index("Results (")
         colon_pos = prompt.index(":", results_start)
@@ -175,8 +234,9 @@ def _generate_fallback_viz(prompt: str) -> str:
         if len(keys) < 2:
             return "NO_VIZ"
 
-        label_col = keys[0]
-        value_col = keys[-1]
+        label_col, value_col = pick_label_and_value(keys, data)
+        if not label_col or not value_col:
+            return "NO_VIZ"
         labels = [str(r.get(label_col, "")) for r in data]
         values = [r.get(value_col, 0) for r in data]
 
@@ -336,6 +396,10 @@ WHERE p.stock < 15 ORDER BY p.stock ASC"""
     # --- Customer by city ---
     if ("customer" in question) and ("city" in question or "location" in question):
         return "SELECT city, COUNT(*) as customer_count, ROUND(AVG(total_spend), 2) as avg_spend FROM customer_profiles GROUP BY city ORDER BY customer_count DESC"
+    # --- Personal spending (how much have I spent) ---
+    if ("spent" in question or "spend" in question) and ("how much" in question or "total" in question or "this year" in question):
+        return """SELECT ROUND(SUM(grand_total), 2) as total_spent, COUNT(*) as order_count
+FROM orders WHERE status != 'CANCELLED'"""
 
     # --- Spend by category ---
     if "spend" in question and "category" in question:

@@ -11,7 +11,7 @@
     <div class="scroll" #scroll>
       <!-- Intro assistant block (always visible; prototype parity). -->
       <div class="intro">
-        <span class="avatar" aria-hidden="true">AI</span>
+        <bouqbot-avatar class="avatar" state="idle" [size]="44" />
         <div class="intro-body">
           <div class="intro-greet">
             Hi <b>{{ firstName() }}</b>, I'm Flower's analytics assistant. I translate
@@ -42,7 +42,7 @@
         } @else if (m.kind === 'streaming' || m.streaming) {
           <!-- Thinking / pipeline in-progress -->
           <div class="thinking">
-            <span class="avatar" aria-hidden="true">AI</span>
+            <bouqbot-avatar class="avatar" state="thinking" [size]="44" />
             <div class="thinking-card">
               <div class="title-row">
                 <flower-icon
@@ -57,7 +57,7 @@
           </div>
         } @else if (m.kind === 'blocked') {
           <div class="blocked">
-            <span class="avatar avatar-err" aria-hidden="true">AI</span>
+            <bouqbot-avatar class="avatar avatar-err" state="sleep" [size]="44" />
             <div class="blocked-card">
               <div class="title-row">
                 <flower-icon name="shield" [size]="14" />
@@ -71,7 +71,7 @@
           </div>
         } @else if (m.kind === 'error') {
           <div class="blocked">
-            <span class="avatar avatar-err" aria-hidden="true">AI</span>
+            <bouqbot-avatar class="avatar avatar-err" state="sleep" [size]="44" />
             <div class="blocked-card">
               <div class="title-row">
                 <flower-icon name="shield" [size]="14" />
@@ -82,68 +82,66 @@
           </div>
         } @else if (m.kind === 'result') {
           <div class="result">
-            <span class="avatar" aria-hidden="true">AI</span>
+            <bouqbot-avatar class="avatar" state="happy" [size]="44" />
             <div class="body">
               <div class="answer">{{ m.text }}</div>
 
               <div class="result-card">
-                <div class="tabs">
-                  <button
-                    type="button"
-                    class="tab"
-                    [class.active]="m.activeTab === 'chart'"
-                    (click)="setTab(m, 'chart')"
-                  >
-                    <flower-icon name="chart" [size]="12" />
-                    Chart
-                  </button>
-                  <button
-                    type="button"
-                    class="tab"
-                    [class.active]="m.activeTab === 'table'"
-                    (click)="setTab(m, 'table')"
-                  >
-                    <flower-icon name="layers" [size]="12" />
-                    Table
-                  </button>
-                  <button
-                    type="button"
-                    class="tab"
-                    [class.active]="m.activeTab === 'sql'"
-                    (click)="setTab(m, 'sql')"
-                  >
-                    <flower-icon name="database" [size]="12" />
-                    SQL
-                  </button>
-                  <div class="tab-spacer"></div>
-                  <div class="tab-actions">
+                @if (auth.isAdmin()) {
+                  <div class="tabs">
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm"
-                      title="Copy"
-                      [disabled]="!m.sqlQuery"
-                      (click)="m.sqlQuery ? null : null"
+                      class="tab"
+                      [class.active]="m.activeTab === 'chart'"
+                      (click)="setTab(m, 'chart')"
                     >
-                      <flower-icon name="edit" [size]="13" />
+                      <flower-icon name="chart" [size]="12" />
+                      Chart
                     </button>
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm"
-                      title="Download"
-                      [disabled]="!m.data"
+                      class="tab"
+                      [class.active]="m.activeTab === 'table'"
+                      (click)="setTab(m, 'table')"
                     >
-                      <flower-icon name="download" [size]="13" />
+                      <flower-icon name="layers" [size]="12" />
+                      Table
                     </button>
+                    <button
+                      type="button"
+                      class="tab"
+                      [class.active]="m.activeTab === 'sql'"
+                      (click)="setTab(m, 'sql')"
+                    >
+                      <flower-icon name="database" [size]="12" />
+                      SQL
+                    </button>
+                    <div class="tab-spacer"></div>
+                    <div class="tab-actions">
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        title="Copy"
+                        [disabled]="!m.sqlQuery"
+                        (click)="m.sqlQuery ? null : null"
+                      >
+                        <flower-icon name="edit" [size]="13" />
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        title="Download"
+                        [disabled]="!m.data"
+                      >
+                        <flower-icon name="download" [size]="13" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                }
 
                 <!-- Chart tab -->
-                @if (m.activeTab === 'chart') {
+                @if (m.activeTab === 'chart' || !auth.isAdmin()) {
                   <div class="tab-pane">
-                    <div class="chart-meta">
-                      <span>plotly · sandboxed iframe</span>
-                      <span>rendered read-only</span>
-                    </div>
                     @if (m.vizUrl) {
                       <iframe
                         class="chart-iframe"
@@ -158,16 +156,11 @@
                         No chart was generated for this answer.
                       </div>
                     }
-                    @if (m.data?.columns?.length) {
-                      <div class="chart-caption">
-                        {{ (m.data?.columns ?? []).join(' · ').toUpperCase() }}
-                      </div>
-                    }
                   </div>
                 }
 
                 <!-- Table tab -->
-                @if (m.activeTab === 'table') {
+                @if (m.activeTab === 'table' && auth.isAdmin()) {
                   <div class="tab-pane">
                     @if (m.data && m.data.rows.length > 0) {
                       <div class="table-scroll">
@@ -206,7 +199,7 @@
                 }
 
                 <!-- SQL tab -->
-                @if (m.activeTab === 'sql') {
+                @if (m.activeTab === 'sql' && auth.isAdmin()) {
                   <div class="tab-pane">
                     @if (m.sqlQuery) {
                       <pre class="sql-pre">{{ m.sqlQuery }}</pre>
@@ -230,7 +223,7 @@
         } @else {
           <!-- Plain text assistant turn -->
           <div class="msg-assistant">
-            <span class="avatar" aria-hidden="true">AI</span>
+            <bouqbot-avatar class="avatar" [state]="plainTextAvatar(m)" [size]="44" />
             <div class="body">
               <div class="plain-text">{{ m.text }}</div>
             </div>
@@ -287,60 +280,4 @@
     </div>
   </div>
 
-  <!-- ============================================================
-       Right rail: Agent pipeline · Session context · Try asking
-       ============================================================ -->
-  <aside class="rail" aria-label="Agent pipeline and session context">
-    <div class="section-label" style="margin-bottom: 10px">Agent pipeline</div>
-    <div class="pipeline-list">
-      @for (step of pipeline; track step.key; let i = $index) {
-        <div
-          class="pipeline-item"
-          [class.active]="pipelineState(i) === 'active'"
-          [class.done]="pipelineState(i) === 'done'"
-        >
-          <div class="pipe-icon">
-            @if (pipelineState(i) === 'done') {
-              <flower-icon name="check" [size]="13" />
-            } @else {
-              <flower-icon [name]="step.icon" [size]="13" />
-            }
-          </div>
-          <div class="pipe-body">
-            <div class="pipe-label">
-              {{ step.label }}
-              @if (pipelineState(i) === 'active') {
-                <span class="dots"><span></span><span></span><span></span></span>
-              }
-            </div>
-            <div class="pipe-desc">{{ step.desc }}</div>
-          </div>
-        </div>
-      }
-    </div>
-
-    <div class="section-label" style="margin-bottom: 10px">Session context</div>
-    <div class="session-box">
-      <div class="div">user_role = <b>{{ auth.currentRole() || '—' }}</b></div>
-      <div class="div">user_id &nbsp; = {{ userIdLine() }}</div>
-      <div class="div">store_id &nbsp;= {{ storeIdLine() }}</div>
-      <div class="div">session &nbsp; = {{ sessionShort }}</div>
-      <div class="div">turns &nbsp; &nbsp;= {{ turnCount() }} / 10</div>
-      <div class="rate">rate_limit: 20 req / min</div>
-    </div>
-
-    <div class="section-label" style="margin: 20px 0 10px">Try asking</div>
-    <div class="try-list">
-      @for (p of suggestedPrompts(); track p) {
-        <button
-          type="button"
-          class="try-btn"
-          [disabled]="loading()"
-          (click)="askSuggestion(p)"
-        >
-          {{ p }}
-        </button>
-      }
-    </div>
-  </aside>
 </div>

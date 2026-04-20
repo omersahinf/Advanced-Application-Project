@@ -213,14 +213,42 @@
   font-style: italic;
 }
 
-.complete-btn {
+.pending-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pending-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--warn-tint, #fff7ed);
+  color: var(--pending-text, #b45309);
+  border-radius: 10px;
+  border: 1px solid rgba(180, 83, 9, 0.15);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.cancel-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  width: 100%;
-  margin-top: 10px;
-  text-decoration: none;
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: rgba(220, 38, 38, 0.06);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.4);
+  }
 }
 
 /* ── Empty state ────────────────────────────────────────────── */

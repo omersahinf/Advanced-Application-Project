@@ -4,6 +4,8 @@ import random
 from state import AgentState
 from prompts import AGENT_CONFIGS, GUARDRAILS_PROMPT, GREETING_RESPONSES, OUT_OF_SCOPE_RESPONSE
 from llm import call_llm
+from database import engine
+from sqlalchemy import text
 
 # Keywords that indicate a follow-up referencing previous analytics data
 FOLLOW_UP_PATTERNS = re.compile(
@@ -23,9 +25,11 @@ GREETING_PATTERNS = re.compile(
 ECOMMERCE_KEYWORDS = re.compile(
     r'\b(products?|orders?|sales?|revenue|customers?|reviews?|shipments?|stores?|categories?|category|'
     r'inventory|stock|prices?|profits?|discounts?|carts?|payments?|refunds?|ratings?|'
-    r'spend|purchases?|deliver|shipped|shipping|warehouse|sellers?|buyers?|monthly|daily|weekly|'
-    r'total|average|count|sum|trends?|growth|comparison|segments?|analytics|'
-    r'expensive|cheapest|best.?selling|top\s+\d)\b',
+    r'spen[dt]|spent|purchases?|purchas\w*|deliver\w*|shipped|shipping|warehouse|'
+    r'sell(?:ers?|ing)?|sold|buy(?:ers?|ing)?|bought|monthly|daily|weekly|'
+    r'total|average|count|sum|trends?|growth|compar\w*|segments?|analytics|'
+    r'expensive|cheapest|best.?selling|top\s+\d|'
+    r'month|year|quarter|cost|how\s+much|how\s+many|history|status)\b',
     re.IGNORECASE
 )
 
@@ -131,7 +135,90 @@ def guardrails_agent(state: AgentState) -> dict:
                 "is_in_scope": False,
                 "final_answer": OUT_OF_SCOPE_RESPONSE,
             }
+
+        # Revenue access control — INDIVIDUAL users cannot access revenue data
+        role = state.get("user_role", "")
+        if role == "INDIVIDUAL" and _is_revenue_query(question):
+            return {
+                "is_greeting": False,
+                "is_in_scope": False,
+                "final_answer": (
+                    "📊 Revenue and sales data is restricted to store owners and administrators.\n\n"
+                    "As a customer, here are some things you **can** ask me:\n"
+                    "- 🛒 *\"Show my order history\"*\n"
+                    "- ⭐ *\"What are the top rated products?\"*\n"
+                    "- 📦 *\"Show my order status breakdown\"*\n"
+                    "- 💰 *\"How much have I spent this year?\"*\n"
+                    "- 🏷️ *\"What categories do I buy from the most?\"*\n"
+                    "- 📝 *\"Show my reviews\"*"
+                ),
+            }
+
+        # Cross-store isolation: CORPORATE users must not query other stores
+        if role == "CORPORATE":
+            store_id = state.get("store_id")
+            if store_id and _is_cross_store_query(question, store_id):
+                return {
+                    "is_greeting": False,
+                    "is_in_scope": False,
+                    "final_answer": (
+                        "🔒 You can only access data for **your own store**. "
+                        "As a corporate user, your queries are scoped to your store's data only.\n\n"
+                        "Try asking something like:\n"
+                        "- 📊 *\"What are my store's sales this month?\"*\n"
+                        "- 👥 *\"Who are my top customers?\"*\n"
+                        "- 📦 *\"Show my order history\"*"
+                    ),
+                }
+
         return {
             "is_greeting": False,
             "is_in_scope": True,
         }
+
+
+# Revenue-related keywords that INDIVIDUAL users cannot access
+_REVENUE_PATTERNS = re.compile(
+    r'\b(revenue|total\s+sales|sales\s+total|gross\s+sales|net\s+sales|'
+    r'profit|margin|income|earnings|turnover|'
+    r'how\s+much\s+.*(store|shop|business|company)\s+.*(make|earn|generate|sell)|'
+    r'store\s+(revenue|sales|income|profit)|'
+    r'(monthly|daily|weekly|yearly|annual)\s+(revenue|sales|income))\b',
+    re.IGNORECASE
+)
+
+def _is_revenue_query(question: str) -> bool:
+    """Detect if the question is asking about revenue/sales data."""
+    return bool(_REVENUE_PATTERNS.search(question))
+
+def _normalize(s: str) -> str:
+    """Lowercase and strip non-alphanumeric chars for fuzzy store name matching."""
+    return re.sub(r'[^a-z0-9]', '', s.lower())
+
+
+def _is_cross_store_query(question: str, own_store_id: int) -> bool:
+    """Detect if a CORPORATE user is trying to query another store's data.
+    
+    Fetches all store names from the DB, checks if any OTHER store's name
+    appears in the question (with fuzzy matching to handle spacing variations
+    like 'Tech Corp' vs 'TechCorp').
+    """
+    q_norm = _normalize(question)
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("SELECT id, name FROM stores")).fetchall()
+        for row in rows:
+            sid, sname = row[0], row[1]
+            if sid == own_store_id:
+                continue  # skip own store
+            if not sname:
+                continue
+            # Normalized match: "Tech Corp" → "techcorp" matches "TechCorp" → "techcorp"
+            if _normalize(sname) in q_norm:
+                return True
+            # Also check exact lowercase (for short names that might be substrings)
+            if len(sname) >= 4 and sname.lower() in question.lower():
+                return True
+    except Exception:
+        pass  # If DB is unreachable, let the SQL-level filter handle it
+    return False

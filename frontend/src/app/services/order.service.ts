@@ -4,7 +4,6 @@ import { Order, CreateOrderRequest } from '../models/product.model';
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
-
   constructor(private http: HttpClient) {}
 
   getMyOrders(status?: string) {
@@ -24,6 +23,10 @@ export class OrderService {
 
   cancelOrder(orderId: number) {
     return this.http.patch<Order>(`/api/orders/my/${orderId}/cancel`, {});
+  }
+
+  returnOrder(orderId: number) {
+    return this.http.patch<Order>(`/api/orders/my/${orderId}/return`, {});
   }
 
   // Corporate

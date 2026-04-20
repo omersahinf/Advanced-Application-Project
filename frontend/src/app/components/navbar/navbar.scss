@@ -41,7 +41,7 @@
   .brand-name {
     font-family: var(--serif);
     font-weight: 700;
-    font-size: 18px;
+    font-size: 22px;
     letter-spacing: -0.4px;
     line-height: 1;
   }
@@ -155,13 +155,13 @@
   }
 
   &:hover {
-    background: var(--hover);
+    background: #e4e4d0;
     color: var(--text);
   }
 
   &.active {
-    background: var(--fathom-light);
-    color: var(--fathom);
+    background: rgba(3, 79, 70, 0.08);
+    color: #034f46;
     font-weight: 600;
   }
 }
@@ -170,10 +170,10 @@
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.4px;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: var(--fathom);
-  color: var(--lumen);
+  background: var(--corp-bg);
+  color: var(--corp-text);
   text-transform: uppercase;
 }
 

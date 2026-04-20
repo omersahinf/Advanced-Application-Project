@@ -71,6 +71,18 @@ import { productEmoji } from '../../shared/product-emoji';
                   >
                     {{ addingToCart() ? 'Adding…' : 'Add to Cart' }}
                   </button>
+                </div>
+                <div class="pay-row">
+                  <div class="pay-seg" role="radiogroup" aria-label="Payment method">
+                    <label [class.active]="paymentMethod === 'STRIPE'">
+                      <input type="radio" name="pay" value="STRIPE" [(ngModel)]="paymentMethod" />
+                      Card (Stripe)
+                    </label>
+                    <label [class.active]="paymentMethod === 'COD'">
+                      <input type="radio" name="pay" value="COD" [(ngModel)]="paymentMethod" />
+                      Cash on Delivery
+                    </label>
+                  </div>
                   <button
                     class="btn btn-primary"
                     type="button"
@@ -161,6 +173,7 @@ export class ProductDetailComponent implements OnInit {
   submitting = signal(false);
   addingToCart = signal(false);
   cartMsg = signal('');
+  paymentMethod: 'STRIPE' | 'COD' = 'STRIPE';
 
   constructor(
     private route: ActivatedRoute,
@@ -197,16 +210,23 @@ export class ProductDetailComponent implements OnInit {
 
   placeOrder(p: Product) {
     this.ordering.set(true);
+    const isCod = this.paymentMethod === 'COD';
     this.orderService
       .placeOrder({
         storeId: p.storeId,
-        paymentMethod: 'STRIPE',
+        paymentMethod: this.paymentMethod,
         items: [{ productId: p.id, quantity: this.qty }],
       })
       .subscribe({
         next: (o) => {
           this.ordering.set(false);
-          this.router.navigate(['/checkout', o.id]);
+          if (isCod) {
+            this.orderMsg.set('Order placed! Redirecting to My Orders…');
+            this.orderError.set(false);
+            setTimeout(() => this.router.navigate(['/orders']), 800);
+          } else {
+            this.router.navigate(['/checkout', o.id]);
+          }
         },
         error: (err) => {
           this.orderMsg.set(err.error?.error || 'Failed to place order');

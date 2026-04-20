@@ -2,6 +2,7 @@
 
 Covers: AST safety, Plotly code generation, NO_VIZ skip path, fallback chart.
 """
+import llm as llm_module
 from agents import visualizer
 
 
@@ -75,6 +76,128 @@ def test_visualizer_fallback_chart_builder_returns_figure():
     rows = [{"cat": "A", "val": 10}, {"cat": "B", "val": 20}]
     fig = visualizer._build_fallback_chart(rows, ["cat", "val"], "Show vals")
     assert fig is not None
+
+
+def test_fallback_chart_prefers_total_sales_over_order_count_for_category_sales():
+    rows = [
+        {"category": "Phones & Tablets", "total_sales": 274.89, "order_count": 9},
+        {"category": "Computers & Accessories", "total_sales": 2734.59, "order_count": 12},
+    ]
+
+    fig = visualizer._build_fallback_chart(
+        rows,
+        ["category", "total_sales", "order_count"],
+        "Show me sales by category for last month",
+    )
+
+    assert fig is not None
+    assert list(fig.data[0].y) == [2734.59, 274.89]
+    assert fig.layout.yaxis.title.text == "Total Sales"
+
+
+def test_visualizer_uses_smart_fallback_for_category_sales_breakdown(monkeypatch):
+    monkeypatch.setattr(visualizer, "call_llm", lambda *a, **k: "fig = None")
+    rows = [
+        {"category": "Computers & Accessories", "total_sales": 2734.59, "order_count": 12},
+        {"category": "Phones & Tablets", "total_sales": 274.89, "order_count": 9},
+    ]
+
+    result = visualizer.visualization_agent(
+        _state(
+            rows,
+            ["category", "total_sales", "order_count"],
+            question="Show me sales by category for last month",
+        )
+    )
+
+    assert result["visualization_code"] == "smart_fallback"
+    assert result["visualization_html"] is not None
+
+
+def test_rule_based_fallback_viz_uses_total_sales_metric():
+    prompt = (
+        "Generate Plotly visualization code for these query results. "
+        "Question: Show me sales by category for last month "
+        "Results (2 rows, columns: ['category', 'total_sales', 'order_count']): "
+        "[{\"category\": \"Computers\", \"total_sales\": 2734.59, \"order_count\": 12}, "
+        "{\"category\": \"Phones\", \"total_sales\": 274.89, \"order_count\": 9}]"
+    )
+
+    code = llm_module._generate_fallback_viz(prompt)
+
+    assert "2734.59" in code
+    assert "274.89" in code
+    assert "yaxis_title='total_sales'" in code
+
+
+def test_compare_chart_uses_dual_axis_for_revenue_and_order_count():
+    rows = [
+        {"period": "Last Month", "order_count": 12, "total_revenue": 980.50},
+        {"period": "This Month", "order_count": 18, "total_revenue": 1420.75},
+    ]
+
+    fig = visualizer._build_fallback_chart(
+        rows,
+        ["period", "order_count", "total_revenue"],
+        "Compare this month vs last month",
+    )
+
+    assert fig is not None
+    assert len(fig.data) == 2
+    assert fig.data[0].type == "bar"
+    assert fig.data[1].type == "scatter"
+    assert fig.layout.yaxis.title.text == "Total Revenue"
+    assert fig.layout.yaxis2.title.text == "Order Count"
+
+
+def test_single_row_label_metric_result_still_builds_chart():
+    rows = [{"shipment_mode": "Air", "air_order_count": 6}]
+
+    fig = visualizer._build_fallback_chart(
+        rows,
+        ["shipment_mode", "air_order_count"],
+        "How many orders were shipped by air?",
+    )
+
+    assert fig is not None
+    assert len(fig.data) == 1
+    assert fig.data[0].type == "bar"
+    assert list(fig.data[0].x) == ["Air"]
+    assert list(fig.data[0].y) == [6.0]
+
+
+def test_visualizer_allows_single_row_label_metric_chart(monkeypatch):
+    monkeypatch.setattr(visualizer, "call_llm", lambda *a, **k: "NO_VIZ")
+    rows = [{"shipment_mode": "Air", "air_order_count": 6}]
+
+    result = visualizer.visualization_agent(
+        _state(
+            rows,
+            ["shipment_mode", "air_order_count"],
+            question="How many orders were shipped by air?",
+        )
+    )
+
+    assert result["visualization_html"] is not None
+
+
+def test_fallback_chart_relabels_missing_shipment_status():
+    rows = [
+        {"order_id": 101, "shipment_status": None},
+        {"order_id": 102, "shipment_status": None},
+        {"order_id": 103, "shipment_status": None},
+        {"order_id": 104, "shipment_status": "SHIPPED"},
+    ]
+
+    fig = visualizer._build_fallback_chart(
+        rows,
+        ["order_id", "shipment_status"],
+        "What is the status of shipments made this week?",
+    )
+
+    assert fig is not None
+    assert list(fig.data[0].x) == ["No Shipment Yet", "SHIPPED"]
+    assert list(fig.data[0].y) == [3, 1]
 
 
 def test_visualizer_detects_chart_types():

@@ -93,7 +93,7 @@ public class DataSeeder implements CommandLineRunner {
         cat("Books & Media", null);
 
         // ======= USERS (from DS2: Customer Behavior) =======
-        String encodedPw = passwordEncoder.encode("password");
+        String encodedPw = passwordEncoder.encode("123");
 
         // Admin
         createUser("Admin", "Manager", "admin@example.com", encodedPw, RoleType.ADMIN, "Male");
@@ -352,12 +352,12 @@ public class DataSeeder implements CommandLineRunner {
                 orderRepository.count() + " orders, " +
                 reviewRepository.count() + " reviews");
         System.out.println("---");
-        System.out.println("Admin:      admin@example.com / password");
-        System.out.println("Corporate:  corporate1@example.com / password (TechCorp)");
-        System.out.println("Corporate:  corporate2@example.com / password (GreenMarket)");
-        System.out.println("Corporate:  corporate3@example.com / password (FashionHub)");
-        System.out.println("Corporate:  corporate4@example.com / password (HomeEssentials)");
-        System.out.println("Individual: user1@example.com ... user20@example.com / password");
+        System.out.println("Admin:      admin / 123");
+        System.out.println("Corporate:  corporate1 / 123 (TechCorp)");
+        System.out.println("Corporate:  corporate2 / 123 (GreenMarket)");
+        System.out.println("Corporate:  corporate3 / 123 (FashionHub)");
+        System.out.println("Corporate:  corporate4 / 123 (HomeEssentials)");
+        System.out.println("Individual: user1 ... user20 / 123");
     }
 
     // === Helper Methods ===

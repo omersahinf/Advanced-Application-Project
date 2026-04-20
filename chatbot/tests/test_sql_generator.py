@@ -2,6 +2,10 @@
 
 from agents.sql_generator import (
     _add_where_clause,
+    _build_category_sales_timeframe_sql,
+    _build_month_over_month_comparison_sql,
+    _build_shipment_status_timeframe_sql,
+    _build_shipped_by_air_sql,
     _inject_role_filter,
     _is_personal_query,
     _try_deterministic_followup,
@@ -90,3 +94,91 @@ def test_follow_up_query_builds_order_by_for_second_highest():
         "SELECT store_name, revenue FROM store_totals "
         "ORDER BY revenue DESC LIMIT 1 OFFSET 1"
     )
+
+
+def test_category_sales_last_month_sql_joins_orders_and_filters_month_for_corporate():
+    sql = _build_category_sales_timeframe_sql(
+        "Show me sales by category last month",
+        "CORPORATE",
+        user_id=2,
+        store_id=1,
+    )
+
+    assert sql is not None
+    assert "FROM orders o" in sql
+    assert "JOIN order_items oi ON o.id = oi.order_id" in sql
+    assert "JOIN categories c ON p.category_id = c.id" in sql
+    assert "o.status != 'CANCELLED'" in sql
+    assert "DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')" in sql
+    assert "o.order_date < DATE_TRUNC('month', CURRENT_DATE)" in sql
+    assert "p.store_id = 1" in sql
+    assert "GROUP BY c.id, c.name" in sql
+    assert "ORDER BY total_sales DESC" in sql
+
+
+def test_month_over_month_comparison_sql_returns_period_rows_for_admin():
+    sql = _build_month_over_month_comparison_sql(
+        "Compare this month vs last month",
+        "ADMIN",
+        user_id=1,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "FROM (VALUES " in sql
+    assert "('Last Month'," in sql
+    assert "('This Month'," in sql
+    assert "SELECT p.period AS period" in sql
+    assert "COUNT(o.id) AS order_count" in sql
+    assert "SUM(o.grand_total)" in sql
+    assert "LEFT JOIN orders o" in sql
+    assert "o.status != 'CANCELLED'" in sql
+    assert "GROUP BY p.period, p.sort_order" in sql
+    assert "ORDER BY p.sort_order" in sql
+
+
+def test_shipped_by_air_sql_is_platform_scoped_for_admin():
+    sql = _build_shipped_by_air_sql(
+        "How many orders were shipped by air?",
+        "ADMIN",
+        user_id=1,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "SELECT 'Air' AS shipment_mode" in sql
+    assert "LEFT JOIN shipments s ON o.id = s.order_id" in sql
+    assert "UPPER(COALESCE(s.mode, '')) = 'FLIGHT'" in sql
+    assert "o.status != 'CANCELLED'" in sql
+    assert "o.store_id =" not in sql
+
+
+def test_shipped_by_air_sql_is_store_scoped_for_corporate():
+    sql = _build_shipped_by_air_sql(
+        "How many orders were shipped by air?",
+        "CORPORATE",
+        user_id=2,
+        store_id=1,
+    )
+
+    assert sql is not None
+    assert "o.store_id = 1" in sql
+
+
+def test_shipment_status_this_week_sql_uses_shipped_date_for_corporate():
+    sql = _build_shipment_status_timeframe_sql(
+        "What is the status of shipments made this week?",
+        "CORPORATE",
+        user_id=2,
+        store_id=1,
+    )
+
+    assert sql is not None
+    assert "FROM shipments s" in sql
+    assert "JOIN orders o ON o.id = s.order_id" in sql
+    assert "COALESCE(s.status, 'No Shipment Status') AS shipment_status" in sql
+    assert "COUNT(*) AS shipment_count" in sql
+    assert "s.shipped_date >= DATE_TRUNC('week', CURRENT_DATE)" in sql
+    assert "s.shipped_date < DATE_TRUNC('week', CURRENT_DATE + INTERVAL '1 week')" in sql
+    assert "o.store_id = 1" in sql
+    assert "o.order_date" not in sql

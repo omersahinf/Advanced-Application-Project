@@ -16,6 +16,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.stripe.model.Refund;
+import com.stripe.param.RefundCreateParams;
+import com.stripe.exception.StripeException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,6 +27,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
@@ -105,8 +109,12 @@ public class OrderService {
         order.setUser(user);
         order.setStore(store);
         String paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : "CREDIT_CARD";
-        // COD orders skip the payment gateway and are confirmed immediately
-        order.setStatus("COD".equals(paymentMethod) ? OrderStatus.CONFIRMED : OrderStatus.PENDING);
+        // STRIPE is a processor, not a method — store as CREDIT_CARD for consistency
+        if ("STRIPE".equalsIgnoreCase(paymentMethod)) {
+            paymentMethod = "CREDIT_CARD";
+        }
+        // All orders start as PENDING — store owner must confirm (fulfillment workflow)
+        order.setStatus(OrderStatus.PENDING);
         order.setPaymentMethod(paymentMethod);
         order.setSalesChannel("WEB");
         order.setFulfilment("WAREHOUSE");
@@ -160,13 +168,41 @@ public class OrderService {
             if (!order.getUser().getId().equals(actorUserId)) {
                 throw new UnauthorizedOperationException("Not authorized to update this order");
             }
-            if (status != OrderStatus.CANCELLED) {
-                throw new BadRequestException("Individual users can only cancel orders");
+            if (status != OrderStatus.CANCELLED && status != OrderStatus.RETURNED) {
+                throw new BadRequestException("Individual users can only cancel or return orders");
+            }
+            if (status == OrderStatus.RETURNED) {
+                OrderStatus current = order.getStatus();
+                if (current != OrderStatus.CONFIRMED
+                        && current != OrderStatus.SHIPPED
+                        && current != OrderStatus.DELIVERED) {
+                    throw new BadRequestException("Only confirmed, shipped or delivered orders can be returned");
+                }
             }
         }
 
         order.setStatus(status);
         log.info("Order status updated: id={}, status={}, by userId={}", orderId, status, actorUserId);
+
+        // Stripe refund when cancelling or returning a paid order
+        if ((status == OrderStatus.CANCELLED || status == OrderStatus.RETURNED)
+                && order.getStripePaymentIntentId() != null) {
+            try {
+                RefundCreateParams params = RefundCreateParams.builder()
+                        .setPaymentIntent(order.getStripePaymentIntentId())
+                        .build();
+                Refund refund = Refund.create(params);
+                log.info("Stripe refund issued: refundId={}, orderId={}, amount={}",
+                        refund.getId(), orderId, refund.getAmount());
+            } catch (StripeException e) {
+                log.error("Stripe refund failed for orderId={}: {}", orderId, e.getMessage());
+                // Don't block cancellation — order is still cancelled even if refund fails
+            } catch (Exception e) {
+                log.error("Unexpected error during refund for orderId={}", orderId, e);
+                // Don't block status update
+            }
+        }
+
         Order saved = orderRepository.save(order);
 
         // Auto-create shipment when order transitions to SHIPPED

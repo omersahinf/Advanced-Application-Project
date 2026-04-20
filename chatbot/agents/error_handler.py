@@ -23,7 +23,8 @@ def error_handler_agent(state: AgentState) -> dict:
     # Re-enforce role-based filtering on the fixed SQL
     fixed_sql = _inject_role_filter(
         fixed_sql, state.get("user_role", "ADMIN"),
-        state.get("user_id", 0), state.get("store_id")
+        state.get("user_id", 0), state.get("store_id"),
+        question=state.get("question", "")
     )
 
     return {"sql_query": fixed_sql, "error": None}

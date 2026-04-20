@@ -23,4 +23,13 @@ public class LoginResponse {
     public String getRole() { return role; }
     public String getCompanyName() { return companyName; }
     public String getFirstName() { return firstName; }
+
+    /**
+     * Returns a copy with token/refreshToken nulled out.
+     * Use this when tokens are transported via HttpOnly cookies
+     * and should not leak in the JSON response body.
+     */
+    public LoginResponse withoutTokens() {
+        return new LoginResponse(null, null, email, role, companyName, firstName);
+    }
 }

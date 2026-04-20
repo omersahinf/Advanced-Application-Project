@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Sprout Bot — 4 Varyasyon</title>
+<style>
+  :root {
+    --bg: #0f0d12;
+    --surface: #1a171f;
+    --border: #2a2530;
+    --text: #f5ede0;
+    --muted: #9a8fa5;
+    --accent: #2dd4a8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse at top, #1a1420 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+    padding: 48px 24px 96px;
+    min-height: 100vh;
+  }
+  header { max-width: 1100px; margin: 0 auto 48px; }
+  h1 {
+    font-size: clamp(2rem, 1rem + 3vw, 3.5rem);
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    background: linear-gradient(135deg, #2dd4a8 0%, #a78bfa 50%, #f472b6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  p.lead { color: var(--muted); max-width: 680px; line-height: 1.6; margin: 0; }
+
+  .grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    gap: 32px;
+    grid-template-columns: 1fr;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(600px circle at 90% -10%, rgba(45,212,168,0.06), transparent 40%);
+    pointer-events: none;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 1.6rem; letter-spacing: -0.01em; }
+  .card .tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(45,212,168,0.12);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .card p.desc { color: var(--muted); line-height: 1.6; margin: 12px 0 24px; max-width: 640px; }
+
+  .palette-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .palette-row span { font-size: 0.7rem; color: #5a5470; margin-right: 4px; }
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .states {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .state {
+    background: #110e15;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 12px 14px;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .state:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .state svg {
+    width: 80px; height: 80px;
+    display: block;
+    margin: 0 auto 10px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  .state .label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+
+  .chat-preview {
+    margin-top: 28px;
+    background: #0a0810;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .chat-preview svg {
+    width: 44px; height: 44px;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .chat-preview .bubble {
+    background: var(--surface);
+    border-radius: 14px 14px 14px 4px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  .chat-preview .bubble .name {
+    font-weight: 700;
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  @media (min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  .state svg.bob { animation: bob 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sprout Bot Varyasyonları 🤖🌱</h1>
+  <p class="lead">Orijinal Sprout Bot'un DNA'sını koruyan (robot kafa + ekran göz + tepede bitki) 4 farklı stil/palet varyasyonu. Hepsi saf SVG, 16×16 pixel-art.</p>
+</header>
+
+<div class="grid">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       V1: SPROUT NOIR — Dark luxury, altın aksanlar
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <span class="tag">Varyasyon 1</span>
+    <h2>Sprout Noir 🖤✨</h2>
+    <p class="desc">Premium karanlık metal kasa, altın detaylar, amber ekran gözler. Lüks çiçek markası için tasarlandı. Zarif ama robot.</p>
+
+    <div class="palette-row">
+      <span>palet</span>
+      <div class="swatch" style="background:#1a1420" title="#1a1420"></div>
+      <div class="swatch" style="background:#2a2530" title="#2a2530"></div>
+      <div class="swatch" style="background:#fbbf24" title="#fbbf24"></div>
+      <div class="swatch" style="background:#22c55e" title="#22c55e"></div>
+      <div class="swatch" style="background:#f472b6" title="#f472b6"></div>
+    </div>
+
+    <div class="states">
+      <!-- IDLE -->
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <!-- sprout -->
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <!-- dark robot head -->
+          <rect x="2" y="3" width="12" height="9" fill="#1a1420"/>
+          <rect x="1" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="14" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="2" y="12" width="12" height="1" fill="#0f0a15"/>
+          <!-- gold trim top -->
+          <rect x="2" y="3" width="12" height="1" fill="#fbbf24" opacity="0.4"/>
+          <!-- screen -->
+          <rect x="4" y="5" width="8" height="4" fill="#0a0810"/>
+          <!-- amber CRT eyes -->
+          <rect x="5" y="6" width="2" height="1" fill="#fbbf24"/>
+          <rect x="9" y="6" width="2" height="1" fill="#fbbf24"/>
+          <rect x="5" y="7" width="2" height="1" fill="#fbbf24" opacity="0.35"/>
+          <rect x="9" y="7" width="2" height="1" fill="#fbbf24" opacity="0.35"/>
+          <!-- mouth grills -->
+          <rect x="5" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="7" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="11" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <!-- body -->
+          <rect x="4" y="13" width="8" height="2" fill="#0f0a15"/>
+          <rect x="5" y="15" width="2" height="1" fill="#1a1420"/>
+          <rect x="9" y="15" width="2" height="1" fill="#1a1420"/>
+        </svg>
+        <div class="label">idle</div>
+      </div>
+
+      <!-- HAPPY -->
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#1a1420"/>
+          <rect x="1" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="14" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="2" y="12" width="12" height="1" fill="#0f0a15"/>
+          <rect x="2" y="3" width="12" height="1" fill="#fbbf24" opacity="0.4"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0a0810"/>
+          <!-- ^^ eyes -->
+          <rect x="5" y="7" width="1" height="1" fill="#fbbf24"/>
+          <rect x="6" y="6" width="1" height="1" fill="#fbbf24"/>
+          <rect x="7" y="7" width="1" height="1" fill="#fbbf24"/>
+          <rect x="9" y="7" width="1" height="1" fill="#fbbf24"/>
+          <rect x="10" y="6" width="1" height="1" fill="#fbbf24"/>
+          <rect x="11" y="7" width="1" height="1" fill="#fbbf24"/>
+          <!-- sparkle -->
+          <rect x="14" y="2" width="1" height="1" fill="#fbbf24"/>
+          <rect x="0" y="6" width="1" height="1" fill="#fbbf24"/>
+          <rect x="5" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="7" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="11" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="4" y="13" width="8" height="2" fill="#0f0a15"/>
+        </svg>
+        <div class="label">happy</div>
+      </div>
+
+      <!-- THINKING -->
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#1a1420"/>
+          <rect x="1" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="14" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="2" y="12" width="12" height="1" fill="#0f0a15"/>
+          <rect x="2" y="3" width="12" height="1" fill="#fbbf24" opacity="0.4"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0a0810"/>
+          <!-- loading bar eyes -->
+          <rect x="5" y="7" width="3" height="1" fill="#fbbf24"/>
+          <rect x="9" y="7" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="10" y="7" width="1" height="1" fill="#fbbf24" opacity="0.3"/>
+          <!-- thinking dots -->
+          <rect x="14" y="1" width="1" height="1" fill="#f472b6"/>
+          <rect x="15" y="3" width="1" height="1" fill="#f472b6" opacity="0.6"/>
+          <rect x="5" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="7" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="11" y="10" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="4" y="13" width="8" height="2" fill="#0f0a15"/>
+        </svg>
+        <div class="label">thinking</div>
+      </div>
+
+      <!-- TALKING -->
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#1a1420"/>
+          <rect x="1" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="14" y="4" width="1" height="7" fill="#0f0a15"/>
+          <rect x="2" y="12" width="12" height="1" fill="#0f0a15"/>
+          <rect x="2" y="3" width="12" height="1" fill="#fbbf24" opacity="0.4"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0a0810"/>
+          <!-- eyes -->
+          <rect x="5" y="6" width="2" height="1" fill="#fbbf24"/>
+          <rect x="9" y="6" width="2" height="1" fill="#fbbf24"/>
+          <rect x="5" y="7" width="2" height="1" fill="#fbbf24" opacity="0.35"/>
+          <rect x="9" y="7" width="2" height="1" fill="#fbbf24" opacity="0.35"/>
+          <!-- open mouth wave -->
+          <rect x="5" y="10" width="6" height="1" fill="#fbbf24"/>
+          <rect x="4" y="13" width="8" height="2" fill="#0f0a15"/>
+        </svg>
+        <div class="label">talking</div>
+      </div>
+
+      <!-- SLEEP -->
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="1" width="1" height="2" fill="#22c55e" opacity="0.6"/>
+          <rect x="5" y="2" width="2" height="1" fill="#4ade80" opacity="0.6"/>
+          <rect x="8" y="2" width="2" height="1" fill="#4ade80" opacity="0.6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#15101c"/>
+          <rect x="1" y="4" width="1" height="7" fill="#0a0712"/>
+          <rect x="14" y="4" width="1" height="7" fill="#0a0712"/>
+          <rect x="2" y="12" width="12" height="1" fill="#0a0712"/>
+          <rect x="4" y="5" width="8" height="4" fill="#080510" opacity="0.8"/>
+          <!-- Zzz -->
+          <rect x="6" y="6" width="2" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="7" y="7" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="6" y="8" width="2" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="12" y="2" width="2" height="1" fill="#fbbf24" opacity="0.4"/>
+          <rect x="13" y="3" width="1" height="1" fill="#fbbf24" opacity="0.4"/>
+          <rect x="12" y="4" width="2" height="1" fill="#fbbf24" opacity="0.4"/>
+          <rect x="4" y="13" width="8" height="2" fill="#0a0712"/>
+        </svg>
+        <div class="label">sleep</div>
+      </div>
+    </div>
+
+    <div class="chat-preview">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+        <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+        <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+        <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+        <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+        <rect x="2" y="3" width="12" height="9" fill="#1a1420"/>
+        <rect x="4" y="5" width="8" height="4" fill="#0a0810"/>
+        <rect x="5" y="6" width="2" height="1" fill="#fbbf24"/>
+        <rect x="9" y="6" width="2" height="1" fill="#fbbf24"/>
+        <rect x="4" y="13" width="8" height="2" fill="#0f0a15"/>
+      </svg>
+      <div class="bubble">
+        <span class="name" style="color:#fbbf24">Sprout Noir</span>
+        Your curated bouquet selection is ready. Shall I arrange delivery? ✨🖤
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       V2: SPROUT NEON — Cyberpunk, LED ekran
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <span class="tag">Varyasyon 2</span>
+    <h2>Sprout Neon ⚡💚</h2>
+    <p class="desc">Cyberpunk metal kasa, neon yeşil LED gözler, magenta çiçek. Glitch pixel detayları ile yüksek-enerji robot bitki.</p>
+
+    <div class="palette-row">
+      <span>palet</span>
+      <div class="swatch" style="background:#0d1117" title="#0d1117"></div>
+      <div class="swatch" style="background:#30363d" title="#30363d"></div>
+      <div class="swatch" style="background:#39ff14" title="#39ff14"></div>
+      <div class="swatch" style="background:#ff00ff" title="#ff00ff"></div>
+      <div class="swatch" style="background:#00ffff" title="#00ffff"></div>
+    </div>
+
+    <div class="states">
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <!-- sprout - magenta blossom -->
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="8" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="7" y="2" width="2" height="1" fill="#ff00ff" opacity="0.7"/>
+          <!-- head -->
+          <rect x="2" y="3" width="12" height="9" fill="#30363d"/>
+          <rect x="1" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="14" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="2" y="12" width="12" height="1" fill="#21262d"/>
+          <!-- screen -->
+          <rect x="4" y="5" width="8" height="4" fill="#0d1117"/>
+          <!-- neon green LED eyes -->
+          <rect x="5" y="6" width="2" height="2" fill="#39ff14"/>
+          <rect x="9" y="6" width="2" height="2" fill="#39ff14"/>
+          <rect x="5" y="6" width="1" height="1" fill="#fff"/>
+          <rect x="9" y="6" width="1" height="1" fill="#fff"/>
+          <!-- grill -->
+          <rect x="5" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="7" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="9" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="11" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <!-- glitch pixel -->
+          <rect x="13" y="7" width="1" height="1" fill="#ff00ff" opacity="0.5"/>
+          <!-- body -->
+          <rect x="4" y="13" width="8" height="2" fill="#21262d"/>
+          <rect x="5" y="15" width="2" height="1" fill="#30363d"/>
+          <rect x="9" y="15" width="2" height="1" fill="#30363d"/>
+        </svg>
+        <div class="label">idle</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="8" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="7" y="2" width="2" height="1" fill="#ff00ff" opacity="0.7"/>
+          <rect x="2" y="3" width="12" height="9" fill="#30363d"/>
+          <rect x="1" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="14" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="2" y="12" width="12" height="1" fill="#21262d"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0d1117"/>
+          <!-- ^^ happy -->
+          <rect x="5" y="7" width="1" height="1" fill="#39ff14"/>
+          <rect x="6" y="6" width="1" height="1" fill="#39ff14"/>
+          <rect x="7" y="7" width="1" height="1" fill="#39ff14"/>
+          <rect x="9" y="7" width="1" height="1" fill="#39ff14"/>
+          <rect x="10" y="6" width="1" height="1" fill="#39ff14"/>
+          <rect x="11" y="7" width="1" height="1" fill="#39ff14"/>
+          <!-- glow -->
+          <rect x="4" y="8" width="1" height="1" fill="#39ff14" opacity="0.15"/>
+          <rect x="11" y="8" width="1" height="1" fill="#39ff14" opacity="0.15"/>
+          <rect x="5" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="7" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="9" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="11" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="4" y="13" width="8" height="2" fill="#21262d"/>
+        </svg>
+        <div class="label">happy</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="8" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="7" y="2" width="2" height="1" fill="#ff00ff" opacity="0.7"/>
+          <rect x="2" y="3" width="12" height="9" fill="#30363d"/>
+          <rect x="1" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="14" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="2" y="12" width="12" height="1" fill="#21262d"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0d1117"/>
+          <!-- scanning line eye -->
+          <rect x="5" y="6" width="6" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="5" y="7" width="6" height="1" fill="#39ff14"/>
+          <rect x="5" y="8" width="6" height="1" fill="#39ff14" opacity="0.15"/>
+          <!-- dots -->
+          <rect x="14" y="1" width="1" height="1" fill="#00ffff"/>
+          <rect x="15" y="3" width="1" height="1" fill="#00ffff" opacity="0.5"/>
+          <rect x="5" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="7" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="9" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="11" y="10" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="4" y="13" width="8" height="2" fill="#21262d"/>
+        </svg>
+        <div class="label">thinking</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="8" y="0" width="2" height="1" fill="#ff00ff"/>
+          <rect x="7" y="2" width="2" height="1" fill="#ff00ff" opacity="0.7"/>
+          <rect x="2" y="3" width="12" height="9" fill="#30363d"/>
+          <rect x="1" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="14" y="4" width="1" height="7" fill="#21262d"/>
+          <rect x="2" y="12" width="12" height="1" fill="#21262d"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0d1117"/>
+          <!-- eyes -->
+          <rect x="5" y="6" width="2" height="2" fill="#39ff14"/>
+          <rect x="9" y="6" width="2" height="2" fill="#39ff14"/>
+          <rect x="5" y="6" width="1" height="1" fill="#fff"/>
+          <rect x="9" y="6" width="1" height="1" fill="#fff"/>
+          <!-- equalizer mouth -->
+          <rect x="5" y="10" width="1" height="1" fill="#39ff14"/>
+          <rect x="6" y="10" width="1" height="1" fill="#39ff14" opacity="0.7"/>
+          <rect x="7" y="10" width="1" height="1" fill="#39ff14"/>
+          <rect x="8" y="10" width="1" height="1" fill="#39ff14" opacity="0.5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#39ff14"/>
+          <rect x="10" y="10" width="1" height="1" fill="#39ff14" opacity="0.8"/>
+          <rect x="4" y="13" width="8" height="2" fill="#21262d"/>
+        </svg>
+        <div class="label">talking</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="1" width="1" height="2" fill="#22c55e" opacity="0.5"/>
+          <rect x="5" y="1" width="2" height="1" fill="#ff00ff" opacity="0.3"/>
+          <rect x="8" y="1" width="2" height="1" fill="#ff00ff" opacity="0.3"/>
+          <rect x="2" y="3" width="12" height="9" fill="#282e36"/>
+          <rect x="1" y="4" width="1" height="7" fill="#1a1f26"/>
+          <rect x="14" y="4" width="1" height="7" fill="#1a1f26"/>
+          <rect x="2" y="12" width="12" height="1" fill="#1a1f26"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0a0e14"/>
+          <!-- off-screen Z -->
+          <rect x="6" y="6" width="2" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="7" y="7" width="1" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="6" y="8" width="2" height="1" fill="#39ff14" opacity="0.3"/>
+          <rect x="13" y="2" width="2" height="1" fill="#00ffff" opacity="0.3"/>
+          <rect x="14" y="3" width="1" height="1" fill="#00ffff" opacity="0.3"/>
+          <rect x="13" y="4" width="2" height="1" fill="#00ffff" opacity="0.3"/>
+          <rect x="4" y="13" width="8" height="2" fill="#1a1f26"/>
+        </svg>
+        <div class="label">sleep</div>
+      </div>
+    </div>
+
+    <div class="chat-preview">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+        <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+        <rect x="5" y="0" width="2" height="1" fill="#ff00ff"/>
+        <rect x="8" y="0" width="2" height="1" fill="#ff00ff"/>
+        <rect x="2" y="3" width="12" height="9" fill="#30363d"/>
+        <rect x="4" y="5" width="8" height="4" fill="#0d1117"/>
+        <rect x="5" y="6" width="2" height="2" fill="#39ff14"/>
+        <rect x="9" y="6" width="2" height="2" fill="#39ff14"/>
+        <rect x="4" y="13" width="8" height="2" fill="#21262d"/>
+      </svg>
+      <div class="bubble">
+        <span class="name" style="color:#39ff14">Sprout Neon</span>
+        SYS://scan_complete ⚡ 3 items flagged in your cart. Execute checkout? 💚
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       V3: SPROUT MINT — Soft/pastel, taze
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <span class="tag">Varyasyon 3</span>
+    <h2>Sprout Mint 🌿💎</h2>
+    <p class="desc">Yumuşak mint gövde, beyaz ekran, turkuaz gözler. Temiz ve taze hissiyat — orijinal Sprout'un en yakın akrabası ama daha soft.</p>
+
+    <div class="palette-row">
+      <span>palet</span>
+      <div class="swatch" style="background:#e0f2f1" title="#e0f2f1"></div>
+      <div class="swatch" style="background:#a7d7c5" title="#a7d7c5"></div>
+      <div class="swatch" style="background:#2dd4a8" title="#2dd4a8"></div>
+      <div class="swatch" style="background:#f472b6" title="#f472b6"></div>
+      <div class="swatch" style="background:#0f0d12" title="#0f0d12"></div>
+    </div>
+
+    <div class="states">
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <!-- mint body -->
+          <rect x="2" y="3" width="12" height="9" fill="#e0f2f1"/>
+          <rect x="1" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="14" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="2" y="12" width="12" height="1" fill="#a7d7c5"/>
+          <!-- screen -->
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- teal CRT eyes -->
+          <rect x="5" y="6" width="2" height="1" fill="#2dd4a8"/>
+          <rect x="9" y="6" width="2" height="1" fill="#2dd4a8"/>
+          <rect x="5" y="7" width="2" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <rect x="9" y="7" width="2" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <!-- grill dots -->
+          <rect x="5" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="7" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="11" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <!-- body -->
+          <rect x="4" y="13" width="8" height="2" fill="#a7d7c5"/>
+          <rect x="5" y="15" width="2" height="1" fill="#80bfab"/>
+          <rect x="9" y="15" width="2" height="1" fill="#80bfab"/>
+        </svg>
+        <div class="label">idle</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#e0f2f1"/>
+          <rect x="1" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="14" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="2" y="12" width="12" height="1" fill="#a7d7c5"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- heart eyes -->
+          <rect x="5" y="6" width="1" height="1" fill="#f472b6"/>
+          <rect x="7" y="6" width="1" height="1" fill="#f472b6"/>
+          <rect x="5" y="7" width="3" height="1" fill="#f472b6"/>
+          <rect x="6" y="8" width="1" height="1" fill="#f472b6"/>
+          <rect x="9" y="6" width="1" height="1" fill="#f472b6"/>
+          <rect x="11" y="6" width="1" height="1" fill="#f472b6"/>
+          <rect x="9" y="7" width="3" height="1" fill="#f472b6"/>
+          <rect x="10" y="8" width="1" height="1" fill="#f472b6"/>
+          <!-- blush -->
+          <rect x="3" y="8" width="1" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="12" y="8" width="1" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="5" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="7" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="11" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="4" y="13" width="8" height="2" fill="#a7d7c5"/>
+        </svg>
+        <div class="label">happy</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#e0f2f1"/>
+          <rect x="1" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="14" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="2" y="12" width="12" height="1" fill="#a7d7c5"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- hmm dots -->
+          <rect x="5" y="7" width="2" height="1" fill="#2dd4a8"/>
+          <rect x="8" y="7" width="1" height="1" fill="#2dd4a8" opacity="0.6"/>
+          <rect x="10" y="7" width="1" height="1" fill="#2dd4a8" opacity="0.3"/>
+          <!-- bubble -->
+          <rect x="14" y="1" width="1" height="1" fill="#2dd4a8" opacity="0.5"/>
+          <rect x="15" y="3" width="1" height="1" fill="#2dd4a8" opacity="0.3"/>
+          <rect x="5" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="7" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="9" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="11" y="10" width="1" height="1" fill="#a7d7c5"/>
+          <rect x="4" y="13" width="8" height="2" fill="#a7d7c5"/>
+        </svg>
+        <div class="label">thinking</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+          <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+          <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#e0f2f1"/>
+          <rect x="1" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="14" y="4" width="1" height="7" fill="#a7d7c5"/>
+          <rect x="2" y="12" width="12" height="1" fill="#a7d7c5"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- eyes -->
+          <rect x="5" y="6" width="2" height="1" fill="#2dd4a8"/>
+          <rect x="9" y="6" width="2" height="1" fill="#2dd4a8"/>
+          <rect x="5" y="7" width="2" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <rect x="9" y="7" width="2" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <!-- mouth bar -->
+          <rect x="5" y="10" width="6" height="1" fill="#2dd4a8"/>
+          <rect x="4" y="13" width="8" height="2" fill="#a7d7c5"/>
+        </svg>
+        <div class="label">talking</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="7" y="1" width="1" height="2" fill="#22c55e" opacity="0.5"/>
+          <rect x="5" y="2" width="2" height="1" fill="#4ade80" opacity="0.5"/>
+          <rect x="8" y="2" width="2" height="1" fill="#4ade80" opacity="0.5"/>
+          <rect x="2" y="3" width="12" height="9" fill="#d4ebe8"/>
+          <rect x="1" y="4" width="1" height="7" fill="#a0cec0"/>
+          <rect x="14" y="4" width="1" height="7" fill="#a0cec0"/>
+          <rect x="2" y="12" width="12" height="1" fill="#a0cec0"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12" opacity="0.6"/>
+          <!-- zzz -->
+          <rect x="6" y="6" width="2" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <rect x="7" y="7" width="1" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <rect x="6" y="8" width="2" height="1" fill="#2dd4a8" opacity="0.4"/>
+          <rect x="12" y="2" width="2" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="13" y="3" width="1" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="12" y="4" width="2" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="4" y="13" width="8" height="2" fill="#a0cec0"/>
+        </svg>
+        <div class="label">sleep</div>
+      </div>
+    </div>
+
+    <div class="chat-preview">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+        <rect x="7" y="0" width="1" height="2" fill="#22c55e"/>
+        <rect x="5" y="1" width="2" height="1" fill="#4ade80"/>
+        <rect x="8" y="1" width="2" height="1" fill="#4ade80"/>
+        <rect x="7" y="2" width="2" height="1" fill="#f472b6"/>
+        <rect x="2" y="3" width="12" height="9" fill="#e0f2f1"/>
+        <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+        <rect x="5" y="6" width="2" height="1" fill="#2dd4a8"/>
+        <rect x="9" y="6" width="2" height="1" fill="#2dd4a8"/>
+        <rect x="4" y="13" width="8" height="2" fill="#a7d7c5"/>
+      </svg>
+      <div class="bubble">
+        <span class="name" style="color:#2dd4a8">Sprout Mint</span>
+        Hey there! 🌿 I found the freshest arrangements for you~ Let me show you! 💎
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       V4: SPROUT BLOOM — Evrimleşmiş, çiçek açmış
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card" style="outline: 2px solid var(--accent); outline-offset: -2px;">
+    <span class="tag" style="background: var(--accent); color: #fff;">⭐ Önerim</span>
+    <h2>Sprout Bloom 🌸🤖</h2>
+    <p class="desc">Sprout'un "çiçek açmış" formu — tepedeki tomurcuk 3 yaprakla açılmış. Orijinalin premium evrimi. Flower temasıyla en uyumlu.</p>
+
+    <div class="palette-row">
+      <span>palet</span>
+      <div class="swatch" style="background:#e5e7eb" title="#e5e7eb"></div>
+      <div class="swatch" style="background:#9ca3af" title="#9ca3af"></div>
+      <div class="swatch" style="background:#22d3ee" title="#22d3ee"></div>
+      <div class="swatch" style="background:#f472b6" title="#f472b6"></div>
+      <div class="swatch" style="background:#22c55e" title="#22c55e"></div>
+    </div>
+
+    <div class="states">
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <!-- bloomed flower: 3 petals + bud center -->
+          <rect x="5" y="0" width="2" height="1" fill="#f472b6"/>
+          <rect x="9" y="0" width="2" height="1" fill="#f472b6"/>
+          <rect x="7" y="0" width="2" height="1" fill="#ff8ec4"/>
+          <rect x="4" y="1" width="3" height="1" fill="#f472b6" opacity="0.7"/>
+          <rect x="9" y="1" width="3" height="1" fill="#f472b6" opacity="0.7"/>
+          <rect x="7" y="1" width="2" height="1" fill="#fbbf24"/>
+          <!-- stem -->
+          <rect x="7" y="2" width="2" height="1" fill="#22c55e"/>
+          <!-- robot head (original Sprout style) -->
+          <rect x="2" y="3" width="12" height="9" fill="#e5e7eb"/>
+          <rect x="1" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="14" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="2" y="12" width="12" height="1" fill="#9ca3af"/>
+          <!-- screen -->
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- CRT eyes (blue-teal) -->
+          <rect x="5" y="6" width="2" height="1" fill="#22d3ee"/>
+          <rect x="9" y="6" width="2" height="1" fill="#22d3ee"/>
+          <rect x="5" y="7" width="2" height="1" fill="#22d3ee" opacity="0.5"/>
+          <rect x="9" y="7" width="2" height="1" fill="#22d3ee" opacity="0.5"/>
+          <!-- mouth grill -->
+          <rect x="5" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="7" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="9" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="11" y="10" width="1" height="1" fill="#9ca3af"/>
+          <!-- body -->
+          <rect x="4" y="13" width="8" height="2" fill="#9ca3af"/>
+          <rect x="5" y="15" width="2" height="1" fill="#6b7280"/>
+          <rect x="9" y="15" width="2" height="1" fill="#6b7280"/>
+        </svg>
+        <div class="label">idle</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="5" y="0" width="2" height="1" fill="#f472b6"/>
+          <rect x="9" y="0" width="2" height="1" fill="#f472b6"/>
+          <rect x="7" y="0" width="2" height="1" fill="#ff8ec4"/>
+          <rect x="4" y="1" width="3" height="1" fill="#f472b6" opacity="0.7"/>
+          <rect x="9" y="1" width="3" height="1" fill="#f472b6" opacity="0.7"/>
+          <rect x="7" y="1" width="2" height="1" fill="#fbbf24"/>
+          <rect x="7" y="2" width="2" height="1" fill="#22c55e"/>
+          <rect x="2" y="3" width="12" height="9" fill="#e5e7eb"/>
+          <rect x="1" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="14" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="2" y="12" width="12" height="1" fill="#9ca3af"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- ^^ happy eyes -->
+          <rect x="5" y="7" width="1" height="1" fill="#22d3ee"/>
+          <rect x="6" y="6" width="1" height="1" fill="#22d3ee"/>
+          <rect x="7" y="7" width="1" height="1" fill="#22d3ee"/>
+          <rect x="9" y="7" width="1" height="1" fill="#22d3ee"/>
+          <rect x="10" y="6" width="1" height="1" fill="#22d3ee"/>
+          <rect x="11" y="7" width="1" height="1" fill="#22d3ee"/>
+          <!-- blush -->
+          <rect x="3" y="8" width="1" height="1" fill="#f472b6" opacity="0.4"/>
+          <rect x="12" y="8" width="1" height="1" fill="#f472b6" opacity="0.4"/>
+          <!-- sparkle -->
+          <rect x="0" y="2" width="1" height="1" fill="#fbbf24"/>
+          <rect x="15" y="5" width="1" height="1" fill="#fbbf24"/>
+          <rect x="5" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="7" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="9" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="11" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="4" y="13" width="8" height="2" fill="#9ca3af"/>
+        </svg>
+        <div class="label">happy</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="5" y="0" width="2" height="1" fill="#f472b6" opacity="0.5"/>
+          <rect x="9" y="0" width="2" height="1" fill="#f472b6" opacity="0.5"/>
+          <rect x="7" y="0" width="2" height="1" fill="#ff8ec4" opacity="0.5"/>
+          <rect x="4" y="1" width="3" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="9" y="1" width="3" height="1" fill="#f472b6" opacity="0.3"/>
+          <rect x="7" y="1" width="2" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="7" y="2" width="2" height="1" fill="#22c55e" opacity="0.6"/>
+          <rect x="2" y="3" width="12" height="9" fill="#e5e7eb"/>
+          <rect x="1" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="14" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="2" y="12" width="12" height="1" fill="#9ca3af"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- loading dots -->
+          <rect x="5" y="7" width="2" height="1" fill="#fbbf24"/>
+          <rect x="8" y="7" width="1" height="1" fill="#fbbf24" opacity="0.6"/>
+          <rect x="10" y="7" width="1" height="1" fill="#fbbf24" opacity="0.3"/>
+          <!-- dots top -->
+          <rect x="14" y="1" width="1" height="1" fill="#22d3ee" opacity="0.6"/>
+          <rect x="15" y="3" width="1" height="1" fill="#22d3ee" opacity="0.3"/>
+          <rect x="5" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="7" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="9" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="11" y="10" width="1" height="1" fill="#9ca3af"/>
+          <rect x="4" y="13" width="8" height="2" fill="#9ca3af"/>
+        </svg>
+        <div class="label">thinking</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="bob">
+          <rect x="5" y="0" width="2" height="1" fill="#f472b6"/>
+          <rect x="9" y="0" width="2" height="1" fill="#f472b6"/>
+          <rect x="7" y="0" width="2" height="1" fill="#ff8ec4"/>
+          <rect x="4" y="1" width="3" height="1" fill="#f472b6" opacity="0.7"/>
+          <rect x="9" y="1" width="3" height="1" fill="#f472b6" opacity="0.7"/>
+          <rect x="7" y="1" width="2" height="1" fill="#fbbf24"/>
+          <rect x="7" y="2" width="2" height="1" fill="#22c55e"/>
+          <rect x="2" y="3" width="12" height="9" fill="#e5e7eb"/>
+          <rect x="1" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="14" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="2" y="12" width="12" height="1" fill="#9ca3af"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+          <!-- eyes -->
+          <rect x="5" y="6" width="2" height="1" fill="#22d3ee"/>
+          <rect x="9" y="6" width="2" height="1" fill="#22d3ee"/>
+          <rect x="5" y="7" width="2" height="1" fill="#22d3ee" opacity="0.5"/>
+          <rect x="9" y="7" width="2" height="1" fill="#22d3ee" opacity="0.5"/>
+          <!-- open mouth wave -->
+          <rect x="5" y="10" width="6" height="1" fill="#fbbf24"/>
+          <rect x="4" y="13" width="8" height="2" fill="#9ca3af"/>
+        </svg>
+        <div class="label">talking</div>
+      </div>
+
+      <div class="state">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+          <rect x="6" y="0" width="1" height="1" fill="#f472b6" opacity="0.4"/>
+          <rect x="9" y="0" width="1" height="1" fill="#f472b6" opacity="0.4"/>
+          <rect x="7" y="0" width="2" height="1" fill="#ff8ec4" opacity="0.3"/>
+          <rect x="7" y="1" width="2" height="1" fill="#22c55e" opacity="0.4"/>
+          <rect x="2" y="3" width="12" height="9" fill="#dde0e4"/>
+          <rect x="1" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="14" y="4" width="1" height="7" fill="#9ca3af"/>
+          <rect x="2" y="12" width="12" height="1" fill="#9ca3af"/>
+          <rect x="4" y="5" width="8" height="4" fill="#0f0d12" opacity="0.7"/>
+          <!-- Zzz on screen -->
+          <rect x="5" y="6" width="3" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="7" y="7" width="1" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="5" y="8" width="3" height="1" fill="#fbbf24" opacity="0.5"/>
+          <rect x="10" y="7" width="2" height="1" fill="#fbbf24" opacity="0.3"/>
+          <!-- Z top -->
+          <rect x="12" y="1" width="2" height="1" fill="#22d3ee" opacity="0.3"/>
+          <rect x="13" y="2" width="1" height="1" fill="#22d3ee" opacity="0.3"/>
+          <rect x="12" y="3" width="2" height="1" fill="#22d3ee" opacity="0.3"/>
+          <rect x="4" y="13" width="8" height="2" fill="#9ca3af"/>
+        </svg>
+        <div class="label">sleep</div>
+      </div>
+    </div>
+
+    <div class="chat-preview">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+        <rect x="5" y="0" width="2" height="1" fill="#f472b6"/>
+        <rect x="9" y="0" width="2" height="1" fill="#f472b6"/>
+        <rect x="7" y="0" width="2" height="1" fill="#ff8ec4"/>
+        <rect x="7" y="1" width="2" height="1" fill="#fbbf24"/>
+        <rect x="7" y="2" width="2" height="1" fill="#22c55e"/>
+        <rect x="2" y="3" width="12" height="9" fill="#e5e7eb"/>
+        <rect x="4" y="5" width="8" height="4" fill="#0f0d12"/>
+        <rect x="5" y="6" width="2" height="1" fill="#22d3ee"/>
+        <rect x="9" y="6" width="2" height="1" fill="#22d3ee"/>
+        <rect x="4" y="13" width="8" height="2" fill="#9ca3af"/>
+      </svg>
+      <div class="bubble">
+        <span class="name" style="color:#22d3ee">Sprout Bloom</span>
+        BEEP BOOP 🌸 Merhaba! Ben Sprout'un çiçek açmış hali! Sana en güzel buketi bulayım~ ✨
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer style="max-width: 1100px; margin: 48px auto 0; color: var(--muted); text-align: center; font-size: 0.85rem;">
+  Hepsi pure SVG, 16×16 pixel grid. Sprout Bot DNA'sı korunmuş — robot kafa + ekran göz + tepede bitki. Seçtiğini söyle, Angular component olarak entegre edeyim.
+</footer>
+
+</body>
+</html>

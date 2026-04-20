@@ -47,6 +47,7 @@ public class SecurityConfig {
                 auth.requestMatchers("/api/auth/login").permitAll();
                 auth.requestMatchers("/api/auth/register").permitAll();
                 auth.requestMatchers("/api/auth/refresh").permitAll();
+                auth.requestMatchers("/api/auth/logout").permitAll();
 
                 // Swagger / OpenAPI
                 auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll();

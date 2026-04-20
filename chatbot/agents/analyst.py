@@ -21,6 +21,12 @@ def analysis_agent(state: AgentState) -> dict:
     columns = result.get("columns", [])
     row_count = result.get("row_count", 0)
 
+    # ── Programmatic order listing: bypass LLM for order lists ──
+    if "order_id" in columns and rows and row_count > 0:
+        answer = _format_order_listing(rows, columns, row_count, state.get("user_role", "ADMIN"))
+        if answer:
+            return {"final_answer": answer}
+
     display_rows = rows[:20] if len(rows) > 20 else rows
     results_str = json.dumps(display_rows, default=str, indent=2)
 
@@ -49,6 +55,56 @@ def analysis_agent(state: AgentState) -> dict:
 
     # Fallback: generate analysis without LLM using Pandas
     return {"final_answer": _build_analysis(state["question"], columns, rows, row_count)}
+
+
+_PAYMENT_LABELS = {
+    "CREDIT_CARD": "Credit Card",
+    "DEBIT_CARD": "Debit Card",
+    "PAYPAL": "PayPal",
+    "BANK_TRANSFER": "Bank Transfer",
+    "COD": "Cash on Delivery",
+    "STRIPE": "Credit Card (Stripe)",
+}
+
+
+def _format_order_listing(rows: list, columns: list, row_count: int, role: str) -> str:
+    """Format order listing results as individual bullet points."""
+    lines = []
+    prefix = "your store" if role == "CORPORATE" else "your"
+    lines.append(f"Here are {prefix} last **{row_count}** orders:\n")
+
+    for row in rows:
+        oid = row.get("order_id", "?")
+        date_raw = str(row.get("order_date", ""))
+        # Format date nicely: "Apr 20, 2026"
+        try:
+            from datetime import datetime
+            # Handle various formats: "2026-04-20T14:01:28" or "2026-04-20 14:01:28.901452"
+            dt_str = date_raw.split(".")[0]  # strip microseconds
+            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                try:
+                    dt = datetime.strptime(dt_str, fmt)
+                    date_raw = dt.strftime("%b %d, %Y")
+                    break
+                except ValueError:
+                    continue
+        except Exception:
+            if "T" in date_raw:
+                date_raw = date_raw.split("T")[0]
+        status = row.get("status", "UNKNOWN")
+        total = row.get("grand_total", 0)
+        payment = row.get("payment_method", "")
+        payment_label = _PAYMENT_LABELS.get(payment, payment)
+
+        # Format total as currency
+        try:
+            total_fmt = f"${float(total):,.2f}"
+        except (ValueError, TypeError):
+            total_fmt = f"${total}"
+
+        lines.append(f"• **Order #{oid}** — {date_raw} — {status} — {total_fmt} ({payment_label})")
+
+    return "\n".join(lines)
 
 
 def _build_analysis(question: str, columns: list, rows: list, row_count: int) -> str:

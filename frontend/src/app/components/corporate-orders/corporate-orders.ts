@@ -133,30 +133,28 @@ const AVATAR_COLORS = [
                   <td class="c-date">{{ o.orderDate | date: 'MMM d, y' }}</td>
                   <td><status-pill [status]="o.status" /></td>
                   <td class="c-action">
-                    @if (o.status === 'PENDING') {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-primary"
-                        (click)="updateStatus(o.id, 'CONFIRMED')"
-                      >
-                        Confirm
-                      </button>
-                    } @else if (o.status === 'CONFIRMED') {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-primary"
-                        (click)="updateStatus(o.id, 'SHIPPED')"
-                      >
-                        Mark shipped
-                      </button>
-                    } @else if (o.status === 'SHIPPED') {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-primary"
-                        (click)="updateStatus(o.id, 'DELIVERED')"
-                      >
-                        Mark delivered
-                      </button>
+                    @if (o.paymentMethod === 'COD') {
+                      <!-- Cash on delivery flow: keep 'Confirm' visible until paid -->
+                      @if (o.status === 'PENDING') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'CONFIRMED')">Confirm</button>
+                        <button type="button" class="btn btn-sm btn-outline" style="margin-left:8px;" (click)="updateStatus(o.id, 'SHIPPED')">Mark shipped</button>
+                      } @else if (o.status === 'SHIPPED') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'CONFIRMED')">Confirm</button>
+                        <button type="button" class="btn btn-sm btn-outline" style="margin-left:8px;" (click)="updateStatus(o.id, 'DELIVERED')">Mark delivered</button>
+                      } @else if (o.status === 'DELIVERED') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'CONFIRMED')">Confirm</button>
+                      } @else if (o.status === 'CONFIRMED') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'SHIPPED')">Mark shipped</button>
+                      }
+                    } @else {
+                      <!-- Credit card / Normal flow -->
+                      @if (o.status === 'PENDING') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'CONFIRMED')">Confirm</button>
+                      } @else if (o.status === 'CONFIRMED') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'SHIPPED')">Mark shipped</button>
+                      } @else if (o.status === 'SHIPPED') {
+                        <button type="button" class="btn btn-sm btn-primary" (click)="updateStatus(o.id, 'DELIVERED')">Mark delivered</button>
+                      }
                     }
                   </td>
                 </tr>

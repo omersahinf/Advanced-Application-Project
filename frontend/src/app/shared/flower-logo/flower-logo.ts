@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 
 /**
- * Flower brand mark — four ascending green bars (fathom).
+ * Flower brand mark — three-petal trefoil with a darker core.
  *
  * Used on login, sidebar, and topbar. Single source of truth for the logo
  * so all surfaces render identical geometry and colors.
@@ -18,10 +18,18 @@ import { Component, Input } from '@angular/core';
       aria-hidden="true"
       focusable="false"
     >
-      <rect x="2" y="14" width="3.5" height="8" rx="1" fill="var(--fathom)" />
-      <rect x="7" y="9" width="3.5" height="13" rx="1" fill="var(--fathom)" />
-      <rect x="12" y="11" width="3.5" height="11" rx="1" fill="var(--fathom)" />
-      <rect x="17" y="6" width="3.5" height="16" rx="1" fill="var(--fathom)" />
+      <g fill="var(--fathom)">
+        <path d="M12 1.5 C 17 4, 17 10.5, 12 13 C 7 10.5, 7 4, 12 1.5 Z" />
+        <path
+          d="M12 1.5 C 17 4, 17 10.5, 12 13 C 7 10.5, 7 4, 12 1.5 Z"
+          transform="rotate(120 12 12)"
+        />
+        <path
+          d="M12 1.5 C 17 4, 17 10.5, 12 13 C 7 10.5, 7 4, 12 1.5 Z"
+          transform="rotate(240 12 12)"
+        />
+      </g>
+      <circle cx="12" cy="12" r="1.9" fill="var(--fathom-dark, #023a34)" />
     </svg>
   `,
   styles: [

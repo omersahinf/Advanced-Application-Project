@@ -1,14 +1,16 @@
 # E-Commerce Analytics Platform
 
 CSE 214 — Advanced Application Development Final Project.
-Spring Boot + Angular + Multi-Agent Text2SQL AI Chatbot (LangGraph + Google Gemini).
+Full-stack e-commerce platform with role-based dashboards (Admin / Corporate / Individual), a Stripe-backed checkout flow, and a natural-language analytics chatbot built as a multi-agent LangGraph pipeline over Google Gemini.
+
+**Stack:** Spring Boot 3 + Angular 21 + Python (LangGraph / FastAPI / Chainlit) + PostgreSQL.
 
 ## Prerequisites
 
 - Java 17+
 - Node.js 18+
-- PostgreSQL (recommended) or MySQL
-- Python 3.10+ (for chatbot)
+- PostgreSQL 14+ (MySQL also supported)
+- Python 3.10+ (for the chatbot)
 
 ## Quick Start
 
@@ -17,9 +19,9 @@ Spring Boot + Angular + Multi-Agent Text2SQL AI Chatbot (LangGraph + Google Gemi
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env: set JWT_SECRET (64+ chars), AI_API_KEY (Gemini API key), CHATBOT_API_KEY
+# Edit .env: JWT_SECRET (64+ chars), AI_API_KEY (Gemini), CHATBOT_API_KEY, STRIPE_SECRET_KEY
 ./mvnw spring-boot:run
-# Runs on http://localhost:8080 with PostgreSQL (SPRING_PROFILE=postgres)
+# http://localhost:8080  (profile: postgres)
 ```
 
 ### 2. Frontend (Angular)
@@ -28,7 +30,7 @@ cp .env.example .env
 cd frontend
 npm install
 npm start
-# Runs on http://localhost:4200 (proxies /api -> localhost:8080)
+# http://localhost:4200  (proxies /api -> localhost:8080)
 ```
 
 ### 3. Chatbot (Python)
@@ -38,14 +40,14 @@ cd chatbot
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env: set OPENAI_API_KEY (your Gemini API key), DATABASE_URL, CHATBOT_API_KEY
+# Edit .env: OPENAI_API_KEY (Gemini), DATABASE_URL, CHATBOT_API_KEY
 python main.py
-# Runs on http://localhost:8000
+# http://localhost:8000
 ```
 
 ### 4. Login
 
-Open http://localhost:4200 and use one of the seeded accounts:
+Open http://localhost:4200 and sign in with a seeded account:
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -56,24 +58,27 @@ Open http://localhost:4200 and use one of the seeded accounts:
 ## Project Structure
 
 ```
-backend/                    Spring Boot 3.2.3 (Java 17) — REST API, JWT auth, RBAC
+backend/                    Spring Boot 3 (Java 17) — REST API, JWT, RBAC
   config/                   SecurityConfig, OpenApiConfig, DataSeeder
-  controller/               11 REST controllers (Auth, Product, Order, Cart, Admin, Store, etc.)
-  entity/                   11 JPA entities + enums
-  service/                  16 services incl. InputValidator.java (security)
+  controller/               13 REST controllers
+  entity/                   14 JPA entities + 4 enum status types
+  service/                  Business logic, validation, Stripe, Gemini fallback
   security/                 JwtFilter, JwtUtil, RateLimitFilter, UserPrincipal
+  exception/                Custom exceptions + GlobalExceptionHandler
 
-frontend/                   Angular 21 — standalone components, signals
-  components/               20 components (dashboards, cart, orders, reviews, chatbot, admin)
-  services/                 10 HTTP services
+frontend/                   Angular 21 — standalone components, signals, Flower design system
+  components/               25 components across admin / corporate / individual surfaces
+  services/                 HTTP services (auth, cart, orders, products, dashboard, chat, ...)
   guards/                   authGuard, roleGuard
+  interceptors/             auth.interceptor (JWT + global error handling)
+  shared/                   Design-system primitives (kpi-card, status-pill, flower-logo, bouqbot-avatar)
 
-chatbot/                    Python — LangGraph + FastAPI + Chainlit
-  agents/                   6 agents (guardrails, sql_generator, executor, error_handler, analyst, visualizer)
-  graph.py                  LangGraph state machine
-  main.py                   FastAPI entry point (port 8000)
+chatbot/                    Python — LangGraph state machine + FastAPI
+  agents/                   guardrails, sql_generator, executor, error_handler, analyst, visualizer
+  graph.py                  Multi-agent pipeline
+  main.py                   FastAPI entry point
 
-analytics-platform/         Flask + Plotly BI dashboard (port 8002, optional)
+analytics-platform/         Flask + Plotly BI dashboard (optional, port 8002)
 ```
 
 ## Key Endpoints
@@ -81,47 +86,70 @@ analytics-platform/         Flask + Plotly BI dashboard (port 8002, optional)
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/auth/login` | No | Login, returns JWT access + refresh tokens |
-| POST | `/api/auth/register` | No | Register new user |
-| GET | `/api/products` | Yes | Browse products (search, filter, pagination) |
+| POST | `/api/auth/register` | No | Register individual user |
+| POST | `/api/auth/refresh` | No | Exchange refresh token for new access token |
+| GET | `/api/products` | Yes | Browse products (search, filter, pagination, sort) |
+| POST | `/api/cart/items` | Individual | Add item to cart |
 | POST | `/api/orders` | Individual | Place order from cart |
-| POST | `/api/payments/create-intent` | Individual | Create Stripe PaymentIntent for an order |
-| POST | `/api/payments/confirm` | Individual | Confirm Stripe payment and update order status |
-| POST | `/api/chat/ask` | Yes | AI chatbot (proxied to Python LangGraph) |
-| POST | `/api/ai/chat` | Yes | Gemini direct fallback (when chatbot is down) |
-| GET | `/api/store/my/*` | Corporate | Store management, product CRUD, orders |
-| GET | `/api/admin/*` | Admin | User/store management, analytics, audit logs |
+| POST | `/api/payments/create-intent` | Individual | Create Stripe PaymentIntent |
+| POST | `/api/payments/confirm` | Individual | Confirm Stripe payment |
+| POST | `/api/chat/ask` | Yes | Analytics chatbot (proxied to LangGraph) |
+| GET | `/api/store/my/*` | Corporate | Store + product + order management |
+| GET | `/api/admin/*` | Admin | Users, stores, analytics, audit logs, settings |
+
+Full OpenAPI schema at `http://localhost:8080/swagger-ui.html`.
 
 ## Payment Integration (Stripe)
 
-The platform uses **Stripe Test API** for payment processing:
-- **Backend:** `stripe-java` SDK — creates PaymentIntents via `PaymentService.java`
-- **Frontend:** Stripe.js Elements — secure card input on the checkout page
-- **Flow:** Cart → Place Order (PENDING) → Stripe Checkout → Payment Confirmed (CONFIRMED)
-- **Test card:** `4242 4242 4242 4242` — any future expiry, any CVC
-- Secret key is **never** exposed to the frontend — all Stripe API calls happen server-side
+- **Backend:** `stripe-java` SDK — creates PaymentIntents in `PaymentService`.
+- **Frontend:** Stripe.js Elements for secure card input on checkout.
+- **Flow:** Cart → Order (PENDING) → Stripe → Order (CONFIRMED).
+- **Test card:** `4242 4242 4242 4242`, any future expiry, any CVC.
+- Secret key is server-side only.
 
 ## AI Integration (Google Gemini)
 
-The entire system uses **Google Gemini API** (`gemini-3-flash-preview`) through OpenAI-compatible endpoints:
-- **Chatbot:** Python `openai` SDK with Gemini base URL (`chatbot/config.py`)
-- **Backend fallback:** `GeminiService.java` via Spring `WebClient`
-- The API key is **never** exposed to the frontend — all AI calls happen server-side
+- Chatbot uses the `openai` Python SDK against Gemini's OpenAI-compatible endpoint.
+- Backend provides `GeminiService` via Spring `WebClient` as a fallback when the chatbot is offline.
+- API keys are server-side only and loaded from environment variables.
 
-## Security
+## Security Highlights
 
-- **JWT:** HS512-signed, 1h access / 7d refresh, `alg: none` rejected
-- **RBAC:** Admin, Corporate, Individual — enforced at URL and method level
-- **Rate Limiting:** 20 req/min on `/api/auth/login` and `/api/chat/ask`
-- **Three-layer chat defense:** InputValidator.java (regex) -> Guardrails Agent (LLM) -> `_inject_role_filter` (deterministic)
-- **Read-only chatbot:** SELECT/WITH only, `TRANSACTION READ ONLY`
+- **JWT:** HS512-signed, 1h access / 7d refresh; `alg: none` rejected.
+- **RBAC:** Admin / Corporate / Individual roles enforced at URL and method level (`@PreAuthorize`).
+- **Rate limiting:** 20 req/min on `/api/auth/login` and `/api/chat/ask`.
+- **Input validation:** Boundary validation on all controllers; server-authoritative cart/order totals.
+- **Chatbot defense-in-depth:**
+  - Regex-based input validator
+  - LLM guardrails agent (intent + OOS filtering)
+  - Deterministic `_inject_role_filter` on every generated SQL
+  - Read-only transaction: `SELECT` / `WITH` only, multi-statement and comment-stripped
+- **Headers:** HSTS, X-Content-Type-Options, X-Frame-Options, strict Referrer-Policy.
 
-See `PROJECT.md` for full architecture, all 12 attack vector mitigations, and the professor's test scenarios.
+## Testing
+
+- **Backend:** JUnit 5 + Mockito + MockMvc + Testcontainers — service, controller, and integration tests.
+- **Frontend:** Vitest + jsdom — service and model specs.
+- **Chatbot:** pytest — guardrails, SQL validation, role isolation, XSS regression, dataset compatibility.
+
+```bash
+# Backend
+cd backend && ./mvnw test
+
+# Frontend
+cd frontend && npm test
+
+# Chatbot
+cd chatbot && pytest
+```
 
 ## Documentation
 
 | File | Purpose |
 |------|---------|
-| `PROJECT.md` | Complete requirements reference — tech stack, API endpoints, security, feature checklist |
-| `DEMO_SCRIPT.md` | 10-minute class presentation script |
-| `SECURITY_NOTES.md` | Answers to professor's security questions |
-| `docs/ETL_FIELD_MAPPING.md` | Dataset-to-schema mapping |
+| `docs/ETL_FIELD_MAPPING.md` | Kaggle dataset → schema field mapping for seeded data |
+| `docs/database-smoke-test.sh` | Quick DB connectivity check |
+
+## Repository
+
+https://github.com/omersahinf/Advanced-Application-Project

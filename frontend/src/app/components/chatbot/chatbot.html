@@ -87,35 +87,41 @@
               <div class="answer">{{ m.text }}</div>
 
               <div class="result-card">
-                @if (auth.isAdmin()) {
+                @if (m.hasChart || m.data || (auth.isAdmin() && m.sqlQuery)) {
                   <div class="tabs">
-                    <button
-                      type="button"
-                      class="tab"
-                      [class.active]="m.activeTab === 'chart'"
-                      (click)="setTab(m, 'chart')"
-                    >
-                      <flower-icon name="chart" [size]="12" />
-                      Chart
-                    </button>
-                    <button
-                      type="button"
-                      class="tab"
-                      [class.active]="m.activeTab === 'table'"
-                      (click)="setTab(m, 'table')"
-                    >
-                      <flower-icon name="layers" [size]="12" />
-                      Table
-                    </button>
-                    <button
-                      type="button"
-                      class="tab"
-                      [class.active]="m.activeTab === 'sql'"
-                      (click)="setTab(m, 'sql')"
-                    >
-                      <flower-icon name="database" [size]="12" />
-                      SQL
-                    </button>
+                    @if (m.hasChart) {
+                      <button
+                        type="button"
+                        class="tab"
+                        [class.active]="m.activeTab === 'chart'"
+                        (click)="setTab(m, 'chart')"
+                      >
+                        <flower-icon name="chart" [size]="12" />
+                        Chart
+                      </button>
+                    }
+                    @if (m.data) {
+                      <button
+                        type="button"
+                        class="tab"
+                        [class.active]="m.activeTab === 'table'"
+                        (click)="setTab(m, 'table')"
+                      >
+                        <flower-icon name="layers" [size]="12" />
+                        Table
+                      </button>
+                    }
+                    @if (auth.isAdmin() && m.sqlQuery) {
+                      <button
+                        type="button"
+                        class="tab"
+                        [class.active]="m.activeTab === 'sql'"
+                        (click)="setTab(m, 'sql')"
+                      >
+                        <flower-icon name="database" [size]="12" />
+                        SQL
+                      </button>
+                    }
                     <div class="tab-spacer"></div>
                     <div class="tab-actions">
                       <button
@@ -142,7 +148,7 @@
                 }
 
                 <!-- Chart tab -->
-                @if (m.activeTab === 'chart' || !auth.isAdmin()) {
+                @if (m.activeTab === 'chart') {
                   <div class="tab-pane">
                     @if (m.vizUrl) {
                       <iframe
@@ -162,7 +168,7 @@
                 }
 
                 <!-- Table tab -->
-                @if (m.activeTab === 'table' && auth.isAdmin()) {
+                @if (m.activeTab === 'table') {
                   <div class="tab-pane">
                     @if (m.data && m.data.rows.length > 0) {
                       <div class="table-scroll">

@@ -4,6 +4,7 @@ from agents.sql_generator import (
     _add_where_clause,
     _build_category_sales_timeframe_sql,
     _build_month_over_month_comparison_sql,
+    _build_personal_spending_sql,
     _build_revenue_by_month_sql,
     _build_order_listing_sql,
     _build_shipment_status_timeframe_sql,
@@ -130,6 +131,46 @@ def test_category_sales_last_month_sql_joins_orders_and_filters_month_for_corpor
     assert "p.store_id = 1" in sql
     assert "GROUP BY c.id, c.name" in sql
     assert "ORDER BY total_sales DESC" in sql
+
+
+def test_personal_spending_this_year_sql_is_user_scoped_and_deterministic():
+    sql = _build_personal_spending_sql(
+        "How much have I spent this year?",
+        "INDIVIDUAL",
+        user_id=42,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "SUM(o.grand_total)" in sql
+    assert "COUNT(o.id) AS order_count" in sql
+    assert "o.user_id = 42" in sql
+    assert "o.status != 'CANCELLED'" in sql
+    assert "o.order_date >= DATE_TRUNC('year', CURRENT_DATE)" in sql
+
+
+def test_personal_spending_last_month_sql_uses_month_window():
+    sql = _build_personal_spending_sql(
+        "How much did I spend last month?",
+        "INDIVIDUAL",
+        user_id=42,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')" in sql
+    assert "o.order_date < DATE_TRUNC('month', CURRENT_DATE)" in sql
+
+
+def test_personal_spending_sql_rejects_non_individual_role():
+    sql = _build_personal_spending_sql(
+        "How much have I spent this year?",
+        "CORPORATE",
+        user_id=42,
+        store_id=7,
+    )
+
+    assert sql is None
 
 
 def test_month_over_month_comparison_sql_returns_period_rows_for_admin():

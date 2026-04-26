@@ -309,6 +309,51 @@ def _build_category_sales_timeframe_sql(question: str, role: str, user_id: int, 
     )
 
 
+def _build_personal_spending_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for individual spending totals."""
+    if role != "INDIVIDUAL" or not user_id:
+        return None
+
+    q = question.lower()
+    if not any(word in q for word in ["spent", "spend", "spending"]):
+        return None
+    if not _is_personal_query(question):
+        return None
+
+    where_clauses = [
+        f"o.user_id = {user_id}",
+        "o.status != 'CANCELLED'",
+    ]
+
+    if "this year" in q:
+        where_clauses.append("o.order_date >= DATE_TRUNC('year', CURRENT_DATE)")
+    elif "last year" in q or "previous year" in q:
+        where_clauses.append(
+            "o.order_date >= DATE_TRUNC('year', CURRENT_DATE - INTERVAL '1 year') "
+            "AND o.order_date < DATE_TRUNC('year', CURRENT_DATE)"
+        )
+    elif "this month" in q:
+        where_clauses.append("o.order_date >= DATE_TRUNC('month', CURRENT_DATE)")
+    elif "last month" in q or "previous month" in q:
+        where_clauses.append(
+            "o.order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') "
+            "AND o.order_date < DATE_TRUNC('month', CURRENT_DATE)"
+        )
+    elif "this week" in q:
+        where_clauses.append("o.order_date >= DATE_TRUNC('week', CURRENT_DATE)")
+    elif "today" in q:
+        where_clauses.append("o.order_date >= DATE_TRUNC('day', CURRENT_DATE)")
+
+    where_sql = " AND ".join(where_clauses)
+
+    return (
+        "SELECT ROUND(COALESCE(SUM(o.grand_total), 0), 2) AS total_spent, "
+        "COUNT(o.id) AS order_count "
+        "FROM orders o "
+        f"WHERE {where_sql}"
+    )
+
+
 def _build_month_over_month_comparison_sql(question: str, role: str, user_id: int, store_id: int):
     """Return deterministic SQL for month-over-month comparison questions."""
     q = question.lower()
@@ -721,6 +766,12 @@ def sql_generator_agent(state: AgentState) -> dict:
     )
     if deterministic_category_sales_sql:
         return {"sql_query": deterministic_category_sales_sql, "error": None}
+
+    deterministic_personal_spending_sql = _build_personal_spending_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_personal_spending_sql:
+        return {"sql_query": deterministic_personal_spending_sql, "error": None}
 
     deterministic_month_compare_sql = _build_month_over_month_comparison_sql(
         state["question"], role, user_id, store_id

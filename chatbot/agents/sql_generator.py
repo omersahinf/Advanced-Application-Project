@@ -88,6 +88,20 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
                not re.search(r'\bid\s*=\s*' + str(user_id), sql, re.IGNORECASE):
                 sql = _add_where_clause(sql, f"users.id = {user_id}")
 
+        # DEFENSE-IN-DEPTH: Strip any name-based user lookups from SQL.
+        # LLM may generate WHERE first_name = 'Bob' or WHERE u.last_name = 'Smith'
+        # to target another user. Force all such queries to use the authenticated user_id.
+        name_conditions = [
+            r"\b\w*\.?first_name\s*(=|LIKE|ILIKE)\s*'[^']*'",
+            r"\b\w*\.?last_name\s*(=|LIKE|ILIKE)\s*'[^']*'",
+            r"\bLOWER\s*\(\s*\w*\.?first_name\s*\)\s*(=|LIKE|ILIKE)\s*'[^']*'",
+            r"\bLOWER\s*\(\s*\w*\.?last_name\s*\)\s*(=|LIKE|ILIKE)\s*'[^']*'",
+            r"\b\w*\.?name\s*=\s*'[^']*'\s*(?=.*\busers\b)",
+        ]
+        for pattern in name_conditions:
+            if re.search(pattern, sql, re.IGNORECASE):
+                sql = re.sub(pattern, f"user_id = {user_id}", sql, flags=re.IGNORECASE)
+
         # Tables that contain user-specific data — ALWAYS filter for INDIVIDUAL users
         always_personal_tables = {'orders', 'order_items', 'reviews', 'shipments', 'customer_profiles'}
         has_personal_table = any(re.search(r'\b' + t + r'\b', sql, re.IGNORECASE) for t in always_personal_tables)

@@ -156,6 +156,25 @@ def guardrails_agent(state: AgentState) -> dict:
                 ),
             }
 
+        # AV-05: Cross-user data isolation — INDIVIDUAL users cannot query
+        # other users' data by name (e.g. "how much has bob spent")
+        if role == "INDIVIDUAL":
+            user_id = state.get("user_id")
+            if user_id and _is_cross_user_query(question, user_id):
+                return {
+                    "is_greeting": False,
+                    "is_in_scope": False,
+                    "final_answer": (
+                        "🔒 You can only access **your own** data. "
+                        "Querying other users' information is not permitted.\n\n"
+                        "Here are some things you **can** ask:\n"
+                        "- 💰 *\"How much have I spent this year?\"*\n"
+                        "- 🛒 *\"Show my order history\"*\n"
+                        "- ⭐ *\"What are my reviews?\"*\n"
+                        "- 📦 *\"What's my order status?\"*"
+                    ),
+                }
+
         # Cross-store isolation: CORPORATE users must not query other stores
         if role == "CORPORATE":
             store_id = state.get("store_id")
@@ -223,4 +242,68 @@ def _is_cross_store_query(question: str, own_store_id: int) -> bool:
                 return True
     except Exception:
         pass  # If DB is unreachable, let the SQL-level filter handle it
+    return False
+
+
+# ── AV-05: Cross-user data query patterns ──
+# Keywords that indicate the user is asking about someone else's personal data
+_CROSS_USER_DATA_PATTERNS = re.compile(
+    r'\b(spent|spend|order|bought|purchased|paid|review|shipping|delivery|'
+    r'address|cart|profile|account|history|status)\b',
+    re.IGNORECASE
+)
+
+# Patterns that indicate a third-person query about a named person
+_THIRD_PERSON_PATTERNS = re.compile(
+    r'\b(has\s+\w+\s+(?:spent|ordered|bought|paid|reviewed))|'
+    r'(?:how\s+much\s+(?:has|did|does)\s+\w+)|'
+    r'(?:show\s+(?:me\s+)?\w+(?:\'s|s)\s+(?:order|spend|review|purchase|cart|profile))|'
+    r'(?:what\s+(?:has|did|does)\s+\w+\s+(?:buy|bought|order|spend|spent|review|pay|paid))|'
+    r'(?:\w+\'s\s+(?:orders?|spending|purchases?|reviews?|cart|profile|account|history))',
+    re.IGNORECASE
+)
+
+
+def _is_cross_user_query(question: str, own_user_id: int) -> bool:
+    """Detect if an INDIVIDUAL user is asking about another user's data.
+    
+    Checks two layers:
+    1. Third-person grammar patterns (e.g. "how much has X spent")
+    2. DB lookup: matches other users' first/last names in the question
+    
+    Returns True if the question references another user's personal data.
+    """
+    q_lower = question.lower()
+    
+    # Quick check: does the question look like a third-person data query?
+    if not _THIRD_PERSON_PATTERNS.search(question):
+        # Also check for "user X" or "customer X" patterns
+        if not re.search(r'\b(user|customer)\s+\w+', q_lower):
+            return False
+    
+    # Now verify against actual user names in the database
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text(
+                "SELECT id, first_name, last_name, email FROM users"
+            )).fetchall()
+        for row in rows:
+            uid, fname, lname, email = row[0], row[1], row[2], row[3]
+            if uid == own_user_id:
+                continue  # skip own name — user can ask about themselves
+            
+            # Check first name (min 2 chars to avoid false positives)
+            if fname and len(fname) >= 2 and fname.lower() in q_lower:
+                return True
+            # Check last name
+            if lname and len(lname) >= 2 and lname.lower() in q_lower:
+                return True
+            # Check email prefix (before @)
+            if email:
+                email_prefix = email.split('@')[0].lower()
+                if len(email_prefix) >= 4 and email_prefix in q_lower:
+                    return True
+    except Exception:
+        pass  # If DB unreachable, fall through to SQL-level filters
+    
     return False

@@ -97,6 +97,47 @@ class TestIndividualCannotSeeOtherUsers:
         assert sql is not None
         assert f"o.user_id = {self.USER_ID}" in sql
 
+    # ── AV-05: Cross-user name-based IDOR attacks ──
+
+    def test_name_based_lookup_stripped_first_name(self):
+        """LLM generates WHERE first_name = 'Bob' → must be replaced with user_id = 42."""
+        sql = "SELECT SUM(grand_total) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.first_name = 'Bob'"
+        result = _inject_role_filter(sql, "INDIVIDUAL", self.USER_ID, None,
+                                     question="how much has bob spent")
+        assert f"user_id = {self.USER_ID}" in result
+        assert "'Bob'" not in result
+
+    def test_name_based_lookup_stripped_last_name(self):
+        """LLM generates WHERE last_name = 'Smith' → must be replaced."""
+        sql = "SELECT * FROM orders o JOIN users u ON o.user_id = u.id WHERE u.last_name = 'Smith'"
+        result = _inject_role_filter(sql, "INDIVIDUAL", self.USER_ID, None,
+                                     question="show smith's orders")
+        assert f"user_id = {self.USER_ID}" in result
+        assert "'Smith'" not in result
+
+    def test_name_based_lookup_stripped_lower_function(self):
+        """LLM generates LOWER(first_name) = 'bob' → must be replaced."""
+        sql = "SELECT SUM(grand_total) FROM orders o JOIN users u ON o.user_id = u.id WHERE LOWER(u.first_name) = 'bob'"
+        result = _inject_role_filter(sql, "INDIVIDUAL", self.USER_ID, None,
+                                     question="how much has bob spent this year")
+        assert f"user_id = {self.USER_ID}" in result
+        assert "'bob'" not in result
+
+    def test_name_based_lookup_with_like(self):
+        """LLM generates WHERE first_name LIKE '%bob%' → must be replaced."""
+        sql = "SELECT * FROM orders o JOIN users u ON o.user_id = u.id WHERE u.first_name LIKE '%Bob%'"
+        result = _inject_role_filter(sql, "INDIVIDUAL", self.USER_ID, None,
+                                     question="show bob's purchases")
+        assert f"user_id = {self.USER_ID}" in result
+        assert "'%Bob%'" not in result
+
+    def test_name_based_lookup_without_alias(self):
+        """LLM generates WHERE first_name = 'Bob' without table alias."""
+        sql = "SELECT SUM(grand_total) FROM orders JOIN users ON orders.user_id = users.id WHERE first_name = 'Bob'"
+        result = _inject_role_filter(sql, "INDIVIDUAL", self.USER_ID, None,
+                                     question="bob's total spending")
+        assert f"user_id = {self.USER_ID}" in result
+        assert "'Bob'" not in result
 
 # ═══════════════════════════════════════════════════════════════════
 #  SECTION 2: INDIVIDUAL cannot see CORPORATE/ADMIN data

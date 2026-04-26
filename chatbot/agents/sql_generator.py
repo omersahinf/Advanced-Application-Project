@@ -147,23 +147,26 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
         # 3) Find the alias used for the stores table (e.g., "stores s" → alias "s")
         stores_alias_match = re.search(r'\bstores\s+(?:AS\s+)?(\w+)', sql, re.IGNORECASE)
         stores_aliases = ['stores', 'store']
+        store_filter_alias = "stores"
         if stores_alias_match:
             candidate = stores_alias_match.group(1)
             if candidate.upper() not in _SQL_KEYWORDS:
                 stores_aliases.append(candidate)
+                store_filter_alias = candidate
+        store_filter_clause = f"{store_filter_alias}.id = {store_id}"
 
         # 4) Strip .name = '...' or LIKE '...' for ALL aliases of the stores table
         for alias in stores_aliases:
             # Direct: alias.name = 'SomeName'
             sql = re.sub(
                 rf"\b{re.escape(alias)}\.name\s*(=|LIKE|ILIKE)\s*'[^']*'",
-                f"stores.id = {store_id}",
+                store_filter_clause,
                 sql, flags=re.IGNORECASE
             )
             # Wrapped: LOWER(alias.name) = 'somename'
             sql = re.sub(
                 rf"\b(LOWER|UPPER)\s*\(\s*{re.escape(alias)}\.name\s*\)\s*(=|LIKE|ILIKE)\s*'[^']*'",
-                f"stores.id = {store_id}",
+                store_filter_clause,
                 sql, flags=re.IGNORECASE
             )
             # Also catch alias.id = <other_id>
@@ -174,6 +177,17 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
                     sql, flags=re.IGNORECASE
                 )
 
+        # 5) An LLM may translate "other owner's store" into owner_id = <id>.
+        # Corporate users are scoped by authenticated store_id, so owner_id
+        # predicates must not become an alternate authorization boundary.
+        if re.search(r'\bstores\b', sql, re.IGNORECASE):
+            sql = re.sub(
+                r'\bowner_id\s*=\s*(\d+)',
+                store_filter_clause,
+                sql,
+                flags=re.IGNORECASE
+            )
+
         # Block direct access to users table
         if re.search(r'\busers\b', sql, re.IGNORECASE):
             # Corporate can only see users through orders/reviews on their store
@@ -183,9 +197,8 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
 
         # Filter stores to own store only
         if re.search(r'\bstores\b', sql, re.IGNORECASE):
-            if not re.search(r'\bstores\.id\s*=\s*' + str(store_id), sql, re.IGNORECASE) and \
-               not re.search(r'\bowner_id\s*=', sql, re.IGNORECASE):
-                sql = _add_where_clause(sql, f"stores.id = {store_id}")
+            if not re.search(r'\b(?:stores|store|' + re.escape(store_filter_alias) + r')\.id\s*=\s*' + str(store_id), sql, re.IGNORECASE):
+                sql = _add_where_clause(sql, store_filter_clause)
 
         filter_col = "store_id"
         filter_val = store_id
@@ -328,6 +341,35 @@ def _build_month_over_month_comparison_sql(question: str, role: str, user_id: in
         f"AND {filter_sql} "
         "GROUP BY p.period, p.sort_order "
         "ORDER BY p.sort_order"
+    )
+
+
+def _build_revenue_by_month_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic monthly revenue trend SQL with role scoping."""
+    q = question.lower()
+    if "month" not in q and "monthly" not in q:
+        return None
+    if not any(word in q for word in ["revenue", "sales", "income", "spend", "spent"]):
+        return None
+
+    filters = ["o.status != 'CANCELLED'"]
+    if role == "CORPORATE" and store_id:
+        filters.append(f"o.store_id = {store_id}")
+    elif role == "INDIVIDUAL" and user_id:
+        if not _is_personal_query(question):
+            return None
+        filters.append(f"o.user_id = {user_id}")
+
+    filter_sql = " AND ".join(filters)
+
+    return (
+        "SELECT DATE_TRUNC('month', o.order_date) AS month, "
+        "COUNT(o.id) AS order_count, "
+        "ROUND(SUM(o.grand_total), 2) AS total_revenue "
+        "FROM orders o "
+        f"WHERE {filter_sql} "
+        "GROUP BY DATE_TRUNC('month', o.order_date) "
+        "ORDER BY month"
     )
 
 
@@ -669,6 +711,12 @@ def sql_generator_agent(state: AgentState) -> dict:
     )
     if deterministic_month_compare_sql:
         return {"sql_query": deterministic_month_compare_sql, "error": None}
+
+    deterministic_revenue_by_month_sql = _build_revenue_by_month_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_revenue_by_month_sql:
+        return {"sql_query": deterministic_revenue_by_month_sql, "error": None}
 
     deterministic_shipment_status_sql = _build_shipment_status_timeframe_sql(
         state["question"], role, user_id, store_id

@@ -71,7 +71,7 @@ describe('Global styles — Flower design tokens', () => {
 
   it('defines page background and card surface tokens', () => {
     expect(styles).toMatch(/--bg:\s*#e4e4d0/);
-    expect(styles).toMatch(/--lumen:\s*#faf8ea/);
+    expect(styles).toMatch(/--lumen:\s*#ffffeb/);
   });
 
   it('defines typography font stacks', () => {

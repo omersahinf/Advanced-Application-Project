@@ -27,7 +27,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/ecommerce_demo
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-change-me-please-use-at-least-64-characters-for-hs512-signing-key}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set to at least 64 characters for HS512 signing}
       AI_API_KEY: ${AI_API_KEY:-}
       CHATBOT_API_KEY: ${CHATBOT_API_KEY:-shared-secret-change-me}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}

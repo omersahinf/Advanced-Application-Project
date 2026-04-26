@@ -362,6 +362,15 @@ FROM order_items oi JOIN products p ON oi.product_id = p.id
 JOIN orders o ON oi.order_id = o.id WHERE o.status != 'CANCELLED'
 GROUP BY p.name ORDER BY total_revenue DESC LIMIT 10"""
 
+    # --- Revenue by month ---
+    if ("month" in question or "monthly" in question) and any(
+        word in question for word in ["revenue", "sales", "income", "spend", "spent"]
+    ):
+        return """SELECT DATE_TRUNC('month', o.order_date) AS month,
+COUNT(o.id) AS order_count, ROUND(SUM(o.grand_total), 2) AS total_revenue
+FROM orders o WHERE o.status != 'CANCELLED'
+GROUP BY DATE_TRUNC('month', o.order_date) ORDER BY month"""
+
     # --- Total revenue ---
     if ("total revenue" in question) and "store" not in question:
         return "SELECT ROUND(SUM(grand_total), 2) as total_revenue FROM orders WHERE status != 'CANCELLED'"

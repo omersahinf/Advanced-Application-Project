@@ -171,6 +171,12 @@ public class OrderService {
             if (status != OrderStatus.CANCELLED && status != OrderStatus.RETURNED) {
                 throw new BadRequestException("Individual users can only cancel or return orders");
             }
+            if (status == OrderStatus.CANCELLED) {
+                OrderStatus current = order.getStatus();
+                if (current != OrderStatus.PENDING) {
+                    throw new BadRequestException("Only pending orders can be cancelled");
+                }
+            }
             if (status == OrderStatus.RETURNED) {
                 OrderStatus current = order.getStatus();
                 if (current != OrderStatus.CONFIRMED

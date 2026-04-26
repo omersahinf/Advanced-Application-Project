@@ -4,6 +4,7 @@ from agents.sql_generator import (
     _add_where_clause,
     _build_category_sales_timeframe_sql,
     _build_month_over_month_comparison_sql,
+    _build_revenue_by_month_sql,
     _build_shipment_status_timeframe_sql,
     _build_shipped_by_air_sql,
     _inject_role_filter,
@@ -78,6 +79,20 @@ def test_corporate_stores_query_is_limited_to_owned_store():
     assert "stores.id = 7" in result
 
 
+def test_corporate_stores_owner_id_is_rewritten_to_owned_store():
+    sql = "SELECT * FROM stores WHERE owner_id = 99"
+    result = _inject_role_filter(sql, "CORPORATE", 1, 7, question="Show owner 99 store")
+    assert "stores.id = 7" in result
+    assert "owner_id = 99" not in result
+
+
+def test_corporate_stores_alias_owner_id_is_rewritten_to_owned_store_alias():
+    sql = "SELECT s.name FROM stores s WHERE owner_id = 99"
+    result = _inject_role_filter(sql, "CORPORATE", 1, 7, question="Show owner 99 store")
+    assert "s.id = 7" in result
+    assert "owner_id = 99" not in result
+
+
 def test_corporate_users_query_gets_store_scope():
     sql = "SELECT id, email FROM users"
     result = _inject_role_filter(sql, "CORPORATE", 1, 7, question="Show customers for my store")
@@ -135,6 +150,45 @@ def test_month_over_month_comparison_sql_returns_period_rows_for_admin():
     assert "o.status != 'CANCELLED'" in sql
     assert "GROUP BY p.period, p.sort_order" in sql
     assert "ORDER BY p.sort_order" in sql
+
+
+def test_revenue_by_month_sql_returns_monthly_rows_for_admin():
+    sql = _build_revenue_by_month_sql(
+        "Show platform revenue by month",
+        "ADMIN",
+        user_id=1,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "DATE_TRUNC('month', o.order_date) AS month" in sql
+    assert "SUM(o.grand_total)" in sql
+    assert "o.status != 'CANCELLED'" in sql
+    assert "GROUP BY DATE_TRUNC('month', o.order_date)" in sql
+    assert "ORDER BY month" in sql
+
+
+def test_revenue_by_month_sql_is_store_scoped_for_corporate():
+    sql = _build_revenue_by_month_sql(
+        "Show revenue by month",
+        "CORPORATE",
+        user_id=2,
+        store_id=7,
+    )
+
+    assert sql is not None
+    assert "o.store_id = 7" in sql
+
+
+def test_revenue_by_month_sql_rejects_platform_revenue_for_individual():
+    sql = _build_revenue_by_month_sql(
+        "Show platform revenue by month",
+        "INDIVIDUAL",
+        user_id=42,
+        store_id=None,
+    )
+
+    assert sql is None
 
 
 def test_shipped_by_air_sql_is_platform_scoped_for_admin():

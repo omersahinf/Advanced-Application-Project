@@ -118,7 +118,7 @@ class OrderServiceTest {
 
         OrderDto result = orderService.placeOrder(1L, req);
 
-        assertEquals("STRIPE", result.getPaymentMethod());
+        assertEquals("CREDIT_CARD", result.getPaymentMethod());
         assertEquals("PENDING", result.getStatus());
         verify(orderRepository).save(any(Order.class));
     }
@@ -181,6 +181,17 @@ class OrderServiceTest {
         OrderDto result = orderService.updateOrderStatus(1L, OrderStatus.CANCELLED, 1L, "INDIVIDUAL");
 
         assertEquals("CANCELLED", result.getStatus());
+    }
+
+    @Test
+    void updateOrderStatus_individualCannotCancelAfterShipped() {
+        testOrder.setUser(testUser);
+        testOrder.setStatus(OrderStatus.SHIPPED);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+
+        assertThrows(RuntimeException.class,
+                () -> orderService.updateOrderStatus(1L, OrderStatus.CANCELLED, 1L, "INDIVIDUAL"));
+        verify(orderRepository, never()).save(any(Order.class));
     }
 
     @Test

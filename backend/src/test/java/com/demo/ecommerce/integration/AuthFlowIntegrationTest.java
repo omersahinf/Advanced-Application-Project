@@ -2,8 +2,8 @@ package com.demo.ecommerce.integration;
 
 import com.demo.ecommerce.dto.LoginRequest;
 import com.demo.ecommerce.dto.RegisterRequest;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -33,8 +34,8 @@ class AuthFlowIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
-    private static String jwtToken;
-    private static String refreshToken;
+    private static Cookie jwtCookie;
+    private static Cookie refreshCookie;
 
     @Test
     @Order(1)
@@ -81,14 +82,15 @@ class AuthFlowIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(cookie().exists("jwt_token"))
+                .andExpect(cookie().exists("jwt_refresh"))
                 .andExpect(jsonPath("$.role").value("INDIVIDUAL"))
                 .andReturn();
 
-        JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
-        jwtToken = json.get("token").asText();
-        refreshToken = json.get("refreshToken").asText();
+        jwtCookie = result.getResponse().getCookie("jwt_token");
+        refreshCookie = result.getResponse().getCookie("jwt_refresh");
+        assertNotNull(jwtCookie);
+        assertNotNull(refreshCookie);
     }
 
     @Test
@@ -108,7 +110,7 @@ class AuthFlowIntegrationTest {
     @Order(5)
     void protected_endpoint_with_token_succeeds() throws Exception {
         mockMvc.perform(get("/api/auth/me")
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(jwtCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("integration@test.com"));
     }
@@ -124,7 +126,7 @@ class AuthFlowIntegrationTest {
     @Order(7)
     void individual_cannot_access_admin_endpoint() throws Exception {
         mockMvc.perform(get("/api/admin/users")
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(jwtCookie))
                 .andExpect(status().isForbidden());
     }
 
@@ -133,17 +135,18 @@ class AuthFlowIntegrationTest {
     void refresh_token_returns_new_tokens() throws Exception {
         mockMvc.perform(post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
+                .cookie(refreshCookie)
+                .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.refreshToken").isNotEmpty());
+                .andExpect(cookie().exists("jwt_token"))
+                .andExpect(cookie().exists("jwt_refresh"));
     }
 
     @Test
     @Order(9)
     void products_endpoint_accessible_when_authenticated() throws Exception {
         mockMvc.perform(get("/api/products")
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(jwtCookie))
                 .andExpect(status().isOk());
     }
 

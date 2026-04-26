@@ -28,9 +28,9 @@ public class JwtUtil {
             @Value("${app.jwt.refresh-expiration-ms:604800000}") long refreshExpirationMs) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 64) {
-            byte[] padded = new byte[64];
-            System.arraycopy(keyBytes, 0, padded, 0, Math.min(keyBytes.length, 64));
-            keyBytes = padded;
+            throw new IllegalArgumentException(
+                    "app.jwt.secret must be at least 64 bytes for HS512 signing"
+            );
         }
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;

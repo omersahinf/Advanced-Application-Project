@@ -13,6 +13,9 @@ This document maps the project against the rubric in Section 7 of the assignment
 | 5 | Documentation & Presentation | 10% | Strong | **9 / 10** |
 | 6 | Code Quality & Best Practices | 5% | Solid | **4 / 5** |
 | **Total** | | **100%** | | **~89 / 100** |
+| 7.1 | Bonus: Docker / Kubernetes | up to ~3% | `Dockerfile` × 3 + `docker-compose.yml` + `k8s/` manifests | **+3** |
+| 7.1 | Bonus: CI/CD pipeline | up to ~3% | `.github/workflows/ci.yml` (backend/frontend/chatbot/docker jobs) | **+3** |
+| **With bonus** | | | | **~95 / 110** |
 
 ---
 

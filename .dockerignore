@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/target
+**/.git
+**/.venv
+**/venv
+**/__pycache__
+**/.pytest_cache
+**/.idea
+**/.vscode
+**/*.log
+**/.env
+**/.DS_Store
+analytics-platform
+docs
+*.md

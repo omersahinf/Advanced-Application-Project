@@ -244,6 +244,39 @@ Coverage includes:
 
 ---
 
+## Run with Docker
+
+The whole stack runs with one command — Postgres + backend + chatbot + frontend (Nginx).
+
+```bash
+cp .env.example .env   # fill in AI_API_KEY / STRIPE_*; defaults work for a local demo
+docker compose up --build
+```
+
+Services:
+
+| Service | URL | Container |
+|---|---|---|
+| Frontend | http://localhost | `ecom-frontend` (Nginx → Angular bundle, proxies `/api` and `/chat`) |
+| Backend | http://localhost:8080 | `ecom-backend` (Spring Boot, profile `postgres`) |
+| Chatbot | http://localhost:8000 | `ecom-chatbot` (FastAPI + LangGraph, shared DB) |
+| Postgres | localhost:5432 | `ecom-postgres` (volume `postgres-data`) |
+
+Tear down: `docker compose down` (add `-v` to drop the DB volume).
+
+## Kubernetes
+
+Reference manifests in [`k8s/`](k8s/) — StatefulSet for Postgres, Deployments + Services for backend/chatbot/frontend, and an Ingress that routes `/api` → backend, `/chat` → chatbot, `/` → frontend. See [`k8s/README.md`](k8s/README.md) for apply order and Secret seeding.
+
+## CI/CD
+
+GitHub Actions workflow at [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and PR to `main`:
+
+1. **Backend** — `./mvnw compile`, `./mvnw test`, JaCoCo report uploaded as artifact, `./mvnw package`.
+2. **Frontend** — `npm ci`, `npm run build`, `npm test`.
+3. **Chatbot** — `pip install`, `ruff check`, `pytest`.
+4. **Docker** — buildx-builds all three images (`backend`, `chatbot`, `frontend`).
+
 ## Architecture
 
 | Document | Purpose |

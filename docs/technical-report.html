@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Flower E-Commerce Analytics Platform — Technical Report</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });</script>
+<style>
+  /* ---------- Print page setup ---------- */
+  @page { size: A4; margin: 18mm 16mm; }
+  @media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; break-before: page; }
+    h1, h2, h3 { page-break-after: avoid; break-after: avoid-page; }
+    figure, table, .mermaid, pre { page-break-inside: avoid; break-inside: avoid; }
+    body { background: #fff !important; }
+  }
+
+  /* ---------- Base typography ---------- */
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --rule: #d8d8d8;
+    --accent: #6f4e37;
+    --accent-soft: #f7f1ea;
+    --code-bg: #f5f3f0;
+    --pass: #1f7a3a;
+    --partial: #b16a00;
+    --fail: #b21e2c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Charter", "Iowan Old Style", Georgia, "Times New Roman", serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: var(--ink);
+    background: #fafafa;
+  }
+  .page {
+    max-width: 178mm;
+    margin: 0 auto;
+    padding: 0 8mm;
+    background: #fff;
+  }
+  @media screen { .page { padding: 24mm 12mm; box-shadow: 0 1px 6px rgba(0,0,0,.08); margin-top: 12mm; } }
+  h1, h2, h3, h4 { font-family: "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  h1 { font-size: 22pt; margin: 0 0 4pt; letter-spacing: -0.01em; }
+  h2 { font-size: 16pt; margin: 22pt 0 8pt; padding-bottom: 4pt; border-bottom: 1px solid var(--rule); }
+  h3 { font-size: 12.5pt; margin: 16pt 0 4pt; }
+  h4 { font-size: 11pt; margin: 12pt 0 2pt; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+  p, li { margin: 0 0 6pt; }
+  ul, ol { padding-left: 18pt; }
+  small { color: var(--muted); }
+
+  /* ---------- Cover page ---------- */
+  .cover {
+    height: 261mm; /* A4 minus margins */
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 12mm 4mm;
+  }
+  .cover .top { color: var(--muted); font-size: 10pt; letter-spacing: 0.06em; text-transform: uppercase; }
+  .cover .title { display: flex; flex-direction: column; gap: 6mm; }
+  .cover .title h1 { font-size: 32pt; line-height: 1.05; max-width: 150mm; }
+  .cover .title .subtitle { color: var(--muted); font-size: 13pt; max-width: 150mm; }
+  .cover .accent-bar { height: 8mm; width: 80mm; background: var(--accent); border-radius: 4mm; }
+  .cover .meta { display: grid; grid-template-columns: 1fr 1fr; row-gap: 6pt; font-size: 11pt; }
+  .cover .meta .k { color: var(--muted); text-transform: uppercase; font-size: 9.5pt; letter-spacing: 0.06em; }
+
+  /* ---------- Tables ---------- */
+  table { width: 100%; border-collapse: collapse; margin: 8pt 0 12pt; font-size: 10pt; }
+  th, td { padding: 6pt 8pt; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+  th { background: var(--accent-soft); font-family: "Helvetica Neue", Arial, sans-serif; font-weight: 600; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+  tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Code ---------- */
+  code { font-family: "JetBrains Mono", "Menlo", Consolas, monospace; font-size: 9.5pt; background: var(--code-bg); padding: 1pt 4pt; border-radius: 3pt; }
+  pre { font-family: "JetBrains Mono", "Menlo", Consolas, monospace; font-size: 9pt; line-height: 1.4; background: var(--code-bg); padding: 8pt 10pt; border-radius: 4pt; overflow-x: auto; border-left: 3px solid var(--accent); }
+
+  /* ---------- Callouts ---------- */
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 6pt 12pt; margin: 8pt 0 12pt; font-size: 10.5pt; border-radius: 0 4pt 4pt 0; }
+  .pill { display: inline-block; padding: 1pt 8pt; font-size: 8.5pt; font-weight: 600; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .pill.pass { background: #e3f4e8; color: var(--pass); }
+  .pill.partial { background: #fcefdc; color: var(--partial); }
+  .pill.fail { background: #fbe2e4; color: var(--fail); }
+
+  /* ---------- Figures ---------- */
+  figure { margin: 10pt 0 14pt; text-align: center; }
+  figure img { max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 4pt; }
+  figcaption { color: var(--muted); font-size: 9.5pt; margin-top: 4pt; font-style: italic; }
+  .mermaid { background: #fff; padding: 4pt; }
+
+  /* ---------- TOC ---------- */
+  .toc { columns: 2; column-gap: 14pt; font-size: 10.5pt; }
+  .toc ol { margin: 0; padding-left: 18pt; }
+  .toc li { margin-bottom: 3pt; break-inside: avoid; }
+  .toc .pg { float: right; color: var(--muted); }
+
+  /* ---------- Two-col layout helpers ---------- */
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .threecol { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8pt; }
+
+  /* ---------- Print toolbar (only on screen) ---------- */
+  .print-bar {
+    position: fixed; top: 12px; right: 12px; background: var(--accent); color: #fff;
+    padding: 8px 14px; border-radius: 6px; font-family: Helvetica, Arial, sans-serif; font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2); z-index: 99;
+  }
+  .print-bar button { background: #fff; color: var(--accent); border: 0; padding: 4px 10px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-left: 8px; }
+</style>
+</head>
+<body>
+
+<div class="print-bar no-print">
+  Hazır — Cmd+P → Save as PDF
+  <button onclick="window.print()">Print</button>
+</div>
+
+<!-- ============================================================
+     COVER PAGE
+============================================================ -->
+<section class="page cover">
+  <div class="top">CSE 214 · Advanced Application Development · Final Project</div>
+
+  <div class="title">
+    <div class="accent-bar"></div>
+    <h1>Flower E-Commerce Analytics Platform</h1>
+    <div class="subtitle">A multi-tier e-commerce analytics platform with role-based access control and a multi-agent Text2SQL AI assistant. Built with Spring Boot, Angular, and a LangGraph-orchestrated Python chatbot.</div>
+  </div>
+
+  <div>
+    <div class="meta">
+      <div><div class="k">Author</div><div>Ömer Faruk Şahin</div></div>
+      <div><div class="k">Student No</div><div>20240808011</div></div>
+      <div><div class="k">Course</div><div>CSE 214 — Advanced Application Development</div></div>
+      <div><div class="k">Submission</div><div>April 2026</div></div>
+      <div style="grid-column: 1 / span 2;"><div class="k">Repository</div><div><code>https://github.com/omersahinf/Advanced-Application-Project</code></div></div>
+      <div style="grid-column: 1 / span 2;"><div class="k">Final Commit</div><div><code>504e3c5 — fix(security): AV-05 cross-user data isolation by name</code></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     EXECUTIVE SUMMARY + TOC
+============================================================ -->
+<section class="page page-break">
+  <h2 style="margin-top: 0;">Executive Summary</h2>
+  <p>
+    The <strong>Flower E-Commerce Analytics Platform</strong> is a production-grade, three-tier web application that
+    combines a relational e-commerce backend with a natural-language analytics assistant. The system serves three
+    role-segregated audiences — Admin, Corporate, and Individual users — across a Stripe-backed checkout pipeline,
+    a corporate KPI dashboard, an admin governance console, and a chatbot that converts plain-English questions
+    into role-scoped SQL queries against the live database.
+  </p>
+  <p>
+    The chatbot is implemented as a six-agent LangGraph state machine (Guardrails → SQL Generator → Executor →
+    Error Handler → Analyst → Visualizer) and enforces role-based query scoping through deterministic SQL filters
+    rather than relying on the LLM's compliance. The design directly addresses the twelve attack vectors documented
+    in the CSE 214 Security Penetration Test Cases catalogue, including prompt-injection, cross-corporate access,
+    SQL-injection through the natural-language interface, JWT tampering, and stored XSS via review propagation.
+  </p>
+  <p>
+    The codebase consists of a Spring Boot 3 backend (Java 17), an Angular 21 frontend with the Flower design
+    system, and a Python 3.11 chatbot service. Deployment is provided through Dockerfiles for each service plus
+    a one-command <code>docker compose up</code> stack, with reference Kubernetes manifests included. Continuous
+    integration runs on every push via GitHub Actions, executing 62 backend tests, 38 frontend tests, and the full
+    chatbot pytest suite (35+ regression tests for role isolation and security).
+  </p>
+
+  <div class="callout">
+    <strong>Verification at submission time:</strong>
+    backend <code>./mvnw test</code> — 62 / 62 ✓ &nbsp;·&nbsp;
+    frontend <code>npx vitest run</code> — 38 / 38 ✓ &nbsp;·&nbsp;
+    chatbot <code>pytest -q</code> — full suite ✓ &nbsp;·&nbsp;
+    GitHub Actions CI run on commit <code>504e3c5</code> — <span class="pill pass">success</span>
+  </div>
+
+  <h2>Table of Contents</h2>
+  <div class="toc">
+    <ol>
+      <li>Architecture Decisions <span class="pg">3</span></li>
+      <li>Database Design <span class="pg">5</span></li>
+      <li>ETL Process &amp; Data Integration <span class="pg">7</span></li>
+      <li>API Documentation Overview <span class="pg">8</span></li>
+      <li>AI Chatbot Architecture <span class="pg">9</span></li>
+      <li>Security Implementation <span class="pg">11</span></li>
+      <li>Testing &amp; Quality <span class="pg">13</span></li>
+      <li>Deployment <span class="pg">14</span></li>
+      <li>Challenges &amp; Solutions <span class="pg">15</span></li>
+      <li>Future Work &amp; References <span class="pg">16</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================
+     1. ARCHITECTURE DECISIONS
+============================================================ -->
+<section class="page page-break">
+  <h2>1. Architecture Decisions &amp; Justifications</h2>
+
+  <h3>1.1 Technology Stack</h3>
+  <table>
+    <thead><tr><th>Layer</th><th>Choice</th><th>Justification</th></tr></thead>
+    <tbody>
+      <tr><td>Backend</td><td>Spring Boot 3.2 (Java 17)</td><td>Mature ecosystem, first-class JPA/Hibernate, declarative security, OpenAPI auto-generation.</td></tr>
+      <tr><td>Frontend</td><td>Angular 21 (standalone components, signals)</td><td>Strict typing, lazy-loaded routes, native template safety against XSS, Chart.js interop.</td></tr>
+      <tr><td>Database</td><td>PostgreSQL 16 (H2 fallback)</td><td>Strong relational guarantees, window functions for analytics, easy local demo with H2.</td></tr>
+      <tr><td>AI Chatbot</td><td>Python 3.11 + FastAPI + LangGraph</td><td>State-machine orchestration of agents; explicit, debuggable workflow versus prompt-chained agents.</td></tr>
+      <tr><td>LLM</td><td>Google Gemini (via OpenAI-compatible client)</td><td>Cost-effective for SQL generation; deterministic templates handle the bulk of queries without LLM dependency.</td></tr>
+      <tr><td>Visualization</td><td>Chart.js (frontend) + Plotly (chatbot)</td><td>Lightweight client-side rendering; Plotly HTML rendered inside a sandboxed iframe.</td></tr>
+      <tr><td>Payments</td><td>Stripe (backend SDK + Elements)</td><td>PCI-safe card collection; secret key kept server-side, only publishable key exposed to the browser.</td></tr>
+      <tr><td>Auth</td><td>JWT HS512 + BCrypt + HttpOnly cookies</td><td>Stateless, signature-verified, with cookie storage to remove access-token-in-localStorage XSS risk.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>1.2 Multi-Service Topology</h3>
+  <p>The platform is decomposed into four cooperating services, each owning a clear responsibility and surface:</p>
+
+  <figure>
+    <div class="mermaid">
+flowchart LR
+    subgraph Client
+        BR[Browser]
+    end
+    subgraph Frontend["Frontend · Angular 21"]
+        ANG[Angular App<br/>Signals · Chart.js]
+    end
+    subgraph Backend["Backend · Spring Boot 3"]
+        REST[REST API<br/>13 Controllers]
+        SEC[Security<br/>JWT · BCrypt · RateLimit]
+        SVC[Services + JPA]
+        SEED[DataSeeder]
+    end
+    subgraph Chatbot["Chatbot · FastAPI + LangGraph"]
+        GR[Guardrails] --> SQLg[SQL Gen] --> EX[Executor] --> ERh[Error] --> AN[Analyst] --> VZ[Visualizer]
+    end
+    subgraph Data
+        DB[(PostgreSQL / H2)]
+        RO[(Read-only user)]
+    end
+    subgraph External
+        STR[Stripe]
+        GEM[Gemini]
+    end
+    BR --> ANG
+    ANG -->|JWT cookie| REST
+    ANG -->|SSE| Chatbot
+    ANG -->|Stripe.js| STR
+    REST --> SEC --> SVC --> DB
+    SEED --> DB
+    REST -->|PaymentIntent| STR
+    Chatbot -->|API key| REST
+    EX --> RO
+    GR -.LLM.-> GEM
+    SQLg -.LLM.-> GEM
+    AN -.LLM.-> GEM
+    </div>
+    <figcaption>System architecture — Angular frontend talks to two server processes; the chatbot reaches the same database through a read-only role.</figcaption>
+  </figure>
+
+  <h3>1.3 Why Two Server Processes</h3>
+  <p>
+    Splitting the chatbot into a dedicated FastAPI process — rather than embedding LangGraph inside Spring Boot —
+    yields three concrete benefits:
+  </p>
+  <ul>
+    <li><strong>Language fit:</strong> LangGraph, Pandas, and the Python LLM ecosystem are first-class in Python; embedding them in the JVM would require duplication or fragile bridges.</li>
+    <li><strong>Blast-radius isolation:</strong> any chatbot crash, runaway prompt, or LLM outage cannot take the e-commerce backend down; the user can still browse and check out.</li>
+    <li><strong>Privilege separation:</strong> the chatbot connects to a separate, SELECT-only database role and authenticates to the backend with a shared <code>CHATBOT_API_KEY</code> — the chatbot literally cannot perform writes.</li>
+  </ul>
+
+  <h3>1.4 Role-Based Access Control</h3>
+  <p>
+    Every authenticated request carries an HS512-signed JWT containing the server-issued role. Authorization is layered:
+    <em>(i)</em> a Spring Security filter rejects unsigned or tampered tokens; <em>(ii)</em> route-level <code>hasAuthority(...)</code> rules
+    on <code>SecurityConfig</code>; <em>(iii)</em> service-level ownership checks (e.g. <code>order.user_id == sessionUserId</code>);
+    and <em>(iv)</em> at the chatbot layer, deterministic SQL filters rewrite WHERE clauses to enforce the same scope —
+    even if the LLM generated something broader.
+  </p>
+</section>
+
+<!-- ============================================================
+     2. DATABASE DESIGN
+============================================================ -->
+<section class="page page-break">
+  <h2>2. Database Design</h2>
+
+  <h3>2.1 Entity-Relationship Model</h3>
+  <p>
+    The schema is normalized to 3NF with one deliberate denormalization (<code>customer_profiles.total_spend</code>),
+    documented in <code>DataSeeder.java</code>. Every mutating entity carries <code>created_at</code> and
+    <code>updated_at</code> audit timestamps populated through JPA <code>@PrePersist</code> / <code>@PreUpdate</code>
+    lifecycle callbacks.
+  </p>
+
+  <figure>
+    <div class="mermaid">
+erDiagram
+    USER ||--o| CUSTOMER_PROFILE : has
+    USER ||--o{ STORE : "owns (CORPORATE)"
+    USER ||--o{ ORDER : "places (INDIVIDUAL)"
+    USER ||--o{ REVIEW : writes
+    USER ||--o{ CART_ITEM : fills
+    USER ||--o{ AUDIT_LOG : actor
+    STORE ||--o{ PRODUCT : lists
+    STORE ||--o{ ORDER : fulfills
+    CATEGORY ||--o{ PRODUCT : classifies
+    CATEGORY ||--o{ CATEGORY : parent_of
+    PRODUCT ||--o{ ORDER_ITEM : in
+    PRODUCT ||--o{ REVIEW : receives
+    PRODUCT ||--o{ CART_ITEM : in_cart
+    ORDER ||--|{ ORDER_ITEM : contains
+    ORDER ||--o| SHIPMENT : has
+    USER {
+        bigint id PK
+        string email UK
+        string password_hash
+        enum role
+        boolean suspended
+    }
+    PRODUCT {
+        bigint id PK
+        bigint store_id FK
+        bigint category_id FK
+        decimal unit_price
+        int stock
+    }
+    ORDER {
+        bigint id PK
+        bigint user_id FK
+        bigint store_id FK
+        decimal grand_total
+        enum status
+    }
+    REVIEW {
+        bigint id PK
+        bigint user_id FK
+        bigint product_id FK
+        int star_rating
+        enum sentiment
+    }
+    </div>
+    <figcaption>Simplified ER diagram — the full schema (including audit and lookup enums) lives in <code>backend/src/main/java/com/demo/ecommerce/entity/</code>.</figcaption>
+  </figure>
+
+  <h3>2.2 Index Strategy</h3>
+  <table>
+    <thead><tr><th>Table</th><th>Index</th><th>Use Case</th></tr></thead>
+    <tbody>
+      <tr><td><code>orders</code></td><td><code>(user_id, order_date)</code></td><td>Individual dashboard / "my orders" listing</td></tr>
+      <tr><td><code>orders</code></td><td><code>(store_id, order_date)</code></td><td>Corporate sales-over-time KPIs</td></tr>
+      <tr><td><code>orders</code></td><td><code>(status)</code></td><td>Admin pipeline view; chatbot status filters</td></tr>
+      <tr><td><code>products</code></td><td><code>(store_id)</code>, <code>(category_id)</code>, <code>(sku)</code></td><td>Catalog browsing + analytics drill-down</td></tr>
+      <tr><td><code>reviews</code></td><td><code>(product_id)</code>, <code>(star_rating)</code>, <code>(sentiment)</code></td><td>Product page aggregation; sentiment dashboards</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 Data Integrity Constraints</h3>
+  <ul>
+    <li><code>CHECK (stock &gt;= 0)</code> on <code>products</code></li>
+    <li><code>CHECK (star_rating BETWEEN 1 AND 5)</code> on <code>reviews</code></li>
+    <li><code>CHECK (grand_total &gt;= 0)</code> on <code>orders</code></li>
+    <li><code>CHECK (cost_price IS NULL OR cost_price &gt;= 0)</code> on <code>products</code></li>
+    <li>Cascade deletes on owned collections (Order → OrderItem, Order → Shipment) via <code>CascadeType.ALL</code> + <code>orphanRemoval</code>.</li>
+  </ul>
+
+  <h3>2.4 Audit &amp; Soft State</h3>
+  <p>
+    All transactional entities (User, Store, Category, Product, Order, Shipment, Review, CustomerProfile) carry
+    <code>created_at</code> and <code>updated_at</code> timestamps. The <code>audit_logs</code> table records
+    administrator actions: every endpoint in <code>AdminController</code> that mutates user state, store status,
+    category taxonomy, or platform settings is wrapped with an <code>auditLogService.log(...)</code> call.
+  </p>
+</section>
+
+<!-- ============================================================
+     3. ETL PROCESS
+============================================================ -->
+<section class="page page-break">
+  <h2>3. ETL Process &amp; Data Integration</h2>
+
+  <h3>3.1 Source-to-Schema Mapping</h3>
+  <p>
+    The platform unifies six Kaggle e-commerce datasets into a single normalized schema. The mapping is documented in
+    <code>docs/ETL_FIELD_MAPPING.md</code> and implemented in <code>DataSeeder.java</code> as a deterministic, reproducible
+    seeder rather than a one-off CSV import. This guarantees the demo dataset is identical on every fresh boot.
+  </p>
+
+  <table>
+    <thead><tr><th>Source dataset</th><th>Key fields</th><th>Target entities</th></tr></thead>
+    <tbody>
+      <tr><td>UCI Online Retail</td><td>InvoiceNo, StockCode, Quantity, UnitPrice, Country</td><td>Orders, OrderItems, Products</td></tr>
+      <tr><td>E-Commerce Customer Behavior</td><td>CustomerID, Gender, Age, City, MembershipType, TotalSpend</td><td>Users, CustomerProfiles</td></tr>
+      <tr><td>E-Commerce Shipping Data</td><td>WarehouseBlock, ModeOfShipment, CostOfProduct</td><td>Shipments, Products (cost_price)</td></tr>
+      <tr><td>Amazon Sales</td><td>OrderID, Status, Fulfilment, SalesChannel, SKU, Category</td><td>Orders (status, fulfilment), Categories</td></tr>
+      <tr><td>Pakistan E-Commerce Orders</td><td>ItemID, Status, Price, GrandTotal, PaymentMethod</td><td>Orders (payment_method), OrderItems</td></tr>
+      <tr><td>Amazon US Customer Reviews</td><td>ProductID, StarRating, HelpfulVotes, TotalVotes</td><td>Reviews, Sentiment</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Transformations Applied</h3>
+  <ul>
+    <li><strong>Field mapping:</strong> documented per-dataset in <code>ETL_FIELD_MAPPING.md</code>.</li>
+    <li><strong>ID generation:</strong> surrogate <code>BIGINT</code> primary keys via Hibernate <code>GenerationType.IDENTITY</code>.</li>
+    <li><strong>Date normalization:</strong> all timestamps stored as <code>java.time.LocalDateTime</code> in ISO-8601 format.</li>
+    <li><strong>Currency:</strong> single-currency <code>DECIMAL(12,2)</code> with non-negative CHECK constraints; cost-price stored separately for margin analytics.</li>
+    <li><strong>Sentiment derivation:</strong> star-rating mapped to <code>POSITIVE / NEUTRAL / NEGATIVE</code> at seed time.</li>
+  </ul>
+
+  <h3>3.3 Seeded Demo Dataset</h3>
+  <div class="threecol">
+    <div class="callout"><strong>25 users</strong><br/>1 admin · 4 corporate · 20 individual</div>
+    <div class="callout"><strong>4 stores · 44 products</strong><br/>spanning 8 root categories</div>
+    <div class="callout"><strong>~80 orders · ~100 reviews</strong><br/>with shipments, payments, sentiment</div>
+  </div>
+  <p>
+    Per the instructor's clarification, the platform is not required to ingest the original Kaggle CSVs at runtime — it
+    only needs a schema and dataset that can answer the demo questions (top-reviewed product, monthly revenue, customer
+    segmentation, etc.). The seeder produces a self-consistent corpus that satisfies every demo prompt while remaining
+    fully deterministic.
+  </p>
+</section>
+
+<!-- ============================================================
+     4. API DOCUMENTATION
+============================================================ -->
+<section class="page page-break">
+  <h2>4. API Documentation Overview</h2>
+
+  <h3>4.1 REST Surface</h3>
+  <p>
+    The backend exposes 13 controllers with conventional REST resource paths. Every endpoint is documented through
+    Springdoc OpenAPI 2.3 and reachable at <code>/swagger-ui.html</code> at runtime.
+  </p>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>POST</td><td><code>/api/auth/register</code></td><td>—</td><td>Create individual user</td></tr>
+      <tr><td>POST</td><td><code>/api/auth/login</code></td><td>—</td><td>Issue access + refresh JWTs (HttpOnly cookies)</td></tr>
+      <tr><td>POST</td><td><code>/api/auth/refresh</code></td><td>—</td><td>Exchange refresh for new access token</td></tr>
+      <tr><td>GET</td><td><code>/api/products</code></td><td>any</td><td>Paginated, searchable, filterable catalogue</td></tr>
+      <tr><td>POST</td><td><code>/api/cart/items</code></td><td>INDIVIDUAL</td><td>Add product to cart</td></tr>
+      <tr><td>POST</td><td><code>/api/orders</code></td><td>INDIVIDUAL</td><td>Place order from cart</td></tr>
+      <tr><td>POST</td><td><code>/api/payments/create-intent</code></td><td>INDIVIDUAL</td><td>Create Stripe PaymentIntent</td></tr>
+      <tr><td>POST</td><td><code>/api/payments/confirm</code></td><td>INDIVIDUAL</td><td>Confirm payment, mark order CONFIRMED</td></tr>
+      <tr><td>PATCH</td><td><code>/api/orders/my/{id}/cancel</code></td><td>INDIVIDUAL</td><td>Cancel a pending order (state-guarded)</td></tr>
+      <tr><td>PATCH</td><td><code>/api/orders/my/{id}/return</code></td><td>INDIVIDUAL</td><td>Return delivered order &amp; refund</td></tr>
+      <tr><td>POST</td><td><code>/api/reviews</code></td><td>INDIVIDUAL</td><td>Post product review (HTML-escaped)</td></tr>
+      <tr><td>GET</td><td><code>/api/store/my/*</code></td><td>CORPORATE</td><td>Store, products, orders, reviews, shipments</td></tr>
+      <tr><td>GET</td><td><code>/api/admin/*</code></td><td>ADMIN</td><td>Users, stores, categories, analytics, audit, settings</td></tr>
+      <tr><td>POST</td><td><code>/api/chat/ask</code></td><td>any</td><td>Proxied chatbot endpoint (server-to-server auth)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 Response Envelope &amp; Errors</h3>
+  <p>
+    Successful responses return the resource DTO directly. Errors flow through <code>GlobalExceptionHandler</code>, which
+    translates domain exceptions to safe HTTP responses without leaking stack traces or SQL fragments:
+  </p>
+  <pre>ResourceNotFoundException        → 404
+BadRequestException              → 400
+UnauthorizedOperationException   → 403
+AuthenticationException          → 401
+MethodArgumentNotValidException  → 400 with field-level messages</pre>
+
+  <h3>4.3 Validation</h3>
+  <p>
+    All write endpoints accept dedicated DTOs annotated with Jakarta Bean Validation: <code>@NotBlank</code>,
+    <code>@Email</code>, <code>@Size</code>, <code>@Min</code>, <code>@Pattern</code>. The custom
+    <code>InputValidator</code> applies regex blocklists for prompt-injection / SQL-injection patterns before any
+    natural-language input reaches the chatbot proxy.
+  </p>
+
+  <h3>4.4 Pagination &amp; Filtering</h3>
+  <p>
+    List endpoints accept <code>page</code>, <code>size</code>, <code>sort</code>, <code>search</code>, and
+    domain-specific filters (e.g. <code>categoryId</code>, <code>status</code>). Spring Data JPA's <code>Pageable</code>
+    abstraction is used uniformly, returning <code>Page&lt;T&gt;</code> with totals and metadata.
+  </p>
+</section>
+
+<!-- ============================================================
+     5. AI CHATBOT ARCHITECTURE
+============================================================ -->
+<section class="page page-break">
+  <h2>5. AI Chatbot Architecture</h2>
+
+  <h3>5.1 Six-Agent LangGraph Pipeline</h3>
+  <p>
+    The chatbot is a deterministic state machine — not a free-form agent loop — orchestrated through LangGraph. Each
+    node has a single responsibility, a well-defined input/output, and an explicit transition policy. The role context
+    is injected once at request entry from the authenticated session and re-asserted in every subsequent SQL generation
+    pass; the LLM never controls scoping.
+  </p>
+
+  <figure>
+    <div class="mermaid">
+flowchart LR
+    Q[User Question] --> G{Guardrails<br/>scope · injection · greeting}
+    G -- in scope --> S[SQL Generator<br/>template + LLM]
+    G -- out of scope --> R[Polite refusal]
+    G -- greeting --> H[Greeting reply]
+    S --> X[Executor<br/>SELECT-only · timeout]
+    X -- error --> E[Error Handler<br/>retry &lt;= 3]
+    E --> S
+    X -- ok --> A[Analyst<br/>natural language]
+    A --> D{Decide Graph?}
+    D -- yes --> V[Visualizer<br/>Plotly · AST sandbox]
+    D -- no --> F[Final Answer]
+    V --> F
+    </div>
+    <figcaption>The six agents and decision points; the dashed retry edge is bounded at <code>MAX_RETRIES = 3</code>.</figcaption>
+  </figure>
+
+  <h3>5.2 Per-Agent Responsibilities</h3>
+  <table>
+    <thead><tr><th>Agent</th><th>Role</th><th>Highlights</th></tr></thead>
+    <tbody>
+      <tr><td>Guardrails</td><td>Scope &amp; safety</td><td>Detects prompt injection, cross-user / third-person enumeration, greeting/out-of-scope intents.</td></tr>
+      <tr><td>SQL Generator</td><td>NL → SQL</td><td>~23 deterministic templates first; LLM fallback only for unmatched questions; role-scoped WHERE clauses are appended programmatically.</td></tr>
+      <tr><td>Executor</td><td>Safe SQL execution</td><td>SQLAlchemy <code>text()</code>; SELECT/WITH only; UNION, multi-statements, DDL, DML rejected; <code>SET TRANSACTION READ ONLY</code>.</td></tr>
+      <tr><td>Error Handler</td><td>Recovery</td><td>Bounded retries with corrective hints fed back into SQL Generator.</td></tr>
+      <tr><td>Analyst</td><td>Result narration</td><td>Pandas-driven summary with optional LLM polish; deterministic when API key absent.</td></tr>
+      <tr><td>Visualizer</td><td>Plotly chart code</td><td>AST validator blocks imports, dunders, <code>eval</code>, <code>exec</code>; rendered inside a sandboxed iframe.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.3 Role-Scoped Query Synthesis</h3>
+  <p>
+    Role enforcement is applied at three layers, on every request:
+  </p>
+  <ul>
+    <li><strong>Backend:</strong> the Spring Boot proxy attaches the authenticated <code>userId</code>, <code>role</code>, and (for corporate) <code>storeId</code> to the request body, server-to-server, with the shared <code>CHATBOT_API_KEY</code> header.</li>
+    <li><strong>SQL Generator:</strong> regex injection rewrites WHERE clauses; for INDIVIDUAL adds <code>user_id = ?</code>, for CORPORATE forces <code>store_id IN (?)</code>, ADMIN unrestricted but logged.</li>
+    <li><strong>Executor:</strong> the database connection is opened on a SELECT-only role with sensitive columns blocked at the application layer (<code>password_hash</code>, <code>api_key</code>, <code>internal_cost</code>).</li>
+  </ul>
+
+  <figure>
+    <img src="screenshots/chatbot-individual.png" alt="Chatbot answering an individual-scoped query" />
+    <figcaption>Individual user asking <em>"Show my order history with delivery status"</em>. The deterministic template produces a <code>LEFT JOIN shipments</code> query scoped to the authenticated user.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================
+     6. SECURITY IMPLEMENTATION
+============================================================ -->
+<section class="page page-break">
+  <h2>6. Security Implementation</h2>
+
+  <p>
+    The platform is hardened against the twelve attack vectors documented in the <em>CSE 214 — Security Penetration
+    Test Cases</em> catalogue. Each control is implemented in production code with a corresponding regression test.
+  </p>
+
+  <h3>6.1 Attack Vector Mapping</h3>
+  <table>
+    <thead><tr><th>AV</th><th>Vector</th><th>Severity</th><th>Status</th><th>Defence (file:line)</th></tr></thead>
+    <tbody>
+      <tr><td>AV-01</td><td>Role override via prompt injection</td><td>CRITICAL</td><td><span class="pill pass">Pass</span></td><td>Role from JWT, not prompt — <code>main.py</code> + <code>InputValidator.java</code></td></tr>
+      <tr><td>AV-02</td><td>Cross-corporate data access</td><td>CRITICAL</td><td><span class="pill pass">Pass</span></td><td>Forced <code>store_id</code> WHERE — <code>sql_generator.py:184</code></td></tr>
+      <tr><td>AV-03</td><td>SQL injection via NL interface</td><td>CRITICAL</td><td><span class="pill pass">Pass</span></td><td>SELECT-only + UNION/multi-stmt blocked — <code>database.py:156-226</code></td></tr>
+      <tr><td>AV-04</td><td>Stored XSS via review + chatbot</td><td>HIGH</td><td><span class="pill pass">Pass</span></td><td>Backend HTML-escape on submit + Angular interpolation — <code>ReviewService.java:71</code></td></tr>
+      <tr><td>AV-05</td><td>Individual BOLA / horizontal escalation</td><td>HIGH</td><td><span class="pill pass">Pass</span></td><td>Ownership guards + name-based query blocker — <code>guardrails.py</code> + <code>OrderService.java:91</code></td></tr>
+      <tr><td>AV-06</td><td>JWT role tampering</td><td>CRITICAL</td><td><span class="pill pass">Pass</span></td><td>HS512 signature verify + 64-char min secret fail-fast — <code>JwtUtil.java:30</code></td></tr>
+      <tr><td>AV-07</td><td>System prompt leakage</td><td>MEDIUM</td><td><span class="pill pass">Pass</span></td><td>Guardrails refuses introspection prompts — <code>guardrails.py</code></td></tr>
+      <tr><td>AV-08</td><td>Visualization code injection</td><td>HIGH</td><td><span class="pill pass">Pass</span></td><td>AST validator + sandbox iframe — <code>visualizer.py:18</code> + <code>chatbot.ts:325</code></td></tr>
+      <tr><td>AV-09</td><td>Object enumeration</td><td>MEDIUM</td><td><span class="pill pass">Pass</span></td><td>Progressive-ID detection + per-IP rate limit — <code>main.py</code></td></tr>
+      <tr><td>AV-10</td><td>Conversation context poisoning</td><td>HIGH</td><td><span class="pill pass">Pass</span></td><td>Role re-asserted server-side every turn — <code>main.py:124</code></td></tr>
+      <tr><td>AV-11</td><td>Mass assignment via AI write</td><td>HIGH</td><td><span class="pill pass">Pass</span></td><td>Chatbot is SELECT-only by design — <code>database.py:156</code></td></tr>
+      <tr><td>AV-12</td><td>SELECT * exfiltration</td><td>MEDIUM</td><td><span class="pill pass">Pass</span></td><td>Sensitive-column denylist + per-table allowlist — <code>database.py:209</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>6.2 Defense-in-Depth Layers</h3>
+  <ol>
+    <li>JWT signature verification (HS512, 64-char minimum secret enforced).</li>
+    <li>Spring Security route-level role guards.</li>
+    <li>Service-level ownership checks.</li>
+    <li>Bean Validation on every DTO.</li>
+    <li>Input regex blocklists for prompt-injection signatures.</li>
+    <li>Chatbot guardrails agent (intent / scope / cross-user detection).</li>
+    <li>Deterministic SQL templates with hard-coded role filters.</li>
+    <li>Database connection on a SELECT-only role with READ ONLY transactions.</li>
+    <li>Sensitive-column denylist applied at result-set level before return.</li>
+  </ol>
+
+  <h3>6.3 Secret Hygiene</h3>
+  <ul>
+    <li><code>JWT_SECRET</code> required to be ≥ 64 characters; application fails on startup otherwise.</li>
+    <li>Stripe secret key only in backend; frontend receives publishable key + per-intent client secret.</li>
+    <li>Gemini API key never reaches the browser — all LLM traffic is server-to-server.</li>
+    <li><code>docker-compose.yml</code> uses <code>${JWT_SECRET:?...}</code> to refuse to start without an explicit secret.</li>
+    <li>Audit logs persist every admin action with actor, target, timestamp.</li>
+  </ul>
+</section>
+
+<!-- ============================================================
+     7. TESTING & QUALITY
+============================================================ -->
+<section class="page page-break">
+  <h2>7. Testing &amp; Quality</h2>
+
+  <h3>7.1 Test Coverage</h3>
+  <table>
+    <thead><tr><th>Surface</th><th>Framework</th><th>Tests</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Backend (Java)</td><td>JUnit 5 + Mockito + Spring Boot Test</td><td>62</td><td><span class="pill pass">All green</span></td></tr>
+      <tr><td>Frontend (Angular)</td><td>Vitest + JSDOM</td><td>38</td><td><span class="pill pass">All green</span></td></tr>
+      <tr><td>Chatbot (Python)</td><td>pytest</td><td>full suite + 35 data-leakage regressions</td><td><span class="pill pass">All green</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.2 Coverage Reporting</h3>
+  <p>
+    Backend coverage is reported through the JaCoCo Maven plugin; running <code>./mvnw verify</code> produces an HTML
+    report at <code>backend/target/site/jacoco/index.html</code> and the GitHub Actions workflow uploads it as a build
+    artefact for every push.
+  </p>
+
+  <h3>7.3 Continuous Integration</h3>
+  <p>
+    The GitHub Actions workflow at <code>.github/workflows/ci.yml</code> runs four parallel jobs on every push and pull
+    request to <code>main</code>:
+  </p>
+  <ol>
+    <li><strong>Backend:</strong> compile → test → JaCoCo report (uploaded) → package.</li>
+    <li><strong>Frontend:</strong> <code>npm ci</code> → <code>npm run build</code> → <code>npx vitest run</code>.</li>
+    <li><strong>Chatbot:</strong> dependency install → <code>ruff check</code> → full <code>pytest</code> suite.</li>
+    <li><strong>Docker:</strong> Buildx-builds all three service images.</li>
+  </ol>
+  <p>
+    The latest CI run on commit <code>504e3c5</code> finished with status <span class="pill pass">success</span>.
+  </p>
+
+  <h3>7.4 Tooling &amp; Conventions</h3>
+  <ul>
+    <li>Project-wide <code>.editorconfig</code> for indentation and line-ending consistency.</li>
+    <li>Frontend Prettier configuration (printWidth 100, single quotes).</li>
+    <li>Chatbot <code>pyproject.toml</code> Ruff configuration with <code>E,W,F,I,B,UP</code> rule sets.</li>
+    <li>Conventional commit prefixes (<code>feat:</code>, <code>fix:</code>, <code>chore:</code>, <code>docs:</code>).</li>
+    <li>65+ semantic commits with clear, reviewable diffs.</li>
+  </ul>
+</section>
+
+<!-- ============================================================
+     8. DEPLOYMENT
+============================================================ -->
+<section class="page page-break">
+  <h2>8. Deployment</h2>
+
+  <h3>8.1 Docker Compose (One-Command Demo)</h3>
+  <p>
+    The simplest path from clone to running platform is <code>docker compose up --build</code>. The compose file
+    orchestrates four containers — Postgres, Spring Boot, FastAPI chatbot, and Nginx-served Angular bundle —
+    with health-check-based dependency ordering and explicit, env-driven secrets.
+  </p>
+  <pre>$ cp .env.example .env       # fill JWT_SECRET, STRIPE_*, AI_API_KEY
+$ docker compose up --build  # ~3 min on first run, ~30s on subsequent
+$ open http://localhost      # Angular served by Nginx</pre>
+
+  <h3>8.2 Kubernetes Reference Manifests</h3>
+  <p>
+    The <code>k8s/</code> directory contains production-style manifests:
+  </p>
+  <ul>
+    <li><code>postgres.yaml</code> — StatefulSet with PVC, headless Service, readiness probe.</li>
+    <li><code>backend.yaml</code> — Deployment (2 replicas), Service, Secret references, readiness probe, resource limits.</li>
+    <li><code>chatbot.yaml</code> — Deployment, Service, secret-derived <code>DATABASE_URL</code>, health probe.</li>
+    <li><code>frontend.yaml</code> — Nginx Deployment with rolling update strategy.</li>
+    <li><code>ingress.yaml</code> — path-based routing: <code>/api</code> → backend, <code>/chat</code> → chatbot, <code>/</code> → frontend.</li>
+  </ul>
+
+  <h3>8.3 Configuration Through Environment</h3>
+  <table>
+    <thead><tr><th>Variable</th><th>Service</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>JWT_SECRET</code></td><td>Backend</td><td>≥ 64 chars; app fails startup otherwise</td></tr>
+      <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Backend</td><td>Only on the server; never sent to the browser</td></tr>
+      <tr><td><code>STRIPE_PUBLISHABLE_KEY</code></td><td>Backend → Frontend</td><td>Returned to client at checkout init</td></tr>
+      <tr><td><code>AI_API_KEY</code></td><td>Backend / Chatbot</td><td>Gemini key, server-side only</td></tr>
+      <tr><td><code>CHATBOT_API_KEY</code></td><td>Backend ↔ Chatbot</td><td>Shared secret for server-to-server proxy</td></tr>
+      <tr><td><code>DB_URL</code> / <code>DB_USERNAME</code> / <code>DB_PASSWORD</code></td><td>Backend</td><td>Postgres in production, H2 by default</td></tr>
+      <tr><td><code>DATABASE_URL</code></td><td>Chatbot</td><td>SELECT-only role recommended</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     9. CHALLENGES & SOLUTIONS
+============================================================ -->
+<section class="page page-break">
+  <h2>9. Challenges &amp; Solutions</h2>
+
+  <h3>9.1 Trustworthy Multi-Agent Orchestration</h3>
+  <p>
+    <strong>Challenge:</strong> a free-form agent loop is hard to test, hard to debug, and unpredictable under
+    adversarial prompts. <strong>Solution:</strong> the chatbot is implemented as a deterministic LangGraph state
+    machine where each node is unit-testable in isolation. The bulk of demo prompts are answered by ~23 deterministic
+    SQL templates; the LLM is a fallback for unmatched questions, never a controller of scope.
+  </p>
+
+  <h3>9.2 Role Scoping Without Trusting the LLM</h3>
+  <p>
+    <strong>Challenge:</strong> a corporate user could ask <em>"show all stores' revenue"</em> and the LLM might comply.
+    <strong>Solution:</strong> WHERE clauses for ownership are appended programmatically by <code>sql_generator.py</code>
+    after the LLM (or template) produces a query. The Guardrails agent additionally detects third-person enumeration
+    ("how much has Bob spent") and refuses before reaching SQL.
+  </p>
+
+  <h3>9.3 JWT in Cookie vs Bearer Header</h3>
+  <p>
+    <strong>Challenge:</strong> storing access tokens in <code>localStorage</code> exposes them to XSS exfiltration;
+    relying solely on cookies breaks Postman / curl flows. <strong>Solution:</strong> the backend issues HttpOnly
+    SameSite=Strict cookies <em>and</em> accepts the same token in an <code>Authorization: Bearer</code> header. Tests were
+    updated to read JWT from cookie metadata via MockMvc.
+  </p>
+
+  <h3>9.4 Plotly Without Eval</h3>
+  <p>
+    <strong>Challenge:</strong> rendering LLM-produced visualization code without enabling client-side script execution.
+    <strong>Solution:</strong> the Visualizer agent emits Python code, runs it through an AST validator (no
+    <code>import</code>, no dunders, no <code>eval</code>/<code>exec</code>), executes it in a restricted-builtins sandbox to
+    produce static Plotly HTML, and the Angular frontend renders that HTML inside a sandboxed iframe. The frontend
+    never calls <code>eval</code> or <code>Function()</code>.
+  </p>
+
+  <h3>9.5 Chatbot CI Without Live Postgres</h3>
+  <p>
+    <strong>Challenge:</strong> a subset of chatbot regression tests originally required a live Postgres instance,
+    which made CI brittle. <strong>Solution:</strong> those tests were rewritten to use an isolated SQLite fixture
+    seeded with a minimal schema. The full pytest suite now runs in CI without external services and the role-scoped
+    security regression tests run on every push.
+  </p>
+
+  <h3>9.6 Deterministic Demo Stability</h3>
+  <p>
+    <strong>Challenge:</strong> early in development, prompts like <em>"how much have I spent this year?"</em> produced
+    LLM-generated SQL that occasionally truncated date filters or misnamed columns. <strong>Solution:</strong> these
+    high-frequency prompts now have dedicated deterministic builders in <code>sql_generator.py</code>: time windows
+    derive from <code>DATE_TRUNC('year', CURRENT_DATE)</code>, the user scope is hard-coded, and cancelled orders are
+    excluded by default.
+  </p>
+</section>
+
+<!-- ============================================================
+     10. FUTURE WORK & APPENDIX
+============================================================ -->
+<section class="page page-break">
+  <h2>10. Future Work</h2>
+  <ul>
+    <li><strong>WebSocket notifications:</strong> the platform currently uses Server-Sent Events for streaming chatbot output. Migrating to a STOMP-over-WebSocket channel would unlock bidirectional features (typing indicators, multi-user dashboards).</li>
+    <li><strong>Real CSV ingestion pipeline:</strong> while the seeder is sufficient for the demo, a Spring Batch / Pandas job that ingests the original Kaggle CSVs would tighten the ETL story.</li>
+    <li><strong>Vector retrieval for chatbot:</strong> embedding product descriptions and review text into a vector index would let the SQL Generator handle truly novel questions.</li>
+    <li><strong>OpenTelemetry traces:</strong> structured per-agent traces for observability of the chatbot pipeline.</li>
+    <li><strong>End-to-end Playwright suite:</strong> visual regression for the three role surfaces.</li>
+  </ul>
+
+  <h2>11. References &amp; Appendix</h2>
+
+  <h3>11.1 Demo Credentials</h3>
+  <table>
+    <thead><tr><th>Role</th><th>Email</th><th>Password</th></tr></thead>
+    <tbody>
+      <tr><td>Admin</td><td><code>admin@example.com</code></td><td><code>123</code></td></tr>
+      <tr><td>Corporate</td><td><code>corporate1@example.com</code> … <code>corporate4@example.com</code></td><td><code>123</code></td></tr>
+      <tr><td>Individual</td><td><code>user1@example.com</code> … <code>user20@example.com</code></td><td><code>123</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>11.2 Repository Documents</h3>
+  <ul>
+    <li><code>README.md</code> — quick start, endpoints, environment reference</li>
+    <li><code>docs/architecture/system-architecture.md</code> — full system diagram &amp; flows</li>
+    <li><code>docs/architecture/er-diagram.md</code> — full ER model</li>
+    <li><code>docs/ETL_FIELD_MAPPING.md</code> — six-dataset to schema mapping</li>
+    <li><code>docs/grading-self-assessment.md</code> — rubric self-evaluation with file:line evidence</li>
+    <li><code>docs/DELIVERY_NOTES.md</code> — verification commands &amp; CI status</li>
+    <li><code>docs/screenshots/</code> — captured demo flows</li>
+  </ul>
+
+  <h3>11.3 Selected Demo Screenshots</h3>
+  <figure>
+    <img src="screenshots/admin-analytics.png" alt="Admin analytics dashboard" />
+    <figcaption>Admin analytics — customers by membership tier (donut), customers by city (bar), top categories.</figcaption>
+  </figure>
+  <figure>
+    <img src="screenshots/corporate-dashboard.png" alt="Corporate dashboard" />
+    <figcaption>Corporate dashboard — KPIs, sales trend, product performance for the authenticated store owner.</figcaption>
+  </figure>
+  <figure>
+    <img src="screenshots/checkout-stripe.png" alt="Stripe checkout" />
+    <figcaption>Stripe Elements card capture — the publishable key is the only Stripe credential exposed to the browser.</figcaption>
+  </figure>
+  <figure>
+    <img src="screenshots/chatbot-corporate.png" alt="Corporate chatbot scope" />
+    <figcaption>Corporate user asking a sales analytics question — the generated SQL is automatically scoped to the authenticated store.</figcaption>
+  </figure>
+
+  <p style="margin-top: 24pt; color: var(--muted); font-size: 9.5pt; text-align: center;">
+    End of Technical Report · Flower E-Commerce Analytics Platform · April 2026
+  </p>
+</section>
+
+</body>
+</html>

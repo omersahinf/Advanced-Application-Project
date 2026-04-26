@@ -296,6 +296,7 @@ GitHub Actions workflow at [`.github/workflows/ci.yml`](.github/workflows/ci.yml
 
 | File | Purpose |
 |------|---------|
+| **`docs/technical-report.html`** | **Final 14-page technical report — open in a browser and `Cmd+P → Save as PDF`** |
 | `docs/ETL_FIELD_MAPPING.md` | How the six Kaggle datasets map onto the JPA schema and seeded data |
 | `docs/database-smoke-test.sh` | Quick PostgreSQL connectivity + schema check |
 | `docs/grading-self-assessment.md` | Rubric self-assessment with file:line evidence |

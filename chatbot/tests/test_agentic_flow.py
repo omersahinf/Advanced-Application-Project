@@ -13,6 +13,7 @@ Covers the 8-step workflow:
 All LLM and DB calls are mocked so tests are deterministic and offline.
 """
 import graph
+import config
 from agents import guardrails, sql_generator, analyst, visualizer, error_handler
 from agents import executor
 
@@ -21,6 +22,9 @@ from agents import executor
 
 
 def _patch_llms(monkeypatch, *, scope="IN_SCOPE", sql="SELECT 1 AS x", analysis="Here are the results.", viz_code="NO_VIZ", fixed_sql="SELECT 1 AS x"):
+    # Ensure the analyst LLM branch is always taken, even when
+    # OPENAI_API_KEY is not set in the CI environment.
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
     monkeypatch.setattr(guardrails, "call_llm", lambda *a, **k: scope)
     monkeypatch.setattr(sql_generator, "call_llm", lambda *a, **k: sql)
     monkeypatch.setattr(analyst, "call_llm", lambda *a, **k: analysis)

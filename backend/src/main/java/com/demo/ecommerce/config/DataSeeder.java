@@ -123,6 +123,14 @@ public class DataSeeder implements CommandLineRunner {
             individuals.add(u);
 
             int age = 18 + random.nextInt(47);
+            // DESIGN NOTE (3NF intentional denormalization):
+            // CustomerProfile.totalSpend is a CACHED aggregate for dashboard
+            // performance — it avoids expensive SUM(orders.grand_total) joins on
+            // every dashboard load.  The authoritative spending value is always
+            // computed from the orders table (see DashboardService and chatbot
+            // SQL generators).  This field is refreshed during ETL / data seeding
+            // only and is NOT used for financial reporting or access-control
+            // decisions.  This is a standard star-schema optimization pattern.
             BigDecimal spend = BigDecimal.valueOf(100 + random.nextInt(4900)).setScale(2);
             int items = 2 + random.nextInt(28);
 

@@ -44,6 +44,50 @@ MAX_HISTORY = 10
 SESSION_TIMEOUT_SECS = 3600  # 1 hour
 MAX_QUESTION_LENGTH = 1000
 
+# ── AV-09: Progressive ID enumeration detection ──────────────
+# Tracks distinct numeric entity IDs mentioned per session within a
+# sliding window.  If a session references too many unique IDs in a short
+# period it is likely an automated enumeration attack (IDOR probe).
+import re as _re
+
+_ENUM_WINDOW_SECS = 300          # 5-minute sliding window
+_ENUM_WARN_THRESHOLD = 15        # start throttling (add 3s delay)
+_ENUM_BLOCK_THRESHOLD = 25       # hard block with warning message
+_session_id_tracker: dict[str, dict] = {}  # session_id -> {"ids": set, "start": float}
+
+
+def _track_enumeration(session_id: str, question: str) -> Optional[str]:
+    """Track numeric IDs in the question. Return a warning message if
+    the session exceeds enumeration thresholds, else None."""
+    if not session_id:
+        return None
+
+    now = time.time()
+    tracker = _session_id_tracker.get(session_id)
+
+    # Reset if window expired
+    if tracker is None or now - tracker["start"] > _ENUM_WINDOW_SECS:
+        tracker = {"ids": set(), "start": now}
+        _session_id_tracker[session_id] = tracker
+
+    # Extract numeric tokens that look like entity IDs (1-6 digits)
+    numeric_ids = set(_re.findall(r'\b(\d{1,6})\b', question))
+    tracker["ids"].update(numeric_ids)
+
+    distinct_count = len(tracker["ids"])
+
+    if distinct_count >= _ENUM_BLOCK_THRESHOLD:
+        return (
+            "⚠️ Unusual activity detected — too many distinct record IDs queried "
+            "in a short period. For security, further ID-based queries are "
+            "temporarily blocked. Please wait a few minutes and try again."
+        )
+    if distinct_count >= _ENUM_WARN_THRESHOLD:
+        # Throttle: add a delay to slow down automated probing
+        time.sleep(3)
+
+    return None
+
 
 class ChatRequest(BaseModel):
     question: str = Field(..., max_length=MAX_QUESTION_LENGTH)
@@ -115,6 +159,11 @@ def chat(req: ChatRequest, x_api_key: Optional[str] = Header(None, alias="X-API-
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
+    # AV-09: Check for object enumeration attacks
+    enum_warning = _track_enumeration(req.session_id, req.question)
+    if enum_warning:
+        return ChatResponse(answer=enum_warning, is_in_scope=False)
+
     # Periodically clean up expired sessions
     _cleanup_expired_sessions()
 
@@ -171,6 +220,16 @@ def chat_stream(req: ChatRequest, x_api_key: Optional[str] = Header(None, alias=
 
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    # AV-09: Check for object enumeration attacks
+    enum_warning = _track_enumeration(req.session_id, req.question)
+    if enum_warning:
+        err = {"step": "final", "status": "done",
+               "payload": {"answer": enum_warning, "is_in_scope": False}}
+        return StreamingResponse(
+            iter([f"event: final\ndata: {json.dumps(err)}\n\n".encode("utf-8")]),
+            media_type="text/event-stream",
+        )
 
     _cleanup_expired_sessions()
     context = _build_context(req.session_id) if req.session_id else ""

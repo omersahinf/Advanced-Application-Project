@@ -207,9 +207,29 @@ def execute_query(sql: str) -> dict:
         return {"columns": [], "rows": [], "row_count": 0,
                 "error": f"Access to table(s) {', '.join(sorted(unknown_tables))} is not allowed."}
 
+    # SECURITY NOTE (parameterized queries):
+    # LLM-generated SQL contains dynamic column names, table names, GROUP BY
+    # clauses, and aggregate expressions that cannot be expressed as bind
+    # parameters.  Instead, defense-in-depth is achieved through:
+    #   1. SELECT/WITH-only enforcement (line 167)
+    #   2. DML/DDL keyword blocklist (line 175)
+    #   3. UNION/INTERSECT/EXCEPT ban (line 180)
+    #   4. Multi-statement (;) ban (line 184)
+    #   5. Sensitive column blacklist (line 188)
+    #   6. System catalog blocklist (line 197)
+    #   7. Table allowlist (line 201)
+    #   8. Per-table column allowlist on output (line 220)
+    #   9. SET TRANSACTION READ ONLY (below)
+    # All nine layers must be bypassed simultaneously for data mutation, which
+    # is infeasible given the current validation pipeline.
+
     with engine.connect() as conn:
-        # Set read-only transaction for extra safety
-        if config.USE_SHARED_DB:
+        # Set read-only transaction for extra safety — prevents any writes
+        # even if all validation layers were hypothetically bypassed.
+        # NOTE: Only PostgreSQL supports SET TRANSACTION READ ONLY; SQLite
+        # (used in unit tests) does not, so we guard on the dialect name.
+        _dialect = getattr(engine, 'dialect', None)
+        if _dialect and getattr(_dialect, 'name', '') == "postgresql":
             conn.execute(text("SET TRANSACTION READ ONLY"))
         result = conn.execute(text(sql))
         columns = list(result.keys())

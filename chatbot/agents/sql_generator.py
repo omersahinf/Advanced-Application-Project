@@ -875,11 +875,30 @@ def sql_generator_agent(state: AgentState) -> dict:
             return {"sql_query": sql, "error": None}
 
         # INDIVIDUAL guardrail: corporate/admin-only questions
-        corporate_keywords = ['revenue', 'store sales', 'total sales', 'weekly revenue',
-                              'monthly revenue', 'top customer', 'my customer',
-                              'customer ranking', 'store performance', 'store report',
-                              'profit', 'all users', 'all orders', 'platform revenue']
-        if any(k in q_lower for k in corporate_keywords) and not any(k in q_lower for k in ['i spent', 'my order', 'i paid', 'my spend']):
+        # Comprehensive keyword list covers direct terms AND creative rephrasings
+        # to prevent INDIVIDUAL users from accessing revenue/customer data.
+        corporate_keywords = [
+            'revenue', 'store sales', 'total sales', 'weekly revenue',
+            'monthly revenue', 'top customer', 'my customer',
+            'customer ranking', 'store performance', 'store report',
+            'profit', 'all users', 'all orders', 'platform revenue',
+            # Extended: creative rephrasings that could bypass the original list
+            'gross revenue', 'net revenue', 'income', 'earnings', 'turnover',
+            'sales amount', 'sales volume', 'sales figure', 'sales total',
+            'gmv', 'aov', 'average order value', 'gross merchandise',
+            'how much did the store', 'how much does the store',
+            'store earn', 'store income', 'store profit', 'store revenue',
+            'company revenue', 'company sales', 'company profit',
+            'business revenue', 'business sales', 'business income',
+            'all customer', 'customer list', 'customer data', 'customer email',
+            'user list', 'user data', 'user email', 'all user',
+            'total revenue', 'total income', 'total profit', 'total earning',
+            'platform sales', 'platform income', 'platform profit',
+            'margin', 'gross margin', 'net margin', 'profit margin',
+            'financial report', 'sales report', 'revenue report',
+            'cost analysis', 'cost breakdown', 'expense',
+        ]
+        if any(k in q_lower for k in corporate_keywords) and not any(k in q_lower for k in ['i spent', 'my order', 'i paid', 'my spend', 'my purchase', 'i bought', 'i ordered']):
             return {
                 "sql_query": None,
                 "error": None,

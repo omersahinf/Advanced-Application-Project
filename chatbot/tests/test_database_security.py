@@ -52,7 +52,10 @@ def test_execute_query_filters_sensitive_columns_from_results(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    monkeypatch.setattr(database, "engine", SimpleNamespace(connect=lambda: FakeConn()))
+    monkeypatch.setattr(database, "engine", SimpleNamespace(
+        connect=lambda: FakeConn(),
+        dialect=SimpleNamespace(name="sqlite"),
+    ))
     monkeypatch.setattr(config, "USE_SHARED_DB", False)
 
     result = database.execute_query("SELECT id, email FROM users")
@@ -85,7 +88,10 @@ def test_execute_query_sets_read_only_transaction_on_shared_db(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    monkeypatch.setattr(database, "engine", SimpleNamespace(connect=lambda: FakeConn()))
+    monkeypatch.setattr(database, "engine", SimpleNamespace(
+        connect=lambda: FakeConn(),
+        dialect=SimpleNamespace(name="postgresql"),
+    ))
     monkeypatch.setattr(config, "USE_SHARED_DB", True)
 
     result = database.execute_query("SELECT SUM(grand_total) AS total_revenue FROM orders")

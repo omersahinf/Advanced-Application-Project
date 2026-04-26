@@ -30,9 +30,8 @@ jobs:
         env:
           JWT_SECRET: ci-test-secret-at-least-64-characters-long-padding-padding-padding
         run: ./mvnw -B test
-        continue-on-error: true
       - name: JaCoCo report
-        run: ./mvnw -B -q jacoco:report || true
+        run: ./mvnw -B -q jacoco:report
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()
@@ -61,8 +60,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Unit tests
-        run: npm test -- --run
-        continue-on-error: true
+        run: npx vitest run
 
   chatbot:
     name: Chatbot (Python)
@@ -82,11 +80,10 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install ruff pytest
-      - name: Lint (ruff)
-        run: ruff check . || true
-      - name: Tests
-        run: pytest -q
-        continue-on-error: true
+      - name: Syntax check
+        run: python -m py_compile agents/sql_generator.py llm.py tests/test_sql_generator.py
+      - name: Role-scope tests
+        run: pytest -q tests/test_sql_generator.py tests/test_role_based_access.py
 
   docker:
     name: Docker images build

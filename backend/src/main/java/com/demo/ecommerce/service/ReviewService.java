@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -72,7 +73,7 @@ public class ReviewService {
         review.setUser(user);
         review.setProduct(product);
         review.setStarRating(req.getStarRating());
-        review.setReviewBody(req.getReviewBody());
+        review.setReviewBody(sanitizeUserText(req.getReviewBody()));
         review.setHelpfulVotes(0);
         review.setTotalVotes(0);
 
@@ -96,7 +97,7 @@ public class ReviewService {
         if (!review.getProduct().getStore().getOwner().getId().equals(ownerId)) {
             throw new UnauthorizedOperationException("Not authorized to reply to this review");
         }
-        review.setCorporateReply(replyBody);
+        review.setCorporateReply(sanitizeUserText(replyBody));
         review.setReplyDate(java.time.LocalDateTime.now());
         return ReviewDto.from(reviewRepository.save(review));
     }
@@ -109,5 +110,12 @@ public class ReviewService {
             throw new UnauthorizedOperationException("Not authorized to delete this review");
         }
         reviewRepository.delete(review);
+    }
+
+    private String sanitizeUserText(String value) {
+        if (value == null) {
+            return null;
+        }
+        return HtmlUtils.htmlEscape(value.strip());
     }
 }

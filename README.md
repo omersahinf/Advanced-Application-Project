@@ -208,13 +208,17 @@ Full OpenAPI schema: `http://localhost:8080/swagger-ui.html`.
 
 ```bash
 # Backend (JUnit 5 + Mockito + MockMvc + Testcontainers)
-cd backend && ./mvnw test
+cd backend
+JWT_SECRET=ci-test-secret-at-least-64-characters-long-padding-padding-padding ./mvnw test
 
 # Frontend (Vitest + jsdom)
-cd frontend && npm test
+cd frontend
+npx vitest run
 
-# Chatbot (pytest)
-cd chatbot && pytest
+# Chatbot role-scope/security regression tests
+cd chatbot
+source venv/bin/activate
+python -m pytest -q tests/test_sql_generator.py tests/test_role_based_access.py
 ```
 
 Coverage includes:
@@ -247,9 +251,12 @@ Coverage includes:
 ## Run with Docker
 
 The whole stack runs with one command — Postgres + backend + chatbot + frontend (Nginx).
+`JWT_SECRET` is required and must be at least 64 characters because backend tokens are signed with HS512.
 
 ```bash
-cp .env.example .env   # fill in AI_API_KEY / STRIPE_*; defaults work for a local demo
+cp .env.example .env
+# Required: set JWT_SECRET to a 64+ character random value.
+# Also fill AI_API_KEY / STRIPE_* for chatbot and checkout demos.
 docker compose up --build
 ```
 
@@ -273,8 +280,8 @@ Reference manifests in [`k8s/`](k8s/) — StatefulSet for Postgres, Deployments 
 GitHub Actions workflow at [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and PR to `main`:
 
 1. **Backend** — `./mvnw compile`, `./mvnw test`, JaCoCo report uploaded as artifact, `./mvnw package`.
-2. **Frontend** — `npm ci`, `npm run build`, `npm test`.
-3. **Chatbot** — `pip install`, `ruff check`, `pytest`.
+2. **Frontend** — `npm ci`, `npm run build`, `npx vitest run`.
+3. **Chatbot** — `pip install`, Python syntax check, SQL generator / role-scope regression tests.
 4. **Docker** — buildx-builds all three images (`backend`, `chatbot`, `frontend`).
 
 ## Architecture

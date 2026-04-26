@@ -244,9 +244,18 @@ Coverage includes:
 
 ---
 
+## Architecture
+
+| Document | Purpose |
+|------|---------|
+| [`docs/architecture/system-architecture.md`](docs/architecture/system-architecture.md) | High-level component diagram, request flows, security layers |
+| [`docs/architecture/er-diagram.md`](docs/architecture/er-diagram.md) | Entity-relationship model, normalization notes, indexes |
+| [`docs/screenshots/`](docs/screenshots/) | Demo screenshots (login, dashboards, chatbot) |
+
 ## Documentation
 
 | File | Purpose |
 |------|---------|
 | `docs/ETL_FIELD_MAPPING.md` | How the six Kaggle datasets map onto the JPA schema and seeded data |
 | `docs/database-smoke-test.sh` | Quick PostgreSQL connectivity + schema check |
+| `docs/grading-self-assessment.md` | Rubric self-assessment with file:line evidence |

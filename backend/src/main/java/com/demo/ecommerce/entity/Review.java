@@ -46,11 +46,20 @@ public class Review {
     @Column(name = "review_date")
     private LocalDateTime reviewDate;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         if (reviewDate == null) {
             reviewDate = LocalDateTime.now();
         }
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     // --- Getters and Setters ---
@@ -87,4 +96,7 @@ public class Review {
 
     public LocalDateTime getReplyDate() { return replyDate; }
     public void setReplyDate(LocalDateTime replyDate) { this.replyDate = replyDate; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

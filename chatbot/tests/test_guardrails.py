@@ -8,6 +8,7 @@ def test_ecommerce_keywords_match_extended_queries():
     assert guardrails.ECOMMERCE_KEYWORDS.search("How many orders today?")
     assert guardrails.ECOMMERCE_KEYWORDS.search("Which is the cheapest product?")
     assert guardrails.ECOMMERCE_KEYWORDS.search("Top 5 best selling products")
+    assert guardrails.ECOMMERCE_KEYWORDS.search("En fazla yorum almış ürün nedir?")
 
 
 def test_blacklist_and_keyword_classifier():

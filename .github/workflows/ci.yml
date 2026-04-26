@@ -82,8 +82,8 @@ jobs:
           pip install ruff pytest
       - name: Syntax check
         run: python -m py_compile agents/sql_generator.py llm.py tests/test_sql_generator.py
-      - name: Role-scope tests
-        run: pytest -q tests/test_sql_generator.py tests/test_role_based_access.py
+      - name: Full chatbot test suite
+        run: pytest -q
 
   docker:
     name: Docker images build

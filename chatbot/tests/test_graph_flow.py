@@ -242,6 +242,7 @@ def test_run_query_stream_retries_failed_execution_before_succeeding(monkeypatch
         "execute",
         "analyze",
         "decide_graph",
+        "visualize",
         "final",
     ]
     assert events[2]["payload"]["error"] == "syntax error near FROM"

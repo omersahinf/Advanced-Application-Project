@@ -7,6 +7,7 @@ from agents.sql_generator import (
     _build_personal_spending_sql,
     _build_revenue_by_month_sql,
     _build_order_listing_sql,
+    _build_most_reviewed_product_sql,
     _build_shipment_status_timeframe_sql,
     _build_shipped_by_air_sql,
     _inject_role_filter,
@@ -276,6 +277,34 @@ def test_individual_order_history_with_delivery_status_joins_shipments():
     assert "COALESCE(s.status, 'NOT_SHIPPED') AS delivery_status" in sql
     assert "s.tracking_number" in sql
     assert "s.carrier" in sql
+
+
+def test_most_reviewed_product_sql_uses_reviews_table_for_turkish_demo_prompt():
+    sql = _build_most_reviewed_product_sql(
+        "En fazla yorum almış ürün nedir?",
+        "ADMIN",
+        user_id=1,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "FROM reviews r" in sql
+    assert "JOIN products p ON r.product_id = p.id" in sql
+    assert "COUNT(r.id) AS review_count" in sql
+    assert "ORDER BY review_count DESC" in sql
+    assert "LIMIT 1" in sql
+
+
+def test_most_reviewed_product_sql_is_store_scoped_for_corporate():
+    sql = _build_most_reviewed_product_sql(
+        "What is my most reviewed product?",
+        "CORPORATE",
+        user_id=2,
+        store_id=7,
+    )
+
+    assert sql is not None
+    assert "p.store_id = 7" in sql
 
 
 def test_shipment_status_this_week_sql_uses_shipped_date_for_corporate():

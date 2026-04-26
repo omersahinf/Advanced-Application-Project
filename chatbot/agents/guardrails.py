@@ -21,7 +21,7 @@ GREETING_PATTERNS = re.compile(
     re.IGNORECASE
 )
 
-# E-commerce keywords that confirm analytics intent (English only)
+# E-commerce keywords that confirm analytics intent.
 ECOMMERCE_KEYWORDS = re.compile(
     r'\b(products?|orders?|sales?|revenue|customers?|reviews?|shipments?|stores?|categories?|category|'
     r'inventory|stock|prices?|profits?|discounts?|carts?|payments?|refunds?|ratings?|'
@@ -29,7 +29,9 @@ ECOMMERCE_KEYWORDS = re.compile(
     r'sell(?:ers?|ing)?|sold|buy(?:ers?|ing)?|bought|monthly|daily|weekly|'
     r'total|average|count|sum|trends?|growth|compar\w*|segments?|analytics|'
     r'expensive|cheapest|best.?selling|top\s+\d|'
-    r'month|year|quarter|cost|how\s+much|how\s+many|history|status)\b',
+    r'month|year|quarter|cost|how\s+much|how\s+many|history|status|'
+    r'ürün|urun|sipariş|siparis|satış|satis|gelir|müşteri|musteri|yorum|'
+    r'mağaza|magaza|kategori|stok|teslimat|kargo|harcama|puan|en\s+(fazla|çok|cok))\b',
     re.IGNORECASE
 )
 

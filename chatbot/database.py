@@ -13,17 +13,18 @@ users = Table("users", metadata,
     Column("first_name", String), Column("last_name", String),
     Column("email", String, unique=True), Column("password_hash", String),
     Column("role_type", String), Column("gender", String),
-    Column("created_at", DateTime))
+    Column("created_at", DateTime), Column("updated_at", DateTime))
 
 categories = Table("categories", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("name", String), Column("parent_id", Integer, ForeignKey("categories.id")))
+    Column("name", String), Column("parent_id", Integer, ForeignKey("categories.id")),
+    Column("created_at", DateTime), Column("updated_at", DateTime))
 
 stores = Table("stores", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("owner_id", Integer, ForeignKey("users.id")),
     Column("name", String), Column("description", String),
-    Column("status", String), Column("created_at", DateTime))
+    Column("status", String), Column("created_at", DateTime), Column("updated_at", DateTime))
 
 products = Table("products", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
@@ -31,7 +32,7 @@ products = Table("products", metadata,
     Column("category_id", Integer, ForeignKey("categories.id")),
     Column("sku", String), Column("name", String), Column("description", String),
     Column("unit_price", Float), Column("stock", Integer),
-    Column("created_at", DateTime))
+    Column("created_at", DateTime), Column("updated_at", DateTime))
 
 orders = Table("orders", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
@@ -39,7 +40,8 @@ orders = Table("orders", metadata,
     Column("store_id", Integer, ForeignKey("stores.id")),
     Column("status", String), Column("grand_total", Float),
     Column("payment_method", String), Column("sales_channel", String),
-    Column("fulfilment", String), Column("order_date", DateTime))
+    Column("fulfilment", String), Column("order_date", DateTime),
+    Column("updated_at", DateTime))
 
 order_items = Table("order_items", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
@@ -56,7 +58,8 @@ shipments = Table("shipments", metadata,
     Column("carrier", String), Column("destination", String),
     Column("customer_care_calls", Integer),
     Column("shipped_date", DateTime), Column("estimated_arrival", DateTime),
-    Column("delivered_date", DateTime))
+    Column("delivered_date", DateTime),
+    Column("created_at", DateTime), Column("updated_at", DateTime))
 
 reviews = Table("reviews", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
@@ -64,7 +67,8 @@ reviews = Table("reviews", metadata,
     Column("product_id", Integer, ForeignKey("products.id")),
     Column("star_rating", Integer), Column("review_body", String),
     Column("sentiment", String), Column("helpful_votes", Integer),
-    Column("total_votes", Integer), Column("review_date", DateTime))
+    Column("total_votes", Integer), Column("review_date", DateTime),
+    Column("updated_at", DateTime))
 
 customer_profiles = Table("customer_profiles", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
@@ -73,22 +77,23 @@ customer_profiles = Table("customer_profiles", metadata,
     Column("membership_type", String), Column("total_spend", Float),
     Column("items_purchased", Integer), Column("avg_rating", Float),
     Column("discount_applied", Boolean), Column("satisfaction_level", String),
-    Column("prior_purchases", Integer))
+    Column("prior_purchases", Integer),
+    Column("created_at", DateTime), Column("updated_at", DateTime))
 
 
 _DB_TYPE = "PostgreSQL"
 
 DB_SCHEMA_DESCRIPTION = f"""
 Database Schema ({_DB_TYPE}):
-- users (id, first_name, last_name, email, role_type [ADMIN/CORPORATE/INDIVIDUAL], gender, created_at)
-- stores (id, owner_id→users, name, description, status [ACTIVE/CLOSED], created_at)
-- categories (id, name, parent_id→categories)  -- hierarchical
-- products (id, store_id→stores, category_id→categories, sku, name, description, unit_price, stock, created_at)
-- orders (id, user_id→users, store_id→stores, status [PENDING/CONFIRMED/SHIPPED/DELIVERED/CANCELLED], grand_total, payment_method [CREDIT_CARD/DEBIT_CARD/PAYPAL/BANK_TRANSFER/COD], sales_channel, fulfilment, order_date)
+- users (id, first_name, last_name, email, role_type [ADMIN/CORPORATE/INDIVIDUAL], gender, created_at, updated_at)
+- stores (id, owner_id→users, name, description, status [ACTIVE/CLOSED], created_at, updated_at)
+- categories (id, name, parent_id→categories, created_at, updated_at)  -- hierarchical
+- products (id, store_id→stores, category_id→categories, sku, name, description, unit_price, stock, created_at, updated_at)
+- orders (id, user_id→users, store_id→stores, status [PENDING/CONFIRMED/SHIPPED/DELIVERED/CANCELLED], grand_total, payment_method [CREDIT_CARD/DEBIT_CARD/PAYPAL/BANK_TRANSFER/COD], sales_channel, fulfilment, order_date, updated_at)
 - order_items (id, order_id→orders, product_id→products, quantity, price, discount_percent)
-- shipments (id, order_id→orders, warehouse, mode [Ship/Flight/Road], status, tracking_number, carrier, destination, customer_care_calls, shipped_date, estimated_arrival, delivered_date)
-- reviews (id, user_id→users, product_id→products, star_rating [1-5], review_body, sentiment [POSITIVE/NEUTRAL/NEGATIVE], helpful_votes, total_votes, review_date)
-- customer_profiles (id, user_id→users, age, city, membership_type [GOLD/SILVER/BRONZE], total_spend, items_purchased, avg_rating, discount_applied, satisfaction_level, prior_purchases)
+- shipments (id, order_id→orders, warehouse, mode [Ship/Flight/Road], status, tracking_number, carrier, destination, customer_care_calls, shipped_date, estimated_arrival, delivered_date, created_at, updated_at)
+- reviews (id, user_id→users, product_id→products, star_rating [1-5], review_body, sentiment [POSITIVE/NEUTRAL/NEGATIVE], helpful_votes, total_votes, review_date, updated_at)
+- customer_profiles (id, user_id→users, age, city, membership_type [GOLD/SILVER/BRONZE], total_spend, items_purchased, avg_rating, discount_applied, satisfaction_level, prior_purchases, created_at, updated_at)
 
 IMPORTANT JOIN RULES:
 - ALWAYS use LEFT JOIN when joining shipments — most orders do NOT have a shipment record yet.
@@ -132,18 +137,20 @@ _TABLE_REF_PATTERN = re.compile(r'\bFROM\s+(\w+)|\bJOIN\s+(\w+)', re.IGNORECASE)
 # Computed/alias columns (SUM, COUNT, etc.) pass through automatically.
 # If a new column is added to the DB but not listed here, it won't leak.
 _ALLOWED_COLUMNS_PER_TABLE = {
-    "users":             {"id", "first_name", "last_name", "email", "role_type", "gender", "created_at", "company_name"},
-    "stores":            {"id", "owner_id", "name", "description", "status", "created_at"},
-    "categories":        {"id", "name", "parent_id"},
-    "products":          {"id", "store_id", "category_id", "sku", "name", "description", "unit_price", "stock", "created_at"},
-    "orders":            {"id", "user_id", "store_id", "status", "grand_total", "payment_method", "sales_channel", "fulfilment", "order_date"},
+    "users":             {"id", "first_name", "last_name", "email", "role_type", "gender", "created_at", "updated_at", "company_name"},
+    "stores":            {"id", "owner_id", "name", "description", "status", "created_at", "updated_at"},
+    "categories":        {"id", "name", "parent_id", "created_at", "updated_at"},
+    "products":          {"id", "store_id", "category_id", "sku", "name", "description", "unit_price", "stock", "created_at", "updated_at"},
+    "orders":            {"id", "user_id", "store_id", "status", "grand_total", "payment_method", "sales_channel", "fulfilment", "order_date", "updated_at"},
     "order_items":       {"id", "order_id", "product_id", "quantity", "price", "discount_percent"},
     "shipments":         {"id", "order_id", "warehouse", "mode", "status", "tracking_number", "carrier", "destination",
-                          "customer_care_calls", "shipped_date", "estimated_arrival", "delivered_date"},
+                          "customer_care_calls", "shipped_date", "estimated_arrival", "delivered_date",
+                          "created_at", "updated_at"},
     "reviews":           {"id", "user_id", "product_id", "star_rating", "review_body", "sentiment",
-                          "helpful_votes", "total_votes", "review_date"},
+                          "helpful_votes", "total_votes", "review_date", "updated_at"},
     "customer_profiles": {"id", "user_id", "age", "city", "membership_type", "total_spend",
-                          "items_purchased", "avg_rating", "discount_applied", "satisfaction_level", "prior_purchases"},
+                          "items_purchased", "avg_rating", "discount_applied", "satisfaction_level", "prior_purchases",
+                          "created_at", "updated_at"},
 }
 # Union of all allowed raw column names (for fast output filtering)
 _ALL_ALLOWED_COLUMNS = set()

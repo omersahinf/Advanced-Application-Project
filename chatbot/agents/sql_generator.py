@@ -7,10 +7,8 @@ from database import DB_SCHEMA_DESCRIPTION
 from llm import call_llm
 import datetime
 
-# Tables that contain user_id for role filtering (truly personal data only)
-# Note: 'reviews' is NOT here because review aggregates (counts, ratings) are public data.
-# The LLM prompt instructs it to add user_id filter only for "my reviews" type queries.
-USER_SCOPED_TABLES = {"orders", "customer_profiles"}
+# Tables that contain user_id for direct personal-data role filtering.
+USER_SCOPED_TABLES = {"orders", "reviews", "customer_profiles"}
 STORE_SCOPED_TABLES = {"orders", "products", "order_items", "reviews"}
 
 # Tables that non-ADMIN roles should never query directly
@@ -115,10 +113,19 @@ def _inject_role_filter(sql: str, role: str, user_id: int, store_id: int, questi
         filter_val = user_id
         if re.search(r'\buser_id\s*=\s*' + str(user_id), sql, re.IGNORECASE):
             return sql
-        tables_used = [t for t in USER_SCOPED_TABLES if re.search(r'\b' + t + r'\b', sql, re.IGNORECASE)]
+        tables_used = [
+            t for t in ["orders", "reviews", "customer_profiles", "order_items", "shipments"]
+            if re.search(r'\b' + t + r'\b', sql, re.IGNORECASE)
+        ]
         if not tables_used:
             return sql
         for table in tables_used:
+            if table in {"order_items", "shipments"}:
+                sql = _add_where_clause(
+                    sql,
+                    f"order_id IN (SELECT id FROM orders WHERE user_id = {filter_val})"
+                )
+                break
             alias_match = re.search(r'\b(' + table + r')\s+(?:AS\s+)?(\w+)', sql, re.IGNORECASE)
             prefix = ""
             if alias_match:
@@ -640,6 +647,35 @@ def _build_shipment_status_timeframe_sql(question: str, role: str, user_id: int,
     )
 
 
+def _build_most_reviewed_product_sql(question: str, role: str, user_id: int, store_id: int):
+    """Return deterministic SQL for the demo-critical most-reviewed product query."""
+    q = question.lower()
+    asks_reviews = (
+        ("most" in q and "review" in q)
+        or ("top" in q and "review" in q)
+        or (("en fazla" in q or "en çok" in q or "en cok" in q) and "yorum" in q)
+    )
+    asks_product = any(term in q for term in ["product", "products", "ürün", "urun"])
+    if not (asks_reviews and asks_product):
+        return None
+
+    where_clauses = []
+    if role == "CORPORATE" and store_id:
+        where_clauses.append(f"p.store_id = {store_id}")
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)} " if where_clauses else ""
+    return (
+        "SELECT p.name AS product_name, COUNT(r.id) AS review_count, "
+        "ROUND(AVG(r.star_rating), 2) AS average_rating "
+        "FROM reviews r "
+        "JOIN products p ON r.product_id = p.id "
+        f"{where_sql}"
+        "GROUP BY p.id, p.name "
+        "ORDER BY review_count DESC, average_rating DESC "
+        "LIMIT 1"
+    )
+
+
 def _try_deterministic_followup(question: str, last_sql: str, last_columns: str) -> Optional[str]:
     """Try to mechanically transform the previous SQL for common follow-up patterns.
     Returns a new SQL string if matched, None otherwise (fall through to LLM).
@@ -796,6 +832,12 @@ def sql_generator_agent(state: AgentState) -> dict:
     )
     if deterministic_air_shipments_sql:
         return {"sql_query": deterministic_air_shipments_sql, "error": None}
+
+    deterministic_most_reviewed_sql = _build_most_reviewed_product_sql(
+        state["question"], role, user_id, store_id
+    )
+    if deterministic_most_reviewed_sql:
+        return {"sql_query": deterministic_most_reviewed_sql, "error": None}
 
     deterministic_order_listing_sql = _build_order_listing_sql(
         state["question"], role, user_id, store_id

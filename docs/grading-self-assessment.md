@@ -31,7 +31,7 @@ This document maps the project against the rubric in Section 7 of the assignment
   - `Category` self-referencing parent for hierarchy.
 - **Index strategy** (`Order.java:10-16`, `Product.java:10-15`, `Review.java:7-12`): composite indexes on `(user_id, order_date)`, `(store_id, order_date)`, plus single-column indexes on FK + status fields used by dashboards.
 - **Data integrity**: `CHECK (stock >= 0)`, `CHECK (star_rating BETWEEN 1 AND 5)`, `CHECK (grand_total >= 0)`, `CHECK (cost_price IS NULL OR cost_price >= 0)`.
-- **Audit fields**: `created_at` + `updated_at` with `@PrePersist`/`@PreUpdate` lifecycle hooks on `Order.java`, `Product.java`, `Review.java`.
+- **Audit fields**: `created_at` + `updated_at` with `@PrePersist`/`@PreUpdate` lifecycle hooks on `User.java`, `Store.java`, `Category.java`, `Product.java`, `Order.java`, `Shipment.java`, `Review.java`, and `CustomerProfile.java`.
 - **ETL** (`backend/src/main/java/.../config/DataSeeder.java`, 411 lines): seeds 6 Kaggle-style datasets — 25 users, 4 stores, 44 products across categories, ~80–100 orders with order items + shipments + payments, ~100+ reviews with sentiment classification. Mapping documented in `docs/ETL_FIELD_MAPPING.md`.
 
 ---

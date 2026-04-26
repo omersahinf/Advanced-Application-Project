@@ -40,6 +40,27 @@ def test_individual_sees_own_spending_patterns_only():
     assert "user_id = 42" in result
 
 
+def test_individual_sees_own_reviews_only():
+    """5.8 Individual: 'Own reviews' — direct reviews queries are user-scoped."""
+    sql = "SELECT id, star_rating, review_body FROM reviews"
+    result = _inject_role_filter(sql, "INDIVIDUAL", 42, None, question="Show my reviews")
+    assert "user_id = 42" in result
+
+
+def test_individual_order_item_queries_are_scoped_through_orders():
+    """5.8 Individual: order_items has no user_id, so scope through orders."""
+    sql = "SELECT product_id, quantity FROM order_items"
+    result = _inject_role_filter(sql, "INDIVIDUAL", 42, None, question="Show what I bought")
+    assert "order_id IN (SELECT id FROM orders WHERE user_id = 42)" in result
+
+
+def test_individual_shipment_queries_are_scoped_through_orders():
+    """5.8 Individual: shipments has no user_id, so scope through orders."""
+    sql = "SELECT tracking_number, status FROM shipments"
+    result = _inject_role_filter(sql, "INDIVIDUAL", 42, None, question="Show my shipment status")
+    assert "order_id IN (SELECT id FROM orders WHERE user_id = 42)" in result
+
+
 def test_individual_blocked_from_other_users():
     """5.8 Individual: cannot enumerate other users — users table → own row."""
     sql = "SELECT id, email FROM users"

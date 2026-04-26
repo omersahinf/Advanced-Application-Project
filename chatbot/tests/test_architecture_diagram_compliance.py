@@ -32,6 +32,7 @@ DIAGRAM_EDGES = [
     ("guardrails", "__end__", "end"),                     # greeting / out-of-scope → UI
     ("guardrails", "generate_sql", None),                 # in-scope → SQL Agent
     ("generate_sql", "execute", None),                    # SQL Agent → Execute SQL
+    ("generate_sql", "__end__", "end"),                   # role mismatch / refusal → UI
     ("execute", "error_handler", None),                   # error → Error Agent
     ("execute", "analyze", None),                         # success → Analysis Agent
     ("execute", "give_up", None),                         # max 3 tries → terminal

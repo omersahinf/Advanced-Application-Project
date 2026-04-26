@@ -43,7 +43,7 @@ _MONEY_COLUMNS = re.compile(
 # Numeric columns that usually represent counts/quantities
 _COUNT_COLUMNS = re.compile(r'(count|qty|quantity|orders?|reviews?|num)', re.IGNORECASE)
 # Time columns for trend detection
-_TIME_COLUMNS = re.compile(r'(date|order_date|review_date|shipped_date|created_at|month|order_month|week)', re.IGNORECASE)
+_TIME_COLUMNS = re.compile(r'(date|order_date|review_date|shipped_date|created_at|updated_at|month|order_month|week)', re.IGNORECASE)
 
 # Dark theme matching Flower chatbot design & professor's examples
 _DARK_BG = '#1a1a2e'       # Dark navy background
@@ -248,12 +248,13 @@ def _detect_chart_type(df: pd.DataFrame, columns: list, question: str) -> str:
     if "compare" in q or "comparison" in q or "vs" in q:
         return "grouped_bar"
 
-    # Rankings (top, lowest, best, worst)
-    if any(w in q for w in ["top", "best", "worst", "lowest", "highest", "ranking"]):
-        return "horizontal_bar"
+    # Distribution/proportion questions are clearest as a pie chart when not
+    # handled by the status aggregation path.
+    if any(w in q for w in ["distribution", "proportion", "percentage"]):
+        return "pie"
 
-    # Status/distribution/delivery → always BAR (sorted, descending)
-    if any(w in q for w in ["status", "delivery", "distribution", "proportion", "breakdown", "percentage"]):
+    # Status/delivery questions stay as sorted bars for readable labels.
+    if any(w in q for w in ["status", "delivery", "breakdown"]):
         return "bar"
 
     # Default: always BAR (like professor's examples)
@@ -470,6 +471,24 @@ def _build_fallback_chart(rows: list, columns: list, question: str):
                     yaxis_title=_clean_col_name(value_col)
                 ))
 
+        elif chart_type == "pie":
+            paired = sorted(zip(labels, values), key=lambda x: x[1], reverse=True)
+            labels = [p[0] for p in paired]
+            values = [p[1] for p in paired]
+            fig = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.35,
+                marker=dict(colors=[_COLORS[i % len(_COLORS)] for i in range(len(labels))]),
+                textinfo='label+percent',
+                textfont=dict(color='white', size=12),
+            )])
+            fig.update_layout(**_dark_layout(
+                title=question[:80],
+                showlegend=True,
+                legend=dict(orientation='h', yanchor='bottom', y=-0.18, xanchor='center', x=0.5),
+            ))
+
         else:
             # Default: sorted bar chart (descending) — like professor's Rating Distribution
             paired = sorted(zip(labels, values), key=lambda x: x[1], reverse=True)
@@ -593,10 +612,9 @@ def visualization_agent(state: AgentState) -> dict:
     if row_count == 1 and len(columns) < 2:
         return {"visualization_code": None, "visualization_html": None}
 
-    # For large datasets, still allow aggregation-based charts (status distribution, etc.)
-    # Only skip if it's truly too large AND we can't aggregate
-    if row_count > 200:
-        # But if we have status columns, we can still aggregate
+    # Avoid rendering huge raw charts. Status-like result sets can still be
+    # aggregated safely by the deterministic fallback.
+    if row_count > 50:
         has_status = any(_STATUS_COLUMNS.search(c) for c in columns)
         if not has_status:
             return {"visualization_code": None, "visualization_html": None}

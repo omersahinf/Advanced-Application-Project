@@ -31,6 +31,7 @@ erDiagram
         enum role "ADMIN | CORPORATE | INDIVIDUAL"
         boolean suspended
         timestamp created_at
+        timestamp updated_at
     }
 
     CUSTOMER_PROFILE {
@@ -39,6 +40,8 @@ erDiagram
         string city
         int age
         enum membership "BASIC | SILVER | GOLD | PLATINUM"
+        timestamp created_at
+        timestamp updated_at
     }
 
     STORE {
@@ -46,12 +49,16 @@ erDiagram
         bigint owner_id FK
         string name
         enum status "PENDING | ACTIVE | SUSPENDED"
+        timestamp created_at
+        timestamp updated_at
     }
 
     CATEGORY {
         bigint id PK
         bigint parent_id FK "nullable"
         string name
+        timestamp created_at
+        timestamp updated_at
     }
 
     PRODUCT {
@@ -62,6 +69,8 @@ erDiagram
         decimal price
         decimal cost_price
         int stock "CHECK >= 0"
+        timestamp created_at
+        timestamp updated_at
     }
 
     ORDER {
@@ -70,7 +79,8 @@ erDiagram
         bigint store_id FK
         decimal total
         enum status "CREATED | PAID | SHIPPED | DELIVERED | CANCELLED"
-        timestamp created_at
+        timestamp order_date
+        timestamp updated_at
     }
 
     ORDER_ITEM {
@@ -87,6 +97,8 @@ erDiagram
         string carrier
         string tracking_no
         enum status "PENDING | IN_TRANSIT | DELIVERED | RETURNED"
+        timestamp created_at
+        timestamp updated_at
     }
 
     REVIEW {
@@ -96,6 +108,8 @@ erDiagram
         int star_rating "CHECK 1..5"
         text comment
         enum sentiment "POSITIVE | NEUTRAL | NEGATIVE"
+        timestamp review_date
+        timestamp updated_at
     }
 
     CART_ITEM {

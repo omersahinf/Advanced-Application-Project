@@ -5,7 +5,21 @@ the database execution layer (database.py) and the SQL
 generation layer (sql_generator.py / guardrails).
 """
 
+import pytest
+from sqlalchemy import create_engine
+
 import database
+
+
+@pytest.fixture(autouse=True)
+def isolated_sqlite_engine(monkeypatch):
+    """Run execution-layer regression tests without requiring local PostgreSQL."""
+    engine = create_engine("sqlite:///:memory:")
+    database.metadata.create_all(engine)
+    monkeypatch.setattr(database, "engine", engine)
+    monkeypatch.setattr(database.config, "USE_SHARED_DB", False)
+    yield
+    engine.dispose()
 
 
 # ── XSS payloads in SQL queries ──────────────────────────────────────────────

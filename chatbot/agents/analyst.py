@@ -91,7 +91,10 @@ def _format_order_listing(rows: list, columns: list, row_count: int, role: str) 
         except Exception:
             if "T" in date_raw:
                 date_raw = date_raw.split("T")[0]
-        status = row.get("status", "UNKNOWN")
+        status = row.get("order_status") or row.get("status", "UNKNOWN")
+        delivery_status = row.get("delivery_status")
+        tracking_number = row.get("tracking_number")
+        carrier = row.get("carrier")
         total = row.get("grand_total", 0)
         payment = row.get("payment_method", "")
         payment_label = _PAYMENT_LABELS.get(payment, payment)
@@ -102,7 +105,20 @@ def _format_order_listing(rows: list, columns: list, row_count: int, role: str) 
         except (ValueError, TypeError):
             total_fmt = f"${total}"
 
-        lines.append(f"• **Order #{oid}** — {date_raw} — {status} — {total_fmt} ({payment_label})")
+        delivery_parts = []
+        if delivery_status:
+            delivery_parts.append(f"Delivery: {delivery_status}")
+        if tracking_number:
+            tracking = str(tracking_number)
+            if carrier:
+                tracking += f" via {carrier}"
+            delivery_parts.append(f"Tracking: {tracking}")
+
+        details = f"{status} — {total_fmt} ({payment_label})"
+        if delivery_parts:
+            details += " — " + " · ".join(delivery_parts)
+
+        lines.append(f"• **Order #{oid}** — {date_raw} — {details}")
 
     return "\n".join(lines)
 

@@ -446,6 +446,10 @@ def _build_order_listing_sql(question: str, role: str, user_id: int, store_id: i
 
     # ── Count vs listing ──
     is_count = any(kw in q for kw in ["how many", "count", "number of", "total number"])
+    wants_delivery_status = any(
+        phrase in q
+        for phrase in ["delivery status", "shipment status", "shipping status", "delivery", "shipment"]
+    )
 
     # ── Extract LIMIT number ──
     import re as _re
@@ -502,6 +506,18 @@ def _build_order_listing_sql(question: str, role: str, user_id: int, store_id: i
 
     # ── Listing query — always include order_id ──
     limit_sql = f"LIMIT {limit}" if limit else "LIMIT 50"
+    if wants_delivery_status:
+        return (
+            "SELECT o.id AS order_id, o.order_date, o.status AS order_status, "
+            "COALESCE(s.status, 'NOT_SHIPPED') AS delivery_status, "
+            "s.tracking_number, s.carrier, s.estimated_arrival, "
+            "o.grand_total, o.payment_method "
+            "FROM orders o "
+            "LEFT JOIN shipments s ON o.id = s.order_id "
+            f"{where_sql} "
+            f"ORDER BY o.order_date DESC {limit_sql}"
+        )
+
     return (
         "SELECT o.id AS order_id, o.order_date, o.status, "
         "o.grand_total, o.payment_method "

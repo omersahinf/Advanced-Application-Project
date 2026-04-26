@@ -5,6 +5,7 @@ from agents.sql_generator import (
     _build_category_sales_timeframe_sql,
     _build_month_over_month_comparison_sql,
     _build_revenue_by_month_sql,
+    _build_order_listing_sql,
     _build_shipment_status_timeframe_sql,
     _build_shipped_by_air_sql,
     _inject_role_filter,
@@ -217,6 +218,23 @@ def test_shipped_by_air_sql_is_store_scoped_for_corporate():
 
     assert sql is not None
     assert "o.store_id = 1" in sql
+
+
+def test_individual_order_history_with_delivery_status_joins_shipments():
+    sql = _build_order_listing_sql(
+        "Show my order history with delivery status",
+        "INDIVIDUAL",
+        user_id=42,
+        store_id=None,
+    )
+
+    assert sql is not None
+    assert "o.user_id = 42" in sql
+    assert "LEFT JOIN shipments s ON o.id = s.order_id" in sql
+    assert "o.status AS order_status" in sql
+    assert "COALESCE(s.status, 'NOT_SHIPPED') AS delivery_status" in sql
+    assert "s.tracking_number" in sql
+    assert "s.carrier" in sql
 
 
 def test_shipment_status_this_week_sql_uses_shipped_date_for_corporate():
